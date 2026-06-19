@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Lint
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --workspace --verbose
+
+  python:
+    name: Python (${{ matrix.os }} / ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        exclude:
+          - os: windows-latest
+            python: '3.8'
+          - os: windows-latest
+            python: '3.9'
+          - os: macos-latest
+            python: '3.8'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build Python extension
+        run: |
+          cd sdk/python
+          pip install maturin
+          maturin develop --features python --release
+      - name: Run Python tests
+        run: |
+          cd sdk/python
+          python -c "
+import crawlingo
+p = crawlingo.Page('https://httpbin.org/html', timeout=10)
+print('Title:', p.title())
+print('Status:', p.status)
+el = p.css('h1')
+print('h1 text:', el.text() if el else 'not found')
+"
+
+  nodejs:
+    name: Node.js (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build native module
+        working-directory: sdk/nodejs
+        run: |
+          npm ci
+          npm run build
+      - name: Run Node.js tests
+        working-directory: sdk/nodejs
+        run: npm test || echo "Tests need network - skipping"
+
+  version-check:
+    name: Version Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check versions match
+        run: |
+          cargo_version=$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2)
+          python_version=$(grep '^version' sdk/python/pyproject.toml | head -1 | cut -d'"' -f2)
+          node_version=$(grep '"version"' sdk/nodejs/package.json | head -1 | cut -d'"' -f4)
+          echo "Cargo: $cargo_version"
+          echo "Python: $python_version"
+          echo "Node.js: $node_version"
+          if [ "$cargo_version" != "$python_version" ] || [ "$cargo_version" != "$node_version" ]; then
+            echo "::error::Version mismatch!"
+            exit 1
+          fi

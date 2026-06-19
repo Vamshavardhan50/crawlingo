@@ -1,0 +1,39 @@
+# Rust Build Artifacts
+/target/
+Cargo.lock
+
+# Python virtual environment and build folders
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+build/
+dist/
+*.egg-info/
+.maturin/
+
+# Local databases and logs
+.flowscrape/
+*.log
+*.db
+*.csv
+*.json
+*.parquet
+# Node dependencies
+node_modules/
+
+# Local database cache
+.crawlingo/
+
+# Production builds
+docs-v2/dist/
+sdk/nodejs/dist/
+
+# Windows reserved device filename
+nul
+/nul

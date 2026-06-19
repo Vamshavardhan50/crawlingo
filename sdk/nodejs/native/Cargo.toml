@@ -1,0 +1,19 @@
+[package]
+name = "crawlingo-native"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "2.16.8", features = ["tokio_rt", "async", "serde-json"] }
+napi-derive = "2.16.2"
+crawlingo = { path = "../../.." }
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+serde_json = "1"
+csv = "1.3"
+
+[build-dependencies]
+napi-build = "2.1.3"

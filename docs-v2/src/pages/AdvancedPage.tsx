@@ -1,0 +1,126 @@
+import { motion } from 'framer-motion';
+import CodeBlock from '@/components/ui/CodeBlock';
+import Callout from '@/components/ui/Callout';
+import Tabs from '@/components/ui/Tabs';
+import HoverBorderCard from '@/components/ui/HoverBorderCard';
+
+export default function AdvancedPage() {
+  return (
+    <div className="space-y-12">
+      {/* Title */}
+      <motion.div
+        className="pb-6 border-b border-gray-200 dark:border-white/10"
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h1 className="text-display-sm md:text-display-md font-bold text-black dark:text-white tracking-tight mb-3">
+          Advanced Core Internals
+        </h1>
+        <p className="text-base text-gray-600 dark:text-gray-400 max-w-2xl leading-relaxed">
+          Deep dive into DOM fingerprint weights, sled key-value storage layouts, error recovery policies, and concurrency governors.
+        </p>
+      </motion.div>
+
+      {/* Auto-Match Math weights */}
+      <section className="scroll-mt-20" id="weights">
+        <h2 className="text-lg font-semibold text-black dark:text-white mb-4">Auto-Match Similarity Weights</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          When a selector drifts, candidate nodes are scored against the cached profile. By default, Crawlingo uses pre-tuned weights. However, you can customize these weights dynamically on your `Session` configuration to optimize recovery for specific site structures.
+        </p>
+        <div className="mb-6">
+          <CodeBlock
+            language="python"
+            filename="custom_weights.py"
+            code={`session = Session()
+session.auto_match(True)
+
+# Customize similarity scoring weights
+session.auto_match_weights({
+    "text": 3.0,       # Increase focus on literal text content matches
+    "class": 1.0,      # De-emphasize mutated classes
+    "ancestor": 2.0,   # Prioritize stable hierarchy tags
+    "attribute": 1.0,  # Standard attribute matches (id, role, etc)
+    "tag": 1.0,        # Match tag types (e.g. span, div)
+    "depth": 0.5       # Tree depth hierarchy offsets
+})`}
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <HoverBorderCard className="p-5">
+            <span className="text-[10px] font-mono text-gray-400 uppercase font-semibold">Weight 2.0</span>
+            <h4 className="text-sm font-semibold text-black dark:text-white mt-1 mb-2">Jaro-Winkler Text</h4>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Compares node inner text values, allowing characters edits/typos without failure.</p>
+          </HoverBorderCard>
+          <HoverBorderCard className="p-5">
+            <span className="text-[10px] font-mono text-gray-400 uppercase font-semibold">Weight 1.5</span>
+            <h4 className="text-sm font-semibold text-black dark:text-white mt-1 mb-2">Jaccard Class Similarity</h4>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Evaluates class intersection sets to check layout styling consistency.</p>
+          </HoverBorderCard>
+          <HoverBorderCard className="p-5">
+            <span className="text-[10px] font-mono text-gray-400 uppercase font-semibold">Weight 1.5</span>
+            <h4 className="text-sm font-semibold text-black dark:text-white mt-1 mb-2">Ancestor Tag Path</h4>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Verifies path hierarchies (tags and structural parents) up to 5 levels high.</p>
+          </HoverBorderCard>
+          <HoverBorderCard className="p-5">
+            <span className="text-[10px] font-mono text-gray-400 uppercase font-semibold">Weight 1.0</span>
+            <h4 className="text-sm font-semibold text-black dark:text-white mt-1 mb-2">Attributes Mapping</h4>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Scores matching custom metadata attributes like item prices or stock status.</p>
+          </HoverBorderCard>
+        </div>
+      </section>
+
+      {/* Sled storage layout */}
+      <section className="scroll-mt-20" id="database">
+        <h2 className="text-lg font-semibold text-black dark:text-white mb-3">Database Storage (sled)</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          DOM fingerprints are stored in an embedded, lock-free key-value database powered by `sled`.
+        </p>
+        <CodeBlock
+          language="python"
+          filename="db_config.py"
+          code={`# Default database path: "./.crawlingo"
+session.fingerprint_path("./.crawlingo")
+
+# Keys match schema format: "{url_xxh64_hash}:{selector_hash}"
+# Values hold bincode serialized DOM profiles.`}
+        />
+      </section>
+
+      {/* Exception details */}
+      <section className="scroll-mt-20" id="errors">
+        <h2 className="text-lg font-semibold text-black dark:text-white mb-3">Error Definitions</h2>
+        <Tabs
+          tabs={[
+            {
+              id: 'python',
+              label: 'Python exceptions',
+              content: (
+                <CodeBlock
+                  language="python"
+                  filename="errors.py"
+                  showLineNumbers
+                  code={`from crawlingo.exceptions import (
+    FetchError,       # Network timeouts, proxy issues, status >= 400
+    ParseError,       # Lol-html failure
+    AutoMatchFailed,  # Drift detected but score below threshold
+    RateLimitError,   # Governor pool rate limits triggered
+)
+
+try:
+    page = session.page("https://example.com")
+except AutoMatchFailed:
+    print("Could not restore selector.")`}
+                />
+              ),
+            },
+          ]}
+        />
+      </section>
+
+      <Callout type="warning">
+        The sled database does not automatically clean stale URLs. Periodically purge files under the configured storage directory if crawling massive sites.
+      </Callout>
+    </div>
+  );
+}
