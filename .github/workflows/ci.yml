@@ -92,7 +92,7 @@ print('h1 text:', el.text() if el else 'not found')
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Cache Cargo
         uses: actions/cache@v4
         with:
