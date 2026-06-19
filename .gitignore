@@ -24,6 +24,13 @@ dist/
 *.csv
 *.json
 *.parquet
+
+# Do not ignore configuration and package JSON files
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.*.json
+!tsconfig.node.json
 # Node dependencies
 node_modules/
 

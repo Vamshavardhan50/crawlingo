@@ -1,0 +1,27 @@
+{
+  "name": "crawlingo",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Crawlingo - next-generation web scraping and monitoring framework",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "napi": {
+    "name": "crawlingo-native",
+    "triples": {
+      "defaults": true,
+      "additional": []
+    }
+  },
+  "scripts": {
+    "build": "napi build --platform --release --js src/native.js --dts src/native.d.ts --cargo-cwd native .",
+    "build:debug": "napi build --platform --js src/native.js --dts src/native.d.ts --cargo-cwd native .",
+    "prepack": "tsc && node -e \"const fs = require('fs'); fs.copyFileSync('src/native.js', 'dist/native.js'); fs.copyFileSync('src/native.d.ts', 'dist/native.d.ts'); fs.readdirSync('.').filter(f => f.endsWith('.node')).forEach(f => fs.copyFileSync(f, 'dist/' + f)); fs.readdirSync('src').filter(f => f.endsWith('.node')).forEach(f => fs.copyFileSync('src/' + f, 'dist/' + f));\"",
+    "build:ts": "tsc",
+    "test": "node --experimental-vm-modules tests/integration.test.ts"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.4",
+    "@types/node": "^25.9.3",
+    "typescript": "^5.4.5"
+  }
+}
