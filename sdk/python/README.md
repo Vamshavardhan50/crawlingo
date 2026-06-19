@@ -1,5 +1,9 @@
 # Crawlingo Python SDK
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/crawlingo.jpg" width="180" alt="Crawlingo Logo" />
+</p>
+
 Crawlingo is a next-generation web data extraction, crawling, and website monitoring framework. It wraps a high-performance Rust core in an elegant, React-inspired developer-first Python API.
 
 ## Installation
