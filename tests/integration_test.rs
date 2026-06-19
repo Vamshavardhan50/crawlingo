@@ -63,7 +63,11 @@ fn test_integration_flow() {
     
     // Verify it detected a PriceChange variant
     match &changes[0].change_type {
-        crawlingo::change::detector::ChangeType::PriceChange { old_price, new_price, .. } => {
+        crawlingo::change::detector::ChangeType::PriceChange {
+            old_price,
+            new_price,
+            ..
+        } => {
             assert_eq!(*old_price, 299.99);
             assert_eq!(*new_price, 249.99);
         }
