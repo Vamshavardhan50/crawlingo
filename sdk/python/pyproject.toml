@@ -28,7 +28,7 @@ module-name = "crawlingo._crawlingo_core"
 python-source = "."
 
 [tool.cibuildwheel]
-build-frontend = "maturin"
+build-frontend = "pip"
 build = "cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
 before-all = "pip install maturin"
 test-command = "python -c \"import crawlingo; print(crawlingo.__version__)\""

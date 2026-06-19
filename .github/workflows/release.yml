@@ -123,20 +123,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check Cargo.toml version
+      - name: Check version consistency
         run: |
           cargo_version=$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2)
-          echo "Cargo version: $cargo_version"
-      - name: Check Python version
-        run: |
           python_version=$(grep '^version' sdk/python/pyproject.toml | head -1 | cut -d'"' -f2)
-          echo "Python version: $python_version"
-      - name: Check Node.js version
-        run: |
           node_version=$(grep '"version"' sdk/nodejs/package.json | head -1 | cut -d'"' -f4)
+          echo "Cargo version: $cargo_version"
+          echo "Python version: $python_version"
           echo "Node.js version: $node_version"
-      - name: Compare versions
-        run: |
           if [ "$cargo_version" != "$python_version" ] || [ "$cargo_version" != "$node_version" ]; then
             echo "Version mismatch!"
             exit 1
