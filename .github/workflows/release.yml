@@ -12,19 +12,27 @@ permissions:
 
 jobs:
   python-wheels:
-    name: Build Python Wheels
-    uses: pypa/cibuildwheel@v2.21
-    with:
-      package-dir: sdk/python
-      config-file: pyproject.toml
-      platform: linux macos windows
-      build: cp38-cp313
-      before-all: |
-        pip install maturin
-      environment:
-        CIBW_BUILD_VERBOSITY: 1
-        CIBW_TEST_COMMAND: python -c "import crawlingo; print(crawlingo.__version__)"
-    secrets: inherit
+    name: Build Python Wheels (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU (for arm64 Linux builds)
+        if: matrix.os == 'ubuntu-latest'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21
+        with:
+          package-dir: sdk/python
+        env:
+          CIBW_BUILD_VERBOSITY: 1
+          CIBW_TEST_COMMAND: python -c "import crawlingo; print(crawlingo.__version__)"
+          CIBW_BEFORE_ALL: pip install maturin
+
 
   npm-native:
     name: Build & Publish NPM Package
