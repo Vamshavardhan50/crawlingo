@@ -44,3 +44,4 @@ sdk/nodejs/dist/
 # Windows reserved device filename
 nul
 /nul
+*.tsbuildinfo

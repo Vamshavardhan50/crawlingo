@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, BookOpen, Layers, Zap, Code2, Puzzle, Wrench, HelpCircle, FileText, Map, ArrowRight } from 'lucide-react';
+import { ChevronRight, BookOpen, Layers, Zap, Code2, Puzzle, Wrench, HelpCircle, FileText, Map, ArrowRight, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {
@@ -27,6 +27,7 @@ const navigation: NavGroup[] = [
     items: [
       { title: 'Introduction', path: '/', icon: <BookOpen size={16} /> },
       { title: 'Quick Start', path: '/getting-started', icon: <Zap size={16} /> },
+      { title: 'Interactive Demo', path: '/demo', icon: <Play size={16} />, badge: 'Watch' },
     ],
   },
   {

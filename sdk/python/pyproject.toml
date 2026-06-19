@@ -30,9 +30,15 @@ python-source = "."
 [tool.cibuildwheel]
 build-frontend = "maturin"
 build = "cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
-linux = "manylinux2014_x86_64 manylinux2014_aarch64"
-macos = "universal2"
-windows = "win32 win_amd64"
 before-all = "pip install maturin"
 test-command = "python -c \"import crawlingo; print(crawlingo.__version__)\""
 environment = { CIBW_BUILD_VERBOSITY = "1" }
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64", "aarch64"]
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64", "x86"]
