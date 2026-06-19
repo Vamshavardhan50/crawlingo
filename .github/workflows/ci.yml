@@ -72,14 +72,7 @@ jobs:
       - name: Run Python tests
         run: |
           cd sdk/python
-          python -c "
-import crawlingo
-p = crawlingo.Page('https://httpbin.org/html', timeout=10)
-print('Title:', p.title())
-print('Status:', p.status)
-el = p.css('h1')
-print('h1 text:', el.text() if el else 'not found')
-"
+          python -c "import crawlingo; p = crawlingo.Page('https://httpbin.org/html', timeout=10); print('Title:', p.title()); print('Status:', p.status); el = p.css('h1'); print('h1 text:', el.text() if el else 'not found')"
 
   nodejs:
     name: Node.js (${{ matrix.os }})
