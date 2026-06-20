@@ -181,10 +181,12 @@ function waitlistPlugin() {
                         <div class="message">
                           Hi <span class="highlight">${name}</span>,<br/><br/>
                           Thank you for requesting early access to <strong>Crawlingo</strong>, the self-healing scraping framework designed to survive website DOM changes.<br/><br/>
-                          We have reserved your spot in line. We are rolling out private beta access in batches to ensure platform stability. As soon as a slot opens up, we will send your invitation link to this email address (<span class="highlight">${email}</span>).
+                          We have reserved your spot in line. We are rolling out private beta access in batches to ensure platform stability. As soon as a slot opens up, we will send your invitation link to this email address (<span class="highlight">${email}</span>).<br/><br/>
+                          In the meantime, feel free to join our WhatsApp community to connect with other developers and get updates:
                         </div>
                         <div class="button-container">
-                          <a class="btn" href="https://github.com/Vamshavardhan50/crawlingo" target="_blank">View GitHub Repository</a>
+                          <a class="btn" href="https://github.com/Vamshavardhan50/crawlingo" target="_blank" style="margin-right: 12px; margin-bottom: 12px;">View GitHub Repository</a>
+                          <a class="btn" href="${process.env.WHATSAPP_GROUP_LINK || '#'}" target="_blank" style="background-color: #25D366; color: #ffffff; margin-bottom: 12px;">Join WhatsApp Group</a>
                         </div>
                         <div class="footer">
                           You received this because you signed up for the Crawlingo Waitlist.<br/>

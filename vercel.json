@@ -1,7 +1,10 @@
 {
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/api/waitlist", "destination": "/docs-v2/api/waitlist" },
-    { "source": "/((?!api/).*)", "destination": "/docs-v2/index.html" }
+  "routes": [
+    { "src": "/api/waitlist", "dest": "/docs-v2/api/waitlist" },
+    { "src": "/docs-v2/assets/(.*)", "dest": "/docs-v2/assets/$1" },
+    { "src": "/logo.svg", "dest": "/logo.svg" },
+    { "src": "/docs-v2/logo.svg", "dest": "/docs-v2/logo.svg" },
+    { "src": "/[^.]*", "dest": "/docs-v2/index.html" }
   ]
 }

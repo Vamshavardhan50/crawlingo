@@ -1,7 +1,10 @@
 {
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/api/waitlist", "destination": "/api/waitlist" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  "routes": [
+    { "src": "/api/waitlist", "dest": "/api/waitlist" },
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
+    { "src": "/logo.svg", "dest": "/logo.svg" },
+    { "src": "/favicon.svg", "dest": "/favicon.svg" },
+    { "src": "/[^.]*", "dest": "/index.html" }
   ]
 }
