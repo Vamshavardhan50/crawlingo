@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Menu, X, Github, Sun, Moon, ArrowRight, FileText, Book, Code2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import EagleLogo from '@/components/ui/EagleLogo';
 
@@ -86,6 +87,14 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              to="/waitlist"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black text-xs font-semibold hover:opacity-90 transition-opacity mr-2"
+            >
+              Join Waitlist
+              <ArrowRight size={12} />
+            </Link>
+
             <button
               onClick={() => setIsSearchOpen(true)}
               className="md:hidden p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"
