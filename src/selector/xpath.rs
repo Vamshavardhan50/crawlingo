@@ -3,7 +3,7 @@ use crate::parser::document::{DomNode, DomTree};
 #[derive(Debug, Clone)]
 pub struct XPathSegment {
     pub tag: String,
-    pub is_descendant: bool, // true for '//', false for '/'
+    pub is_descendant: bool,                   // true for '//', false for '/'
     pub attr_filter: Option<(String, String)>, // e.g. Some(("class", "price"))
 }
 
@@ -57,7 +57,8 @@ pub fn parse_xpath(xpath_str: &str) -> Option<CompiledXPath> {
                     let parts: Vec<&str> = filter[1..].split('=').collect();
                     if parts.len() == 2 {
                         let attr_name = parts[0].trim().to_string();
-                        let attr_val = parts[1].trim()
+                        let attr_val = parts[1]
+                            .trim()
                             .trim_matches('\'')
                             .trim_matches('"')
                             .to_string();

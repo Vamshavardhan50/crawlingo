@@ -1,7 +1,7 @@
+use crate::fingerprint::dom::{AncestorNode, DomFingerprint};
+use crate::parser::document::{DomNode, DomTree};
 use std::collections::{HashMap, HashSet};
 use strsim::jaro_winkler;
-use crate::parser::document::{DomNode, DomTree};
-use crate::fingerprint::dom::{DomFingerprint, AncestorNode};
 
 /// Holds individual similarity metrics and a composite total.
 #[derive(Debug, Clone, Copy)]
@@ -45,7 +45,10 @@ pub fn class_similarity(classes_a: &[String], classes_b: &[String]) -> f64 {
 }
 
 /// Compares attribute maps using Jaccard index.
-pub fn attribute_similarity(attrs_a: &HashMap<String, String>, attrs_b: &HashMap<String, String>) -> f64 {
+pub fn attribute_similarity(
+    attrs_a: &HashMap<String, String>,
+    attrs_b: &HashMap<String, String>,
+) -> f64 {
     let set_a: HashSet<(&String, &String)> = attrs_a.iter().collect();
     let set_b: HashSet<(&String, &String)> = attrs_b.iter().collect();
     jaccard_similarity(&set_a, &set_b)
@@ -74,7 +77,7 @@ pub fn ancestor_similarity(path_a: &[AncestorNode], path_b: &[AncestorNode]) -> 
             if node_a.tag != node_b.tag {
                 continue;
             }
-            
+
             let mut score = 0.4; // Base score for same tag
             if !node_a.id.is_empty() && node_a.id == node_b.id {
                 score += 0.3;
@@ -82,10 +85,14 @@ pub fn ancestor_similarity(path_a: &[AncestorNode], path_b: &[AncestorNode]) -> 
             if !node_a.class.is_empty() && node_a.class == node_b.class {
                 score += 0.3;
             }
-            if node_a.id.is_empty() && node_b.id.is_empty() && node_a.class.is_empty() && node_b.class.is_empty() {
+            if node_a.id.is_empty()
+                && node_b.id.is_empty()
+                && node_a.class.is_empty()
+                && node_b.class.is_empty()
+            {
                 score += 0.6; // Perfect match for empty tag
             }
-            
+
             if score > best_node_score {
                 best_node_score = score;
                 best_b_idx = Some(i);
@@ -127,7 +134,9 @@ pub fn composite_score(
     let text_val = tree.get_text(node_idx);
     let text_score = text_similarity(&text_val, &fingerprint.text);
 
-    let class_list: Vec<String> = node.attrs.get("class")
+    let class_list: Vec<String> = node
+        .attrs
+        .get("class")
         .map(|c| c.split_whitespace().map(|s| s.to_string()).collect())
         .unwrap_or_default();
     let class_score = class_similarity(&class_list, &fingerprint.class_list);
@@ -156,12 +165,24 @@ pub fn composite_score(
     let tag_score_val = tag_score(&node.tag, &fingerprint.tag);
 
     // Compound weights
-    let w_text = custom_weights.and_then(|w| w.get("text").cloned()).unwrap_or(2.0);
-    let w_class = custom_weights.and_then(|w| w.get("class").cloned()).unwrap_or(1.5);
-    let w_ancestor = custom_weights.and_then(|w| w.get("ancestor").cloned()).unwrap_or(1.5);
-    let w_attr = custom_weights.and_then(|w| w.get("attribute").cloned()).unwrap_or(1.0);
-    let w_tag = custom_weights.and_then(|w| w.get("tag").cloned()).unwrap_or(1.0);
-    let w_depth = custom_weights.and_then(|w| w.get("depth").cloned()).unwrap_or(0.5);
+    let w_text = custom_weights
+        .and_then(|w| w.get("text").cloned())
+        .unwrap_or(2.0);
+    let w_class = custom_weights
+        .and_then(|w| w.get("class").cloned())
+        .unwrap_or(1.5);
+    let w_ancestor = custom_weights
+        .and_then(|w| w.get("ancestor").cloned())
+        .unwrap_or(1.5);
+    let w_attr = custom_weights
+        .and_then(|w| w.get("attribute").cloned())
+        .unwrap_or(1.0);
+    let w_tag = custom_weights
+        .and_then(|w| w.get("tag").cloned())
+        .unwrap_or(1.0);
+    let w_depth = custom_weights
+        .and_then(|w| w.get("depth").cloned())
+        .unwrap_or(0.5);
     let total_weights = w_text + w_class + w_ancestor + w_attr + w_tag + w_depth;
 
     let weighted_sum = (text_score * w_text)

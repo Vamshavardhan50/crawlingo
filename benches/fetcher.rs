@@ -1,5 +1,5 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use crawlingo::engine::rate_limiter::HostRateLimiter;
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use tokio::runtime::Runtime;
 
 fn bench_rate_limiter(c: &mut Criterion) {

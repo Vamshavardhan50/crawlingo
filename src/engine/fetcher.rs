@@ -1,8 +1,8 @@
-use std::sync::Arc;
-use std::time::Duration;
-use crate::error::{CrawlingoError, Result};
 use crate::engine::pool::ConnectionPoolConfig;
 use crate::engine::rate_limiter::HostRateLimiter;
+use crate::error::{CrawlingoError, Result};
+use std::sync::Arc;
+use std::time::Duration;
 use wreq::{Client, Method, RequestBuilder, Response};
 use wreq_util::Emulation;
 
@@ -48,7 +48,7 @@ impl Fetcher {
         let parsed_url = url::Url::parse(&request.url)
             .map_err(|e| CrawlingoError::FetchError(format!("Invalid URL: {}", e)))?;
         let host = parsed_url.host_str().unwrap_or("");
-        
+
         self.rate_limiter.wait(host, request.rate_limit_rps).await;
 
         // 2. Build the wreq Client
@@ -76,7 +76,8 @@ impl Fetcher {
             builder = builder.emulation(emulation);
         }
 
-        let client = builder.build()
+        let client = builder
+            .build()
             .map_err(|e| CrawlingoError::FetchError(format!("Failed to build client: {}", e)))?;
 
         // 3. Dispatch the Request with Exponential Backoff
@@ -93,7 +94,9 @@ impl Fetcher {
 
             // Attach Cookies manually if present (wreq manages cookie jar internally, but we support session initialization cookies)
             if !request.cookies.is_empty() {
-                let cookie_str = request.cookies.iter()
+                let cookie_str = request
+                    .cookies
+                    .iter()
                     .map(|(k, v)| format!("{}={}", k, v))
                     .collect::<Vec<String>>()
                     .join("; ");
@@ -104,8 +107,14 @@ impl Fetcher {
                 Ok(resp) => {
                     // Check if response is successful status or a retryable code (like 5xx, 429)
                     let status = resp.status();
-                    if (status.is_server_error() || status.as_u16() == 429) && attempt < request.retries {
-                        tracing::warn!("Retryable status code received: {}. Retrying in {:?}", status, delay);
+                    if (status.is_server_error() || status.as_u16() == 429)
+                        && attempt < request.retries
+                    {
+                        tracing::warn!(
+                            "Retryable status code received: {}. Retrying in {:?}",
+                            status,
+                            delay
+                        );
                         tokio::time::sleep(delay).await;
                         attempt += 1;
                         delay *= 2;
@@ -120,7 +129,10 @@ impl Fetcher {
                         attempt += 1;
                         delay *= 2;
                     } else {
-                        return Err(CrawlingoError::FetchError(format!("Fetch execution failed: {}", err)));
+                        return Err(CrawlingoError::FetchError(format!(
+                            "Fetch execution failed: {}",
+                            err
+                        )));
                     }
                 }
             }
@@ -151,6 +163,15 @@ mod tests {
         let res = fetcher.fetch(req).await;
         assert!(res.is_ok());
         let status = res.unwrap().status().as_u16();
-        assert!(status == 200 || status == 503 || status == 403 || status == 429 || status == 301 || status == 302, "Unexpected status code: {}", status);
+        assert!(
+            status == 200
+                || status == 503
+                || status == 403
+                || status == 429
+                || status == 301
+                || status == 302,
+            "Unexpected status code: {}",
+            status
+        );
     }
 }

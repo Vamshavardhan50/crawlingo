@@ -1,10 +1,10 @@
-use rayon::prelude::*;
 use crate::error::{CrawlingoError, Result};
-use crate::parser::document::DomTree;
-use crate::fingerprint::store::FingerprintStore;
 use crate::fingerprint::dom::DomFingerprint;
+use crate::fingerprint::store::FingerprintStore;
 use crate::matcher::scorer::composite_score;
+use crate::parser::document::DomTree;
 use crate::selector::css;
+use rayon::prelude::*;
 
 /// Resolves a CSS selector against a parsed `DomTree`.
 /// If the selector fails to match any elements, it attempts to load a saved fingerprint
@@ -28,7 +28,8 @@ pub fn auto_match(
     }
 
     // 2. Selector failed: load fingerprint
-    let fingerprint = store.load(url, selector)?
+    let fingerprint = store
+        .load(url, selector)?
         .ok_or(CrawlingoError::AutoMatchFailed)?;
 
     // 3. Parallel Jaro-Winkler + Jaccard similarity scoring using Rayon
@@ -38,14 +39,20 @@ pub fn auto_match(
             let score = composite_score(tree, idx, &fingerprint, weights);
             (idx, score)
         })
-        .max_by(|a, b| a.1.total.partial_cmp(&b.1.total).unwrap_or(std::cmp::Ordering::Equal));
+        .max_by(|a, b| {
+            a.1.total
+                .partial_cmp(&b.1.total)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
     if let Some((best_idx, score)) = best_match {
         // Recover if similarity exceeds 0.5 threshold
         if score.total > 0.5 {
             tracing::warn!(
                 "Auto-matcher recovered broken selector '{}' on URL '{}' with similarity: {:.4}",
-                selector, url, score.total
+                selector,
+                url,
+                score.total
             );
 
             // Save recovered node fingerprint to adapt to the new site layout
@@ -79,9 +86,10 @@ mod tests {
         assert_eq!(initial_tree.get_text(matched_idx), "$50");
 
         // Layout redesign: selector span.price breaks, class changes to span.price-tag
-        let redesigned_html = b"<html><body><div><span class='price-tag'>$50</span></div></body></html>";
+        let redesigned_html =
+            b"<html><body><div><span class='price-tag'>$50</span></div></body></html>";
         let redesigned_tree = parse_html(redesigned_html).unwrap();
-        
+
         // Recover using auto_match
         let recovered_idx = auto_match(&redesigned_tree, url, selector, &store, None).unwrap();
         assert_eq!(redesigned_tree.get_text(recovered_idx), "$50");

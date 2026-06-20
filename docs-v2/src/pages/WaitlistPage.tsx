@@ -243,7 +243,7 @@ export default function WaitlistPage() {
         {/* Waitlist Badge Counter Illustration */}
         <div className="text-center">
           <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
-            Join 1,024+ developers already in line
+            Join 500+ developers already in line
           </span>
         </div>
         

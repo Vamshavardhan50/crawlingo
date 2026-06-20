@@ -1,7 +1,7 @@
+use crate::engine::fetcher::FetcherTier;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::RwLock;
-use crate::engine::fetcher::FetcherTier;
 
 /// The internal shared state of a scraping session.
 pub struct Session {
@@ -49,7 +49,9 @@ impl Session {
         if pool.is_empty() {
             return None;
         }
-        let idx = self.proxy_index.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let idx = self
+            .proxy_index
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         Some(pool[idx % pool.len()].clone())
     }
 
@@ -70,11 +72,15 @@ impl Session {
                     rate_limit_rps: 0.0,
                 };
                 let rate_limiter = Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
-                let fetcher = crate::engine::fetcher::Fetcher::new(rate_limiter, crate::engine::pool::ConnectionPoolConfig::default());
+                let fetcher = crate::engine::fetcher::Fetcher::new(
+                    rate_limiter,
+                    crate::engine::pool::ConnectionPoolConfig::default(),
+                );
                 let resp = fetcher.fetch(req).await.map_err(|e| e.to_string())?;
                 let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
                 let text = String::from_utf8_lossy(&bytes).to_string();
-                let proxies: Vec<String> = text.lines()
+                let proxies: Vec<String> = text
+                    .lines()
                     .map(|s| s.trim().to_string())
                     .filter(|s| !s.is_empty())
                     .collect();
@@ -119,7 +125,10 @@ impl PySession {
     /// Set headers (returns self to enable fluent chaining)
     pub fn headers(self_: PyRef<'_, Self>, headers: HashMap<String, String>) -> PyResult<Py<Self>> {
         {
-            let mut h = self_.inner.headers.write()
+            let mut h = self_
+                .inner
+                .headers
+                .write()
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
             *h = headers;
         }
@@ -129,7 +138,10 @@ impl PySession {
     /// Set cookies (returns self)
     pub fn cookies(self_: PyRef<'_, Self>, cookies: HashMap<String, String>) -> PyResult<Py<Self>> {
         {
-            let mut c = self_.inner.cookies.write()
+            let mut c = self_
+                .inner
+                .cookies
+                .write()
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
             *c = cookies;
         }
@@ -139,7 +151,10 @@ impl PySession {
     /// Set proxy string (returns self)
     pub fn proxy(self_: PyRef<'_, Self>, proxy_url: Option<String>) -> PyResult<Py<Self>> {
         {
-            let mut p = self_.inner.proxy.write()
+            let mut p = self_
+                .inner
+                .proxy
+                .write()
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
             *p = proxy_url;
         }
@@ -149,7 +164,10 @@ impl PySession {
     /// Set rate limit per second (returns self)
     pub fn rate_limit(self_: PyRef<'_, Self>, requests_per_second: f64) -> PyResult<Py<Self>> {
         {
-            let mut r = self_.inner.rate_limit_rps.write()
+            let mut r = self_
+                .inner
+                .rate_limit_rps
+                .write()
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
             *r = requests_per_second;
         }
@@ -159,7 +177,10 @@ impl PySession {
     /// Enable or disable auto matcher recovery (returns self)
     pub fn auto_match(self_: PyRef<'_, Self>, enabled: bool) -> PyResult<Py<Self>> {
         {
-            let mut a = self_.inner.auto_match.write()
+            let mut a = self_
+                .inner
+                .auto_match
+                .write()
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
             *a = enabled;
         }
@@ -169,7 +190,10 @@ impl PySession {
     /// Set timeout seconds (returns self)
     pub fn timeout(self_: PyRef<'_, Self>, seconds: u64) -> PyResult<Py<Self>> {
         {
-            let mut t = self_.inner.timeout_seconds.write()
+            let mut t = self_
+                .inner
+                .timeout_seconds
+                .write()
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
             *t = seconds;
         }
@@ -179,7 +203,10 @@ impl PySession {
     /// Set fingerprint storage database directory path (returns self)
     pub fn fingerprint_path(self_: PyRef<'_, Self>, path: String) -> PyResult<Py<Self>> {
         {
-            let mut f = self_.inner.fingerprint_path.write()
+            let mut f = self_
+                .inner
+                .fingerprint_path
+                .write()
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
             *f = path;
         }
@@ -194,7 +221,10 @@ impl PySession {
             FetcherTier::Standard
         };
         {
-            let mut t = self_.inner.fetcher_tier.write()
+            let mut t = self_
+                .inner
+                .fetcher_tier
+                .write()
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
             *t = tier_enum;
         }
@@ -204,7 +234,10 @@ impl PySession {
     /// Set browser profile: "chrome", "firefox", "safari" (returns self)
     pub fn browser_profile(self_: PyRef<'_, Self>, profile: Option<String>) -> PyResult<Py<Self>> {
         {
-            let mut b = self_.inner.browser_profile.write()
+            let mut b = self_
+                .inner
+                .browser_profile
+                .write()
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
             *b = profile;
         }
@@ -212,9 +245,15 @@ impl PySession {
     }
 
     /// Set auto-match similarity weights dictionary (returns self)
-    pub fn auto_match_weights(self_: PyRef<'_, Self>, weights: HashMap<String, f64>) -> PyResult<Py<Self>> {
+    pub fn auto_match_weights(
+        self_: PyRef<'_, Self>,
+        weights: HashMap<String, f64>,
+    ) -> PyResult<Py<Self>> {
         {
-            let mut w = self_.inner.similarity_weights.write()
+            let mut w = self_
+                .inner
+                .similarity_weights
+                .write()
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
             *w = weights;
         }
@@ -224,7 +263,10 @@ impl PySession {
     /// Set proxy pool list of string URLs (returns self)
     pub fn proxy_pool(self_: PyRef<'_, Self>, proxies: Vec<String>) -> PyResult<Py<Self>> {
         {
-            let mut p = self_.inner.proxy_pool.write()
+            let mut p = self_
+                .inner
+                .proxy_pool
+                .write()
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
             *p = proxies;
         }
@@ -234,7 +276,10 @@ impl PySession {
     /// Set proxy provider API URL (returns self)
     pub fn proxy_provider(self_: PyRef<'_, Self>, url: Option<String>) -> PyResult<Py<Self>> {
         {
-            let mut u = self_.inner.proxy_provider_url.write()
+            let mut u = self_
+                .inner
+                .proxy_provider_url
+                .write()
                 .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
             *u = url;
         }
@@ -248,7 +293,12 @@ impl PySession {
         Ok(self_)
     }
 
-    fn __exit__(&self, _exc_type: &pyo3::Bound<'_, pyo3::types::PyAny>, _exc_value: &pyo3::Bound<'_, pyo3::types::PyAny>, _traceback: &pyo3::Bound<'_, pyo3::types::PyAny>) -> PyResult<()> {
+    fn __exit__(
+        &self,
+        _exc_type: &pyo3::Bound<'_, pyo3::types::PyAny>,
+        _exc_value: &pyo3::Bound<'_, pyo3::types::PyAny>,
+        _traceback: &pyo3::Bound<'_, pyo3::types::PyAny>,
+    ) -> PyResult<()> {
         Ok(())
     }
 }

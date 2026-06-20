@@ -30,13 +30,13 @@ impl DomTree {
     pub fn add_node(&mut self, mut node: DomNode) -> usize {
         let new_idx = self.nodes.len();
         node.index = new_idx;
-        
+
         if let Some(parent_idx) = node.parent {
             if parent_idx < self.nodes.len() {
                 self.nodes[parent_idx].children.push(new_idx);
             }
         }
-        
+
         self.nodes.push(node);
         new_idx
     }
@@ -93,20 +93,26 @@ impl PyElement {
 
     /// Get the HTML snippet of the element.
     pub fn html(&self) -> String {
-        self.tree.nodes.get(self.node_index)
+        self.tree
+            .nodes
+            .get(self.node_index)
             .map(|n| n.html_snippet.clone())
             .unwrap_or_default()
     }
 
     /// Get an attribute value.
     pub fn attr(&self, name: &str) -> Option<String> {
-        self.tree.nodes.get(self.node_index)
+        self.tree
+            .nodes
+            .get(self.node_index)
             .and_then(|n| n.attrs.get(name).cloned())
     }
 
     /// Get all attributes as a dictionary.
     pub fn attrs(&self) -> HashMap<String, String> {
-        self.tree.nodes.get(self.node_index)
+        self.tree
+            .nodes
+            .get(self.node_index)
             .map(|n| n.attrs.clone())
             .unwrap_or_default()
     }
@@ -123,7 +129,10 @@ impl PyElement {
 
     /// Get children.
     pub fn children(&self) -> PyElementCollection {
-        let child_indices = self.tree.nodes.get(self.node_index)
+        let child_indices = self
+            .tree
+            .nodes
+            .get(self.node_index)
             .map(|n| n.children.clone())
             .unwrap_or_default();
         PyElementCollection {
@@ -137,7 +146,10 @@ impl PyElement {
         let node = self.tree.nodes.get(self.node_index)?;
         let parent_idx = node.parent?;
         let parent_node = self.tree.nodes.get(parent_idx)?;
-        let pos = parent_node.children.iter().position(|&idx| idx == self.node_index)?;
+        let pos = parent_node
+            .children
+            .iter()
+            .position(|&idx| idx == self.node_index)?;
         let next_sibling_idx = *parent_node.children.get(pos + 1)?;
         Some(PyElement {
             tree: self.tree.clone(),
@@ -150,7 +162,10 @@ impl PyElement {
         let node = self.tree.nodes.get(self.node_index)?;
         let parent_idx = node.parent?;
         let parent_node = self.tree.nodes.get(parent_idx)?;
-        let pos = parent_node.children.iter().position(|&idx| idx == self.node_index)?;
+        let pos = parent_node
+            .children
+            .iter()
+            .position(|&idx| idx == self.node_index)?;
         if pos == 0 {
             return None;
         }
@@ -167,7 +182,9 @@ impl PyElement {
         if let Some(node) = self.tree.nodes.get(self.node_index) {
             if let Some(parent_idx) = node.parent {
                 if let Some(parent_node) = self.tree.nodes.get(parent_idx) {
-                    sibling_indices = parent_node.children.iter()
+                    sibling_indices = parent_node
+                        .children
+                        .iter()
                         .copied()
                         .filter(|&idx| idx != self.node_index)
                         .collect();
@@ -222,7 +239,8 @@ impl PyElementCollection {
 
     /// Join and return text of all matched nodes.
     pub fn text(&self) -> String {
-        self.node_indices.iter()
+        self.node_indices
+            .iter()
             .map(|&idx| self.tree.get_text(idx))
             .filter(|s| !s.is_empty())
             .collect::<Vec<String>>()
@@ -231,7 +249,8 @@ impl PyElementCollection {
 
     /// Get list of text values.
     pub fn texts(&self) -> Vec<String> {
-        self.node_indices.iter()
+        self.node_indices
+            .iter()
             .map(|&idx| self.tree.get_text(idx))
             .collect()
     }

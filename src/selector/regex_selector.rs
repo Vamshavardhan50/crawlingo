@@ -1,8 +1,8 @@
-use once_cell::sync::Lazy;
-use dashmap::DashMap;
-use regex::Regex;
-use crate::parser::document::DomTree;
 use crate::error::{CrawlingoError, Result};
+use crate::parser::document::DomTree;
+use dashmap::DashMap;
+use once_cell::sync::Lazy;
+use regex::Regex;
 
 static REGEX_CACHE: Lazy<DashMap<String, Regex>> = Lazy::new(DashMap::new);
 

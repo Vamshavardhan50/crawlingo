@@ -1,14 +1,20 @@
-use std::collections::{HashMap, HashSet};
+use chrono::{DateTime, Utc};
 use rayon::prelude::*;
 use serde::Serialize;
-use chrono::{DateTime, Utc};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type")]
 pub enum ChangeType {
     ContentChange,
-    PriceChange { old_price: f64, new_price: f64, diff_pct: f64 },
-    StockChange { in_stock: bool },
+    PriceChange {
+        old_price: f64,
+        new_price: f64,
+        diff_pct: f64,
+    },
+    StockChange {
+        in_stock: bool,
+    },
     ElementAdded,
     ElementRemoved,
     LayoutChange,
@@ -29,7 +35,8 @@ pub struct ChangeEvent {
 
 // Helper to strip currency and parse floats
 fn parse_price(val: &str) -> Option<f64> {
-    let clean: String = val.chars()
+    let clean: String = val
+        .chars()
         .filter(|c| c.is_digit(10) || *c == '.' || *c == '-')
         .collect();
     clean.parse::<f64>().ok()
@@ -38,7 +45,10 @@ fn parse_price(val: &str) -> Option<f64> {
 // Helper to detect stock status
 fn is_stock_status(val: &str) -> bool {
     let l = val.to_lowercase();
-    l.contains("in stock") || l.contains("out of stock") || l.contains("sold out") || l.contains("available")
+    l.contains("in stock")
+        || l.contains("out of stock")
+        || l.contains("sold out")
+        || l.contains("available")
 }
 
 /// Detects changes between old and new dataset maps in parallel.
@@ -57,7 +67,8 @@ pub fn detect_changes(
 
     let fields_vec: Vec<String> = all_fields.into_iter().collect();
 
-    fields_vec.into_par_iter()
+    fields_vec
+        .into_par_iter()
         .filter_map(|field| {
             let old_opt = old_data.get(&field);
             let new_opt = new_data.get(&field);
@@ -88,16 +99,23 @@ pub fn detect_changes(
                         None // No change
                     } else {
                         // Classify change type
-                        let change_type = if let (Some(old_price), Some(new_price)) = (parse_price(old_val), parse_price(new_val)) {
+                        let change_type = if let (Some(old_price), Some(new_price)) =
+                            (parse_price(old_val), parse_price(new_val))
+                        {
                             // Check if it looks like a price change
                             let diff_pct = if old_price != 0.0 {
                                 ((new_price - old_price) / old_price) * 100.0
                             } else {
                                 0.0
                             };
-                            ChangeType::PriceChange { old_price, new_price, diff_pct }
+                            ChangeType::PriceChange {
+                                old_price,
+                                new_price,
+                                diff_pct,
+                            }
                         } else if is_stock_status(old_val) || is_stock_status(new_val) {
-                            let in_stock = new_val.to_lowercase().contains("in stock") || new_val.to_lowercase().contains("available");
+                            let in_stock = new_val.to_lowercase().contains("in stock")
+                                || new_val.to_lowercase().contains("available");
                             ChangeType::StockChange { in_stock }
                         } else {
                             ChangeType::ContentChange

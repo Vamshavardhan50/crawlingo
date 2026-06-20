@@ -1,17 +1,17 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use chrono::{DateTime, Utc};
-use crate::error::{CrawlingoError, Result};
-use crate::engine::session::Session;
+use crate::engine::fetcher::{FetchRequest, Fetcher, FetcherTier};
+use crate::engine::pool::ConnectionPoolConfig;
 #[cfg(feature = "python")]
 use crate::engine::session::PySession;
-use crate::engine::fetcher::{Fetcher, FetchRequest, FetcherTier};
-use crate::engine::pool::ConnectionPoolConfig;
-use crate::parser::streaming::parse_html;
-use crate::parser::document::DomTree;
-use crate::selector::{css, xpath, text_anchor, regex_selector};
+use crate::engine::session::Session;
+use crate::error::{CrawlingoError, Result};
 use crate::fingerprint::store::FingerprintStore;
 use crate::matcher::auto_matcher;
+use crate::parser::document::DomTree;
+use crate::parser::streaming::parse_html;
+use crate::selector::{css, regex_selector, text_anchor, xpath};
+use chrono::{DateTime, Utc};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Represents a field to extract.
 #[derive(Debug, Clone)]
@@ -88,8 +88,11 @@ impl Dataset {
         let rate_limiter = Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
         let fetcher = Fetcher::new(rate_limiter, ConnectionPoolConfig::default());
         let resp = fetcher.fetch(req).await?;
-        let bytes = resp.bytes().await.map_err(|e| CrawlingoError::FetchError(e.to_string()))?;
-        
+        let bytes = resp
+            .bytes()
+            .await
+            .map_err(|e| CrawlingoError::FetchError(e.to_string()))?;
+
         let tree = parse_html(&bytes)?;
 
         // Open sled fingerprint store
@@ -115,15 +118,22 @@ impl Dataset {
             // Auto-matching recovery logic
             if matches.is_empty() && auto_match_enabled && f.selector_type == "css" {
                 let weights = self.session.similarity_weights.read().unwrap();
-                let weights_opt = if weights.is_empty() { None } else { Some(&*weights) };
-                if let Ok(recovered_idx) = auto_matcher::auto_match(&tree, &self.url, &f.selector, &store, weights_opt) {
+                let weights_opt = if weights.is_empty() {
+                    None
+                } else {
+                    Some(&*weights)
+                };
+                if let Ok(recovered_idx) =
+                    auto_matcher::auto_match(&tree, &self.url, &f.selector, &store, weights_opt)
+                {
                     matches = vec![recovered_idx];
                 }
             }
 
             // Extract combined text
             if !matches.is_empty() {
-                let combined_text = matches.iter()
+                let combined_text = matches
+                    .iter()
                     .map(|&idx| tree.get_text(idx))
                     .collect::<Vec<String>>()
                     .join(" ");
@@ -134,7 +144,9 @@ impl Dataset {
             }
 
             // Fallback to default
-            let final_val = extracted_val.or_else(|| f.default.clone()).unwrap_or_default();
+            let final_val = extracted_val
+                .or_else(|| f.default.clone())
+                .unwrap_or_default();
             fields_map.insert(f.name.clone(), final_val);
         }
 
@@ -190,7 +202,7 @@ impl PyDataset {
     pub fn build(self_: PyRef<'_, Self>) -> PyResult<PyDatasetResult> {
         let py = self_.py();
         let res = self_.inner.build()?;
-        
+
         // Apply python transforms if present
         let mut final_fields = res.fields.clone();
         for field_def in &self_.inner.fields {
@@ -243,24 +255,30 @@ impl PyDatasetResult {
     pub fn to_csv(&self, path: &str) -> PyResult<()> {
         let mut writer = csv::Writer::from_path(path)
             .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
-        
+
         // Header
         let keys: Vec<&str> = self.inner.fields.keys().map(|k| k.as_str()).collect();
-        writer.write_record(&keys)
+        writer
+            .write_record(&keys)
             .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
-        
+
         // Row values
         let values: Vec<&str> = self.inner.fields.values().map(|v| v.as_str()).collect();
-        writer.write_record(&values)
+        writer
+            .write_record(&values)
             .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
-        
+
         writer.flush()?;
         Ok(())
     }
 
     /// Export result to Parquet
     pub fn to_parquet(&self, path: &str) -> PyResult<()> {
-        crate::TOKIO_RUNTIME.block_on(crate::dataset::export::write_parquet(path, &self.inner.fields))
+        crate::TOKIO_RUNTIME
+            .block_on(crate::dataset::export::write_parquet(
+                path,
+                &self.inner.fields,
+            ))
             .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
         Ok(())
     }
@@ -275,6 +293,9 @@ impl PyDatasetResult {
     }
 
     fn __repr__(&self) -> String {
-        format!("DatasetResult(url='{}', fields={:?})", self.inner.url, self.inner.fields)
+        format!(
+            "DatasetResult(url='{}', fields={:?})",
+            self.inner.url, self.inner.fields
+        )
     }
 }

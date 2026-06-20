@@ -1,33 +1,32 @@
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Arc;
-use once_cell::sync::Lazy;
 use tokio::runtime::Runtime;
 
+pub mod change;
+pub mod crawl;
+pub mod dataset;
 pub mod engine;
-pub mod parser;
-pub mod selector;
+pub mod error;
 pub mod fingerprint;
 pub mod matcher;
-pub mod change;
-pub mod dataset;
-pub mod crawl;
-pub mod watch;
+pub mod parser;
 pub mod queue;
-pub mod error;
+pub mod selector;
+pub mod watch;
 
+use crate::engine::fetcher::{FetchRequest, Fetcher, FetcherTier};
+use crate::engine::pool::ConnectionPoolConfig;
 use crate::error::CrawlingoError;
 use crate::parser::document::DomTree;
 #[cfg(feature = "python")]
 use crate::parser::document::PyElementCollection;
 use crate::parser::streaming::parse_html;
-use crate::engine::pool::ConnectionPoolConfig;
-use crate::engine::fetcher::{Fetcher, FetchRequest, FetcherTier};
-use crate::selector::{css, xpath, text_anchor, regex_selector};
+use crate::selector::{css, regex_selector, text_anchor, xpath};
 
 /// Shared static Tokio runtime used to run async futures synchronously for the Python GIL thread.
-pub static TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
-    Runtime::new().expect("Failed to initialize static Tokio runtime")
-});
+pub static TOKIO_RUNTIME: Lazy<Runtime> =
+    Lazy::new(|| Runtime::new().expect("Failed to initialize static Tokio runtime"));
 
 // PyO3 bindings
 #[cfg(feature = "python")]
@@ -67,7 +66,11 @@ impl PyPage {
             TOKIO_RUNTIME.block_on(async {
                 let req = FetchRequest {
                     url: url_str.clone(),
-                    tier: if auto_match { FetcherTier::Stealthy } else { FetcherTier::Standard },
+                    tier: if auto_match {
+                        FetcherTier::Stealthy
+                    } else {
+                        FetcherTier::Standard
+                    },
                     browser_profile: None,
                     headers: headers_val,
                     cookies: cookies_val,
@@ -80,7 +83,10 @@ impl PyPage {
                 let fetcher = Fetcher::new(rate_limiter, ConnectionPoolConfig::default());
                 let resp = fetcher.fetch(req).await?;
                 let status = resp.status().as_u16();
-                let bytes = resp.bytes().await.map_err(|e| CrawlingoError::FetchError(e.to_string()))?;
+                let bytes = resp
+                    .bytes()
+                    .await
+                    .map_err(|e| CrawlingoError::FetchError(e.to_string()))?;
                 let html = String::from_utf8_lossy(&bytes).to_string();
                 let tree = parse_html(&bytes)?;
                 Ok((tree, status, html))

@@ -1,10 +1,10 @@
-use std::collections::HashMap;
-use tempfile::tempdir;
+use crawlingo::change::detector::detect_changes;
+use crawlingo::fingerprint::store::FingerprintStore;
+use crawlingo::matcher::auto_matcher::auto_match;
 use crawlingo::parser::streaming::parse_html;
 use crawlingo::selector::css;
-use crawlingo::matcher::auto_matcher::auto_match;
-use crawlingo::fingerprint::store::FingerprintStore;
-use crawlingo::change::detector::detect_changes;
+use std::collections::HashMap;
+use tempfile::tempdir;
 
 #[test]
 fn test_integration_flow() {
@@ -18,8 +18,15 @@ fn test_integration_flow() {
 
     // 3. Test basic CSS query selection
     let title_indices = css::query(&simple_tree, "h1.product-title");
-    assert_eq!(title_indices.len(), 1, "Should match exactly 1 product title");
-    assert_eq!(simple_tree.get_text(title_indices[0]), "Premium Wireless Headphone");
+    assert_eq!(
+        title_indices.len(),
+        1,
+        "Should match exactly 1 product title"
+    );
+    assert_eq!(
+        simple_tree.get_text(title_indices[0]),
+        "Premium Wireless Headphone"
+    );
 
     let price_indices = css::query(&simple_tree, "span.price-value");
     assert_eq!(price_indices.len(), 1, "Should match exactly 1 price");
@@ -42,25 +49,37 @@ fn test_integration_flow() {
     // fingerprint self-healing, scan all elements, score similarity, and recover the node.
     let recovered_idx = auto_match(&changed_tree, url, selector, &store)
         .expect("Auto-matcher should recover the broken selector via DOM fingerprint similarity");
-    
+
     // Check that we successfully recovered the price element
     assert_eq!(changed_tree.get_text(recovered_idx), "$299.99");
 
     // 5. Test parallel change detection
     let mut old_data = HashMap::new();
-    old_data.insert("title".to_string(), "Premium Wireless Headphone".to_string());
+    old_data.insert(
+        "title".to_string(),
+        "Premium Wireless Headphone".to_string(),
+    );
     old_data.insert("price".to_string(), "$299.99".to_string());
-    old_data.insert("description".to_string(), "High quality sound with active noise cancellation features.".to_string());
+    old_data.insert(
+        "description".to_string(),
+        "High quality sound with active noise cancellation features.".to_string(),
+    );
 
     let mut new_data = HashMap::new();
-    new_data.insert("title".to_string(), "Premium Wireless Headphone".to_string());
+    new_data.insert(
+        "title".to_string(),
+        "Premium Wireless Headphone".to_string(),
+    );
     new_data.insert("price".to_string(), "$249.99".to_string()); // Simulated price reduction change
-    new_data.insert("description".to_string(), "High quality sound with active noise cancellation features.".to_string());
+    new_data.insert(
+        "description".to_string(),
+        "High quality sound with active noise cancellation features.".to_string(),
+    );
 
     let changes = detect_changes(url, &old_data, &new_data);
     assert_eq!(changes.len(), 1, "Should detect exactly 1 changed field");
     assert_eq!(changes[0].field, "price");
-    
+
     // Verify it detected a PriceChange variant
     match &changes[0].change_type {
         crawlingo::change::detector::ChangeType::PriceChange {

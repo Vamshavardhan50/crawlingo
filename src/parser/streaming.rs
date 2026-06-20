@@ -1,9 +1,9 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::collections::HashMap;
-use lol_html::{element, doc_text, HtmlRewriter, Settings};
 use crate::error::{CrawlingoError, Result};
 use crate::parser::document::{DomNode, DomTree};
+use lol_html::{doc_text, element, HtmlRewriter, Settings};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 
 /// Parses raw HTML bytes into a queryable memory-indexed `DomTree` using `lol-html`.
 pub fn parse_html(html: &[u8]) -> Result<DomTree> {
@@ -21,7 +21,7 @@ pub fn parse_html(html: &[u8]) -> Result<DomTree> {
             .iter()
             .map(|a| (a.name().to_string(), a.value().to_string()))
             .collect();
-            
+
         let parent = stack_clone.borrow().last().copied();
         let depth = stack_clone.borrow().len();
 
@@ -40,15 +40,22 @@ pub fn parse_html(html: &[u8]) -> Result<DomTree> {
 
         // Tags that are self-closing do not get pushed to the stack
         let self_closing_tags = [
-            "area", "base", "br", "col", "embed", "hr", "img", "input",
-            "link", "meta", "param", "source", "track", "wbr"
+            "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param",
+            "source", "track", "wbr",
         ];
 
         if !self_closing_tags.contains(&tag.as_str()) {
             stack_clone.borrow_mut().push(new_idx);
             let stack_inner = Rc::clone(&stack_clone);
-            
-            let handler: Box<dyn FnOnce(&mut lol_html::html_content::EndTag<'_>) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync + 'static>>> = Box::new(move |_end| {
+
+            let handler: Box<
+                dyn FnOnce(
+                    &mut lol_html::html_content::EndTag<'_>,
+                ) -> std::result::Result<
+                    (),
+                    Box<dyn std::error::Error + Send + Sync + 'static>,
+                >,
+            > = Box::new(move |_end| {
                 let mut stack = stack_inner.borrow_mut();
                 if let Some(pos) = stack.iter().position(|&idx| idx == new_idx) {
                     stack.truncate(pos);
@@ -87,12 +94,14 @@ pub fn parse_html(html: &[u8]) -> Result<DomTree> {
             document_content_handlers: vec![text_handler],
             ..Settings::default()
         },
-        |_: &[u8]| {}
+        |_: &[u8]| {},
     );
 
-    rewriter.write(html)
+    rewriter
+        .write(html)
         .map_err(|e| CrawlingoError::ParseError(e.to_string()))?;
-    rewriter.end()
+    rewriter
+        .end()
         .map_err(|e| CrawlingoError::ParseError(e.to_string()))?;
 
     // Safely extract the compiled DomTree
@@ -111,16 +120,16 @@ mod tests {
     fn test_html_parsing_tree() {
         let html = b"<html><body><div class='product'><h1>Laptop</h1><span class='price'>$999</span></div></body></html>";
         let tree = parse_html(html).unwrap();
-        
+
         assert_eq!(tree.nodes.len(), 5); // html, body, div, h1, span
         assert_eq!(tree.nodes[0].tag, "html");
         assert_eq!(tree.nodes[2].tag, "div");
         assert_eq!(tree.nodes[2].attrs.get("class").unwrap(), "product");
-        
+
         // Children and hierarchy
         assert_eq!(tree.nodes[2].children, vec![3, 4]); // h1 and span
         assert_eq!(tree.nodes[3].parent, Some(2));
-        
+
         // Text accumulation
         assert_eq!(tree.get_text(3), "Laptop");
         assert_eq!(tree.get_text(4), "$999");

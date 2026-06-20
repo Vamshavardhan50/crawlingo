@@ -1,6 +1,6 @@
-use once_cell::sync::Lazy;
-use dashmap::DashMap;
 use crate::parser::document::{DomNode, DomTree};
+use dashmap::DashMap;
+use once_cell::sync::Lazy;
 
 /// Represents a single selector atom (e.g., a tag name, class name, or id).
 #[derive(Debug, Clone, PartialEq, Eq)]

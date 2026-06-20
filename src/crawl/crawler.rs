@@ -1,15 +1,15 @@
+use crate::dataset::builder::{Dataset, DatasetField, DatasetResult};
+use crate::engine::fetcher::{FetchRequest, Fetcher, FetcherTier};
+use crate::engine::pool::ConnectionPoolConfig;
+use crate::engine::session::Session;
+use crate::error::{CrawlingoError, Result};
+use crate::parser::streaming::parse_html;
+use crate::selector::css;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task::JoinSet;
 use url::Url;
-use crate::error::{CrawlingoError, Result};
-use crate::engine::session::Session;
-use crate::engine::fetcher::{Fetcher, FetchRequest, FetcherTier};
-use crate::engine::pool::ConnectionPoolConfig;
-use crate::parser::streaming::parse_html;
-use crate::selector::css;
-use crate::dataset::builder::{Dataset, DatasetField, DatasetResult};
 
 /// Orchestrates multi-page, concurrent crawling with politeness limitations.
 #[derive(Clone)]
@@ -56,7 +56,7 @@ impl Crawler {
     pub async fn crawl_async(&self) -> Result<Vec<DatasetResult>> {
         let visited = Arc::new(Mutex::new(HashSet::new()));
         let results = Arc::new(Mutex::new(Vec::new()));
-        
+
         let pending_queue = Arc::new(Mutex::new(vec![(self.start_url.clone(), 0)]));
 
         // Crawl parameters
@@ -66,7 +66,7 @@ impl Crawler {
         let follow_sel = self.follow_selector.clone();
         let delay = self.delay_seconds;
         let webhook_url = self.webhook_url.clone();
-        
+
         let rate_limiter = Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
         let fetcher = Arc::new(Fetcher::new(rate_limiter, ConnectionPoolConfig::default()));
 
@@ -160,7 +160,8 @@ impl Crawler {
                                     let mut fields_map = HashMap::new();
                                     for f in fields.iter() {
                                         let matches = css::query(&tree, &f.selector);
-                                        let text_val = matches.iter()
+                                        let text_val = matches
+                                            .iter()
                                             .map(|&idx| tree.get_text(idx))
                                             .collect::<Vec<String>>()
                                             .join(" ");
@@ -177,7 +178,8 @@ impl Crawler {
                                     // Deliver Webhook POST request if configured
                                     if let Some(ref hook_url) = webhook_url {
                                         let client = wreq::Client::new();
-                                        let _ = client.request(wreq::Method::POST, hook_url.clone())
+                                        let _ = client
+                                            .request(wreq::Method::POST, hook_url.clone())
                                             .json(&result)
                                             .send()
                                             .await;
@@ -188,8 +190,12 @@ impl Crawler {
                                         let links = css::query(&tree, &follow_sel);
                                         let mut new_links = Vec::new();
                                         for &link_idx in &links {
-                                            if let Some(href) = tree.nodes[link_idx].attrs.get("href") {
-                                                if let Some(abs_url) = Self::resolve_url(&url_str, href) {
+                                            if let Some(href) =
+                                                tree.nodes[link_idx].attrs.get("href")
+                                            {
+                                                if let Some(abs_url) =
+                                                    Self::resolve_url(&url_str, href)
+                                                {
                                                     new_links.push(abs_url);
                                                 }
                                             }
@@ -221,25 +227,26 @@ impl Crawler {
     /// Spawns a background thread to repeat crawling on a fixed interval.
     pub fn run_scheduled(&self, interval_seconds: u64) {
         let crawler = self.clone();
-        std::thread::spawn(move || {
-            loop {
-                tracing::info!("Executing scheduled crawl loop for start url: {}", crawler.start_url);
-                if let Err(e) = crawler.crawl() {
-                    tracing::error!("Scheduled crawl encountered error: {}", e);
-                }
-                std::thread::sleep(std::time::Duration::from_secs(interval_seconds));
+        std::thread::spawn(move || loop {
+            tracing::info!(
+                "Executing scheduled crawl loop for start url: {}",
+                crawler.start_url
+            );
+            if let Err(e) = crawler.crawl() {
+                tracing::error!("Scheduled crawl encountered error: {}", e);
             }
+            std::thread::sleep(std::time::Duration::from_secs(interval_seconds));
         });
     }
 }
 
 // PyO3 FFI Python classes
 #[cfg(feature = "python")]
-use pyo3::prelude::*;
+use crate::dataset::builder::PyDatasetResult;
 #[cfg(feature = "python")]
 use crate::engine::session::PySession;
 #[cfg(feature = "python")]
-use crate::dataset::builder::PyDatasetResult;
+use pyo3::prelude::*;
 
 #[cfg(feature = "python")]
 #[pyclass(name = "Crawl")]
@@ -315,7 +322,8 @@ impl PyCrawl {
 
     pub fn build(self_: PyRef<'_, Self>) -> PyResult<Vec<PyDatasetResult>> {
         let res = self_.inner.crawl()?;
-        let py_res = res.into_iter()
+        let py_res = res
+            .into_iter()
             .map(|r| PyDatasetResult { inner: r })
             .collect();
         Ok(py_res)

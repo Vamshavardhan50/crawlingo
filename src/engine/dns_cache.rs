@@ -1,8 +1,8 @@
+use crate::error::{CrawlingoError, Result};
+use hickory_resolver::TokioAsyncResolver;
+use moka::future::Cache;
 use std::net::IpAddr;
 use std::time::Duration;
-use moka::future::Cache;
-use hickory_resolver::TokioAsyncResolver;
-use crate::error::{CrawlingoError, Result};
 
 /// A high-performance DNS cache using `moka` and `hickory-resolver`.
 pub struct DnsCache {
@@ -18,12 +18,11 @@ impl DnsCache {
             .build();
 
         // Attempt system configuration, fallback to default public resolvers
-        let resolver = TokioAsyncResolver::tokio_from_system_conf()
-            .unwrap_or_else(|_| {
-                let config = hickory_resolver::config::ResolverConfig::cloudflare();
-                let opts = hickory_resolver::config::ResolverOpts::default();
-                TokioAsyncResolver::tokio(config, opts)
-            });
+        let resolver = TokioAsyncResolver::tokio_from_system_conf().unwrap_or_else(|_| {
+            let config = hickory_resolver::config::ResolverConfig::cloudflare();
+            let opts = hickory_resolver::config::ResolverOpts::default();
+            TokioAsyncResolver::tokio(config, opts)
+        });
 
         Self { cache, resolver }
     }
@@ -36,7 +35,9 @@ impl DnsCache {
         }
 
         // Cache miss: run async DNS resolution
-        let response = self.resolver.lookup_ip(host)
+        let response = self
+            .resolver
+            .lookup_ip(host)
             .await
             .map_err(|e| CrawlingoError::DnsError(e.to_string()))?;
 
@@ -44,7 +45,10 @@ impl DnsCache {
             self.cache.insert(host_str, ip).await;
             Ok(ip)
         } else {
-            Err(CrawlingoError::DnsError(format!("No IP found for host: {}", host)))
+            Err(CrawlingoError::DnsError(format!(
+                "No IP found for host: {}",
+                host
+            )))
         }
     }
 }
@@ -58,7 +62,7 @@ mod tests {
         let cache = DnsCache::new(60);
         let ip = cache.resolve("example.com").await;
         assert!(ip.is_ok());
-        
+
         // Secondary lookup should hit cache
         let ip2 = cache.resolve("example.com").await;
         assert_eq!(ip.unwrap(), ip2.unwrap());

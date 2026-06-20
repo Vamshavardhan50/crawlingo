@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Menu, X, Github, Sun, Moon, ArrowRight, FileText, Book, Code2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import EagleLogo from '@/components/ui/EagleLogo';
 
@@ -11,6 +11,8 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) {
+  const location = useLocation();
+  const isWaitlist = location.pathname === '/waitlist';
   const [scrolled, setScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
@@ -52,13 +54,15 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
       >
         <div className="flex items-center justify-between h-full px-4 lg:px-6 max-w-[1400px] mx-auto">
           <div className="flex items-center gap-4">
-            <button
-              onClick={onMenuToggle}
-              className="lg:hidden p-2 -ml-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"
-              aria-label="Toggle menu"
-            >
-              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+            {!isWaitlist && (
+              <button
+                onClick={onMenuToggle}
+                className="lg:hidden p-2 -ml-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                aria-label="Toggle menu"
+              >
+                {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            )}
 
             <a href="/" className="flex items-center gap-3 group">
               <EagleLogo size="md" />
@@ -87,13 +91,23 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              to="/waitlist"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black text-xs font-semibold hover:opacity-90 transition-opacity mr-2"
-            >
-              Join Waitlist
-              <ArrowRight size={12} />
-            </Link>
+            {isWaitlist ? (
+              <Link
+                to="/"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-black dark:bg-white/10 dark:text-white text-xs font-semibold hover:opacity-90 transition-opacity mr-2 border border-gray-200 dark:border-white/10"
+              >
+                View Documentation
+                <ArrowRight size={12} />
+              </Link>
+            ) : (
+              <Link
+                to="/waitlist"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black text-xs font-semibold hover:opacity-90 transition-opacity mr-2"
+              >
+                Join Waitlist
+                <ArrowRight size={12} />
+              </Link>
+            )}
 
             <button
               onClick={() => setIsSearchOpen(true)}

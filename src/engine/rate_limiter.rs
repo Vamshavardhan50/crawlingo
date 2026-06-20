@@ -1,10 +1,10 @@
-use std::sync::Arc;
-use std::time::Duration;
 use dashmap::DashMap;
-use governor::{Quota, RateLimiter};
+use governor::clock::DefaultClock;
 use governor::state::direct::NotKeyed;
 use governor::state::InMemoryState;
-use governor::clock::DefaultClock;
+use governor::{Quota, RateLimiter};
+use std::sync::Arc;
+use std::time::Duration;
 
 pub type DirectRateLimiter = RateLimiter<NotKeyed, InMemoryState, DefaultClock>;
 
@@ -59,12 +59,16 @@ mod tests {
         let rl = HostRateLimiter::new();
         let host = "test-host.com";
         let rps = 10.0; // 1 request every 100ms
-        
+
         let start = Instant::now();
         rl.wait(host, rps).await; // immediate
         rl.wait(host, rps).await; // 100ms delay
         let elapsed = start.elapsed();
-        
-        assert!(elapsed >= Duration::from_millis(90), "Elapsed time was {:?}", elapsed);
+
+        assert!(
+            elapsed >= Duration::from_millis(90),
+            "Elapsed time was {:?}",
+            elapsed
+        );
     }
 }

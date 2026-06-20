@@ -1,11 +1,11 @@
+use crate::change::detector::{detect_changes, ChangeType};
+use crate::dataset::builder::{Dataset, DatasetField};
+use crate::engine::session::Session;
+use crate::error::{CrawlingoError, Result};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
-use crate::error::{CrawlingoError, Result};
-use crate::engine::session::Session;
-use crate::dataset::builder::{Dataset, DatasetField};
-use crate::change::detector::{detect_changes, ChangeType};
 
 /// Polling monitor that checks for webpage data changes at set intervals.
 pub struct Watch {
@@ -31,9 +31,9 @@ impl Watch {
 
 // PyO3 FFI Python classes
 #[cfg(feature = "python")]
-use pyo3::prelude::*;
-#[cfg(feature = "python")]
 use crate::engine::session::PySession;
+#[cfg(feature = "python")]
+use pyo3::prelude::*;
 
 #[cfg(feature = "python")]
 #[pyclass(name = "Watch")]
@@ -115,7 +115,7 @@ impl PyWatch {
         let session = self.inner.session.clone();
         let interval_sec = self.inner.interval_seconds;
         let token = self.inner.cancellation_token.clone();
-        
+
         let mut fields = Vec::new();
         for f in &self.inner.fields {
             fields.push(crate::dataset::builder::DatasetField {

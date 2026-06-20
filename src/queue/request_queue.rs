@@ -1,7 +1,7 @@
+use crate::engine::fetcher::FetchRequest;
 use crossbeam::queue::SegQueue;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
-use crate::engine::fetcher::FetchRequest;
 
 /// Priority levels for the request queue.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,7 +64,9 @@ impl RequestQueue {
 
     /// Pops the next highest priority request from the queues.
     pub fn pop(&self) -> Option<FetchRequest> {
-        let item = self.high.pop()
+        let item = self
+            .high
+            .pop()
             .or_else(|| self.normal.pop())
             .or_else(|| self.low.pop())?;
 
@@ -85,7 +87,7 @@ impl RequestQueue {
         let depth = self.queue_depth();
         let throughput = self.total_processed.load(Ordering::Relaxed);
         let total_wait = self.total_wait_ms.load(Ordering::Relaxed);
-        
+
         let avg_wait_ms = if throughput > 0 {
             total_wait as f64 / throughput as f64
         } else {

@@ -1,5 +1,5 @@
-use memchr::memmem;
 use crate::parser::document::DomTree;
+use memchr::memmem;
 
 /// Finds all nodes containing the target text (using SIMD search via `memchr`).
 pub fn find(tree: &DomTree, text: &str) -> Vec<usize> {
@@ -32,7 +32,7 @@ pub fn after(tree: &DomTree, text: &str) -> Vec<usize> {
 
     for idx in matched {
         let node = &tree.nodes[idx];
-        
+
         // 1. Try next sibling first
         let mut found_sibling = false;
         if let Some(parent_idx) = node.parent {

@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use chrono::{DateTime, Utc};
-use serde::{Serialize, Deserialize};
-use xxhash_rust::xxh64::xxh64;
 use crate::parser::document::DomTree;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use xxhash_rust::xxh64::xxh64;
 
 /// Represents context about an ancestor node in the DOM tree.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -81,7 +81,9 @@ impl DomFingerprint {
         }
 
         let attributes = node.attrs.clone();
-        let class_list: Vec<String> = node.attrs.get("class")
+        let class_list: Vec<String> = node
+            .attrs
+            .get("class")
             .map(|c| c.split_whitespace().map(|s| s.to_string()).collect())
             .unwrap_or_default();
         let id = node.attrs.get("id").cloned();

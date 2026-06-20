@@ -1,16 +1,18 @@
-use std::collections::HashMap;
-use std::sync::Arc;
 use crate::error::{CrawlingoError, Result};
 use arrow::array::{ArrayRef, StringArray};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use parquet::arrow::arrow_writer::ArrowWriter;
 use parquet::file::properties::WriterProperties;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Exports key-value fields to a Parquet format file at the specified path.
 pub async fn write_parquet(path: &str, fields: &HashMap<String, String>) -> Result<()> {
     if fields.is_empty() {
-        return Err(CrawlingoError::ExportError("Cannot export empty dataset".to_string()));
+        return Err(CrawlingoError::ExportError(
+            "Cannot export empty dataset".to_string(),
+        ));
     }
 
     // 1. Map fields to Arrow schema and arrays
@@ -26,8 +28,7 @@ pub async fn write_parquet(path: &str, fields: &HashMap<String, String>) -> Resu
     let schema = Arc::new(Schema::new(arrow_fields));
 
     // 2. Build RecordBatch
-    let batch = RecordBatch::try_new(schema, arrays)
-        .map_err(|e| CrawlingoError::ArrowError(e))?;
+    let batch = RecordBatch::try_new(schema, arrays).map_err(|e| CrawlingoError::ArrowError(e))?;
 
     // 3. Write Parquet File
     // std::fs::File is blocked using tokio::task::block_in_place or run inside spawn_blocking
