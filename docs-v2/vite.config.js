@@ -48,6 +48,36 @@ function waitlistPlugin() {
                 fs.appendFileSync(csvPath, newRow);
               }
 
+              // Post to Google Sheets if Webhook URL is configured
+              if (process.env.GOOGLE_SHEET_WEBHOOK_URL) {
+                fetch(process.env.GOOGLE_SHEET_WEBHOOK_URL, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    name,
+                    email,
+                    company: company || '',
+                    useCase: useCase || '',
+                  }),
+                })
+                  .then(async (response) => {
+                    if (!response.ok) {
+                      const text = await response.text();
+                      console.error('[waitlist-api] Google Sheets webhook failed:', text);
+                    } else {
+                      console.log('[waitlist-api] Waitlist entry synced to Google Sheets.');
+                    }
+                  })
+                  .catch((err) => {
+                    console.error('[waitlist-api] Error posting to Google Sheets:', err);
+                  });
+              } else {
+                console.warn('[waitlist-api] GOOGLE_SHEET_WEBHOOK_URL not set. Google Sheets sync skipped.');
+              }
+
+
               // Send waitlist confirmation email if SMTP is configured
               if (process.env.SMTP_USER && process.env.SMTP_PASS) {
                 const transporter = nodemailer.createTransport({
