@@ -167,7 +167,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 Discord
               </a>
               <a
-                href="https://github.com/crawlingo/crawlingo"
+                href="https://github.com/Vamshavardhan50/crawlingo"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 text-center text-[11px] font-medium px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"

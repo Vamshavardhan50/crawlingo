@@ -111,7 +111,7 @@ export default function RoadmapPage() {
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Suggest features or ask questions on our GitHub discussions page.</p>
           </div>
           <a
-            href="https://github.com/crawlingo/crawlingo/discussions"
+            href="https://github.com/Vamshavardhan50/crawlingo/discussions"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary py-2 px-4 text-xs font-semibold flex items-center gap-1.5"

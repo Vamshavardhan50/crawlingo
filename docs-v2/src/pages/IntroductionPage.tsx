@@ -45,7 +45,7 @@ export default function IntroductionPage() {
               <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
             </Link>
             <a
-              href="https://github.com/crawlingo/crawlingo"
+              href="https://github.com/Vamshavardhan50/crawlingo"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary py-3 px-6 text-sm font-semibold"

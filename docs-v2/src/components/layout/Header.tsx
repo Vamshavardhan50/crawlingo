@@ -117,7 +117,7 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
             </button>
 
             <a
-              href="https://github.com/crawlingo/crawlingo"
+              href="https://github.com/Vamshavardhan50/crawlingo"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"

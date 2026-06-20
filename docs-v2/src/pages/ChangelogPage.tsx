@@ -96,7 +96,7 @@ export default function ChangelogPage() {
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Watch releases directly on GitHub for real-time update notifications.</p>
           </div>
           <a
-            href="https://github.com/crawlingo/crawlingo/releases"
+            href="https://github.com/Vamshavardhan50/crawlingo/releases"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary py-2 px-4 text-xs font-semibold flex items-center gap-1.5"
