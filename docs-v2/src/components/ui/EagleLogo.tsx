@@ -19,7 +19,7 @@ export default function EagleLogo({ size = 'md', variant = 'icon', className }: 
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
       <img
-        src="/crawlingo.jpg"
+        src="/logo.svg"
         alt="Crawlingo Logo"
         width={iconSize}
         height={iconSize}

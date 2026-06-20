@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/crawlingo.jpg" width="200" alt="Crawlingo Logo" />
+  <img src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/logo.svg" width="200" alt="Crawlingo Logo" />
 </p>
 
 <h1 align="center">Crawlingo</h1>
