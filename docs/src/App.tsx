@@ -15,7 +15,7 @@ import DemoPage from './pages/DemoPage';
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/docs">
       <Routes>
         <Route element={<DocsLayout />}>
           <Route path="/" element={<IntroductionPage />} />

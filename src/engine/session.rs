@@ -149,6 +149,7 @@ impl PySession {
     }
 
     /// Set proxy string (returns self)
+    #[pyo3(signature = (proxy_url=None))]
     pub fn proxy(self_: PyRef<'_, Self>, proxy_url: Option<String>) -> PyResult<Py<Self>> {
         {
             let mut p = self_
@@ -232,6 +233,7 @@ impl PySession {
     }
 
     /// Set browser profile: "chrome", "firefox", "safari" (returns self)
+    #[pyo3(signature = (profile=None))]
     pub fn browser_profile(self_: PyRef<'_, Self>, profile: Option<String>) -> PyResult<Py<Self>> {
         {
             let mut b = self_
@@ -274,6 +276,7 @@ impl PySession {
     }
 
     /// Set proxy provider API URL (returns self)
+    #[pyo3(signature = (url=None))]
     pub fn proxy_provider(self_: PyRef<'_, Self>, url: Option<String>) -> PyResult<Py<Self>> {
         {
             let mut u = self_

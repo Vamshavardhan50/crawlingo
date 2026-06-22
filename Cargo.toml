@@ -76,7 +76,7 @@ url = "2.5"
 chrono = { version = "=0.4.38", features = ["serde"] }
 
 # Python bindings
-pyo3 = { version = "0.21", features = ["extension-module"], optional = true }
+pyo3 = { version = "0.23", features = ["extension-module", "py-clone"], optional = true }
 
 [features]
 default = []

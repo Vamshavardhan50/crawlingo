@@ -6,15 +6,151 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
   packages: write
 
 jobs:
+  verify-version:
+    name: Verify Version Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check version consistency
+        shell: bash
+        run: |
+          cargo_version=$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2)
+          python_version=$(grep '^version' sdk/python/pyproject.toml | head -1 | cut -d'"' -f2)
+          node_version=$(grep '"version"' sdk/nodejs/package.json | head -1 | cut -d'"' -f4)
+          echo "Cargo version: $cargo_version"
+          echo "Python version: $python_version"
+          echo "Node.js version: $node_version"
+          if [ "$cargo_version" != "$python_version" ] || [ "$cargo_version" != "$node_version" ]; then
+            echo "Version mismatch!"
+            exit 1
+          fi
+          echo "All versions match: $cargo_version"
+
+  test-core:
+    name: Test Core (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+
+      - name: Run Rust tests
+        shell: bash
+        run: cargo test --workspace --verbose
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build Python extension
+        shell: bash
+        run: |
+          cd sdk/python
+          pip install maturin
+          maturin build --features python --release
+
+      - name: Quick Python import test
+        shell: bash
+        run: |
+          cd sdk/python
+          pip install -e . --no-build-isolation
+          python -c "from crawlingo import Page; p = Page('https://example.com'); print('Page OK:', p.title())"
+
+  build-node-addons:
+    name: Build Node Addon (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    needs: [verify-version, test-core]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            file: crawlingo-native.linux-x64-gnu.node
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            file: crawlingo-native.darwin-x64.node
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            file: crawlingo-native.darwin-arm64.node
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            file: crawlingo-native.win32-x64-msvc.node
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            sdk/nodejs/native/target
+          key: ${{ runner.os }}-node-${{ matrix.target }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock', 'sdk/nodejs/package-lock.json', 'sdk/nodejs/native/Cargo.toml') }}
+
+      - name: Install dependencies
+        working-directory: sdk/nodejs
+        run: npm ci
+
+      - name: Build native module
+        working-directory: sdk/nodejs
+        run: npx napi build --target ${{ matrix.target }} --platform --release --js src/native.js --dts src/native.d.ts --cargo-cwd native .
+
+      - name: Test native module
+        working-directory: sdk/nodejs
+        # Only run tests if running on host target
+        if: (matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64-unknown-linux-gnu') || (matrix.os == 'macos-latest' && matrix.target == 'x86_64-apple-darwin') || (matrix.os == 'windows-latest' && matrix.target == 'x86_64-pc-windows-msvc')
+        run: npm test || true
+
+      - name: Locate and stage built addon
+        shell: bash
+        run: |
+          mkdir -p staging
+          find sdk/nodejs -name "${{ matrix.file }}" -exec cp {} staging/ \;
+
+      - name: Upload Node.js addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-addon-${{ matrix.target }}
+          path: staging/${{ matrix.file }}
+          if-no-files-found: error
+
   python-wheels:
     name: Build Python Wheels (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    needs: [verify-version, test-core]
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
@@ -33,28 +169,19 @@ jobs:
           CIBW_TEST_COMMAND: python -c "import crawlingo; print(crawlingo.__version__)"
           CIBW_BEFORE_ALL: pip install maturin
 
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-wheels-${{ matrix.os }}
+          path: ./wheelhouse/*.whl
+          if-no-files-found: error
 
-  npm-native:
-    name: Build & Publish NPM Package
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: macos-latest
-            target: aarch64-apple-darwin
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
+  publish-npm:
+    name: Publish NPM Package
+    runs-on: ubuntu-latest
+    needs: build-node-addons
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -62,77 +189,72 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Cache Cargo
-        uses: actions/cache@v4
+      - name: Download all node addons
+        uses: actions/download-artifact@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          path: sdk/nodejs
+          pattern: node-addon-*
+          merge-multiple: true
 
-      - name: Build native module
+      - name: Install dependencies
         working-directory: sdk/nodejs
-        run: |
-          npm ci
-          npm run build
-        env:
-          RUSTFLAGS: -C target-cpu=native
+        run: npm ci
 
-      - name: Test native module
+      - name: Prepack NPM package
         working-directory: sdk/nodejs
-        run: npm test || true
+        run: npm run prepack
 
       - name: Pack NPM package
         working-directory: sdk/nodejs
-        run: npm pack --dry-run 2>&1 | tail -20
+        run: npm pack
 
       - name: Publish to NPM
         if: github.event_name == 'release'
         working-directory: sdk/nodejs
-        run: npm publish --access public
+        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  # Cross-platform test to ensure core works
-  test-core:
-    name: Test Core (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Run Rust tests
-        run: cargo test --workspace --verbose
-      - name: Build Python extension
-        run: |
-          cd sdk/python
-          pip install maturin
-          maturin build --features python --release
-      - name: Quick Python import test
-        run: |
-          cd sdk/python
-          pip install -e . --no-build-isolation
-          python -c "from crawlingo import Page; p = Page('https://example.com'); print('Page OK:', p.title())"
+      - name: Upload NPM tarball to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'release'
+        with:
+          files: sdk/nodejs/*.tgz
 
-  # Ensure version consistency
-  verify-version:
-    name: Verify Version Consistency
+  publish-python:
+    name: Publish Python Package
     runs-on: ubuntu-latest
+    needs: python-wheels
     steps:
       - uses: actions/checkout@v4
-      - name: Check version consistency
-        run: |
-          cargo_version=$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2)
-          python_version=$(grep '^version' sdk/python/pyproject.toml | head -1 | cut -d'"' -f2)
-          node_version=$(grep '"version"' sdk/nodejs/package.json | head -1 | cut -d'"' -f4)
-          echo "Cargo version: $cargo_version"
-          echo "Python version: $python_version"
-          echo "Node.js version: $node_version"
-          if [ "$cargo_version" != "$python_version" ] || [ "$cargo_version" != "$node_version" ]; then
-            echo "Version mismatch!"
-            exit 1
-          fi
-          echo "All versions match: $cargo_version"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: python-wheels-*
+          merge-multiple: true
+
+      - name: Build sdist
+        working-directory: sdk/python
+        run: maturin sdist --out ../../dist
+
+      - name: Publish to PyPI
+        if: github.event_name == 'release'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'release'
+        with:
+          files: dist/*

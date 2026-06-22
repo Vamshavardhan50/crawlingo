@@ -178,6 +178,7 @@ impl PyDataset {
     }
 
     /// Add a field to be extracted (supports Python mapping callback)
+    #[pyo3(signature = (name, selector, selector_type=None, transform=None, default=None))]
     pub fn field(
         mut self_: PyRefMut<'_, Self>,
         name: &str,
@@ -207,7 +208,7 @@ impl PyDataset {
         for field_def in &self_.inner.fields {
             if let Some(ref trans_fn) = field_def.transform {
                 if let Some(val) = final_fields.get_mut(&field_def.name) {
-                    let py_val = val.to_object(py);
+                    let py_val = val.as_str().into_pyobject(py)?;
                     let py_res = trans_fn.call1(py, (py_val,))?;
                     let new_val: String = py_res.extract(py)?;
                     *val = new_val;

@@ -161,7 +161,7 @@ impl PyWatch {
                                     for change in changes {
                                         Python::with_gil(|py| {
                                             let py_evt = crate::change::detector::PyChangeEvent::from(change.clone());
-                                            let py_evt_obj = py_evt.into_py(py);
+                                            let py_evt_obj = py_evt.into_pyobject(py).unwrap();
 
                                             if let Some(ref cb) = on_change {
                                                 let _ = cb.call1(py, (&py_evt_obj,));

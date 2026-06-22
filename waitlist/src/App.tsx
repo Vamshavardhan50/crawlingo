@@ -11,6 +11,7 @@ export default function App() {
         <div className="pt-16">
           <Routes>
             <Route path="/" element={<WaitlistPage />} />
+            <Route path="/waitlist" element={<WaitlistPage />} />
           </Routes>
         </div>
       </BackgroundGrid>

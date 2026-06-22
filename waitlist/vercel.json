@@ -1,10 +1,21 @@
 {
   "cleanUrls": true,
-  "routes": [
-    { "src": "/api/waitlist", "dest": "/api/waitlist" },
-    { "src": "/assets/(.*)", "dest": "/assets/$1" },
-    { "src": "/logo.svg", "dest": "/logo.svg" },
-    { "src": "/favicon.svg", "dest": "/favicon.svg" },
-    { "src": "/[^.]*", "dest": "/index.html" }
+  "rewrites": [
+    {
+      "source": "/api/waitlist",
+      "destination": "/api/waitlist"
+    },
+    {
+      "source": "/docs",
+      "destination": "https://crawlingo-docs.vercel.app/docs"
+    },
+    {
+      "source": "/docs/:path*",
+      "destination": "https://crawlingo-docs.vercel.app/docs/:path*"
+    },
+    {
+      "source": "/((?!api/|docs/).*)",
+      "destination": "/index.html"
+    }
   ]
 }

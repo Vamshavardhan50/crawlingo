@@ -279,6 +279,7 @@ impl PyCrawl {
         Ok(self_.into())
     }
 
+    #[pyo3(signature = (name, selector, selector_type=None, default=None))]
     pub fn field(
         mut self_: PyRefMut<'_, Self>,
         name: &str,

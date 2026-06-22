@@ -56,6 +56,7 @@ pub struct PyPage {
 impl PyPage {
     #[new]
     #[pyo3(signature = (url, auto_match=false, timeout=30, retries=3, headers=None, cookies=None, proxy=None))]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         py: Python<'_>,
         url: &str,
