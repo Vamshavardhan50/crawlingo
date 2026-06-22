@@ -12,7 +12,6 @@ import TroubleshootingPage from './pages/TroubleshootingPage';
 import ChangelogPage from './pages/ChangelogPage';
 import RoadmapPage from './pages/RoadmapPage';
 import DemoPage from './pages/DemoPage';
-import WaitlistPage from './pages/WaitlistPage';
 
 export default function App() {
   return (
@@ -31,7 +30,6 @@ export default function App() {
           <Route path="/changelog" element={<ChangelogPage />} />
           <Route path="/roadmap" element={<RoadmapPage />} />
           <Route path="/demo" element={<DemoPage />} />
-          <Route path="/waitlist" element={<WaitlistPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

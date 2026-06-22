@@ -194,10 +194,9 @@ export default async function handler(req, res) {
         </html>
       `;
 
-      // Determine robust local path to logo.svg inside Vercel build output
       let logoPath = path.join(process.cwd(), 'public/logo.svg');
       if (!fs.existsSync(logoPath)) {
-        logoPath = path.join(process.cwd(), 'docs-v2/public/logo.svg');
+        logoPath = path.join(process.cwd(), 'logo.svg');
       }
 
       const mailOptions = {
@@ -214,7 +213,6 @@ export default async function handler(req, res) {
         ] : []
       };
 
-      // Wrap in Promise to guarantee execution in serverless function before context close
       await new Promise((resolve) => {
         transporter.sendMail(mailOptions, (error, info) => {
           if (error) {
