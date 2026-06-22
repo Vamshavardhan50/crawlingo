@@ -1,5 +1,5 @@
 # Rust Build Artifacts
-/target/
+target/
 Cargo.lock
 
 # Python virtual environment and build folders
@@ -31,6 +31,7 @@ dist/
 !tsconfig.json
 !tsconfig.*.json
 !tsconfig.node.json
+!vercel.json
 # Node dependencies
 node_modules/
 
