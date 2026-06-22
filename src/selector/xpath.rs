@@ -33,7 +33,7 @@ pub fn parse_xpath(xpath_str: &str) -> Option<CompiledXPath> {
 
     // Split segments by '/' (ignoring inner slashes inside filter quotes if any, but basic splits are standard)
     let raw_segs = rest.split('/');
-    for (i, seg) in raw_segs.enumerate() {
+    for seg in raw_segs {
         if seg.is_empty() {
             // double slash inside expression
             is_descendant = true;
@@ -41,7 +41,7 @@ pub fn parse_xpath(xpath_str: &str) -> Option<CompiledXPath> {
         }
 
         // Determine descendant flag for this segment
-        let desc = if i == 0 { is_descendant } else { is_descendant };
+        let desc = is_descendant;
         // Reset descendant flag for subsequent direct children
         is_descendant = false;
 
@@ -53,8 +53,8 @@ pub fn parse_xpath(xpath_str: &str) -> Option<CompiledXPath> {
             tag = seg[..start_idx].to_string();
             if let Some(end_idx) = seg.find(']') {
                 let filter = &seg[start_idx + 1..end_idx]; // "@class='product'"
-                if filter.starts_with('@') {
-                    let parts: Vec<&str> = filter[1..].split('=').collect();
+                if let Some(stripped) = filter.strip_prefix('@') {
+                    let parts: Vec<&str> = stripped.split('=').collect();
                     if parts.len() == 2 {
                         let attr_name = parts[0].trim().to_string();
                         let attr_val = parts[1]

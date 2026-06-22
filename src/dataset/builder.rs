@@ -1,4 +1,4 @@
-use crate::engine::fetcher::{FetchRequest, Fetcher, FetcherTier};
+use crate::engine::fetcher::{FetchRequest, Fetcher};
 use crate::engine::pool::ConnectionPoolConfig;
 #[cfg(feature = "python")]
 use crate::engine::session::PySession;
@@ -6,7 +6,6 @@ use crate::engine::session::Session;
 use crate::error::{CrawlingoError, Result};
 use crate::fingerprint::store::FingerprintStore;
 use crate::matcher::auto_matcher;
-use crate::parser::document::DomTree;
 use crate::parser::streaming::parse_html;
 use crate::selector::{css, regex_selector, text_anchor, xpath};
 use chrono::{DateTime, Utc};

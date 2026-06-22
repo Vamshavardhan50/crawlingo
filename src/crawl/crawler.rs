@@ -1,8 +1,8 @@
-use crate::dataset::builder::{Dataset, DatasetField, DatasetResult};
-use crate::engine::fetcher::{FetchRequest, Fetcher, FetcherTier};
+use crate::dataset::builder::{DatasetField, DatasetResult};
+use crate::engine::fetcher::{FetchRequest, Fetcher};
 use crate::engine::pool::ConnectionPoolConfig;
 use crate::engine::session::Session;
-use crate::error::{CrawlingoError, Result};
+use crate::error::Result;
 use crate::parser::streaming::parse_html;
 use crate::selector::css;
 use std::collections::{HashMap, HashSet};

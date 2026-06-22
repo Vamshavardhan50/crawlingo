@@ -5,6 +5,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+type LolHtmlResult = std::result::Result<(), Box<dyn std::error::Error + Send + Sync + 'static>>;
+
 /// Parses raw HTML bytes into a queryable memory-indexed `DomTree` using `lol-html`.
 pub fn parse_html(html: &[u8]) -> Result<DomTree> {
     let tree = Rc::new(RefCell::new(DomTree::new()));
@@ -48,20 +50,14 @@ pub fn parse_html(html: &[u8]) -> Result<DomTree> {
             stack_clone.borrow_mut().push(new_idx);
             let stack_inner = Rc::clone(&stack_clone);
 
-            let handler: Box<
-                dyn FnOnce(
-                    &mut lol_html::html_content::EndTag<'_>,
-                ) -> std::result::Result<
-                    (),
-                    Box<dyn std::error::Error + Send + Sync + 'static>,
-                >,
-            > = Box::new(move |_end| {
-                let mut stack = stack_inner.borrow_mut();
-                if let Some(pos) = stack.iter().position(|&idx| idx == new_idx) {
-                    stack.truncate(pos);
-                }
-                Ok(())
-            });
+            let handler: Box<dyn FnOnce(&mut lol_html::html_content::EndTag<'_>) -> LolHtmlResult> =
+                Box::new(move |_end| {
+                    let mut stack = stack_inner.borrow_mut();
+                    if let Some(pos) = stack.iter().position(|&idx| idx == new_idx) {
+                        stack.truncate(pos);
+                    }
+                    Ok(())
+                });
             el.on_end_tag(handler)?;
         }
 

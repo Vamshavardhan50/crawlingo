@@ -40,14 +40,14 @@ fn test_integration_flow() {
 
     // First, run auto_match on simple_tree. This will locate the element via standard CSS
     // selector, generate the DOM fingerprint, and cache it in the Sled persistent store.
-    let matched_idx = auto_match(&simple_tree, url, selector, &store)
+    let matched_idx = auto_match(&simple_tree, url, selector, &store, None)
         .expect("First auto_match should locate the element via CSS");
     assert_eq!(simple_tree.get_text(matched_idx), "$299.99");
 
     // Next, run auto_match on changed_tree. In changed.html, the selector "span.price-value"
     // is broken because the class was mutated to "amount". The auto-matcher must trigger
     // fingerprint self-healing, scan all elements, score similarity, and recover the node.
-    let recovered_idx = auto_match(&changed_tree, url, selector, &store)
+    let recovered_idx = auto_match(&changed_tree, url, selector, &store, None)
         .expect("Auto-matcher should recover the broken selector via DOM fingerprint similarity");
 
     // Check that we successfully recovered the price element

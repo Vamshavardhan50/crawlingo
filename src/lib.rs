@@ -1,5 +1,7 @@
 use once_cell::sync::Lazy;
+#[cfg(feature = "python")]
 use std::collections::HashMap;
+#[cfg(feature = "python")]
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 
@@ -15,13 +17,19 @@ pub mod queue;
 pub mod selector;
 pub mod watch;
 
+#[cfg(feature = "python")]
 use crate::engine::fetcher::{FetchRequest, Fetcher, FetcherTier};
+#[cfg(feature = "python")]
 use crate::engine::pool::ConnectionPoolConfig;
+#[cfg(feature = "python")]
 use crate::error::CrawlingoError;
+#[cfg(feature = "python")]
 use crate::parser::document::DomTree;
 #[cfg(feature = "python")]
 use crate::parser::document::PyElementCollection;
+#[cfg(feature = "python")]
 use crate::parser::streaming::parse_html;
+#[cfg(feature = "python")]
 use crate::selector::{css, regex_selector, text_anchor, xpath};
 
 /// Shared static Tokio runtime used to run async futures synchronously for the Python GIL thread.

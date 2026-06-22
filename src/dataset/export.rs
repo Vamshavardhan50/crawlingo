@@ -28,7 +28,7 @@ pub async fn write_parquet(path: &str, fields: &HashMap<String, String>) -> Resu
     let schema = Arc::new(Schema::new(arrow_fields));
 
     // 2. Build RecordBatch
-    let batch = RecordBatch::try_new(schema, arrays).map_err(|e| CrawlingoError::ArrowError(e))?;
+    let batch = RecordBatch::try_new(schema, arrays).map_err(CrawlingoError::ArrowError)?;
 
     // 3. Write Parquet File
     // std::fs::File is blocked using tokio::task::block_in_place or run inside spawn_blocking

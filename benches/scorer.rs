@@ -13,7 +13,7 @@ fn bench_similarity_scorer(c: &mut Criterion) {
         .unwrap();
 
     c.bench_function("composite_score", |b| {
-        b.iter(|| composite_score(black_box(&tree), black_box(node_idx), black_box(&fp)))
+        b.iter(|| composite_score(black_box(&tree), black_box(node_idx), black_box(&fp), None))
     });
 }
 

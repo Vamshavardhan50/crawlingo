@@ -13,7 +13,7 @@ fn bench_auto_matcher(c: &mut Criterion) {
     // Setup initial tree and cache the fingerprint in store
     let html_initial = b"<html><body><div><span class='price'>$250</span></div></body></html>";
     let tree_initial = parse_html(html_initial).unwrap();
-    let _ = auto_match(&tree_initial, url, selector, &store).unwrap();
+    let _ = auto_match(&tree_initial, url, selector, &store, None).unwrap();
 
     // Redesigned tree where class is changed to price-tag
     let html_redesigned =
@@ -27,6 +27,7 @@ fn bench_auto_matcher(c: &mut Criterion) {
                 black_box(url),
                 black_box(selector),
                 black_box(&store),
+                None,
             )
             .unwrap()
         })

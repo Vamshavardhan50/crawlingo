@@ -1,9 +1,9 @@
 {
   "cleanUrls": true,
-  "routes": [
-    { "src": "/assets/(.*)", "dest": "/assets/$1" },
-    { "src": "/logo.svg", "dest": "/logo.svg" },
-    { "src": "/favicon.svg", "dest": "/favicon.svg" },
-    { "src": "/[^.]*", "dest": "/index.html" }
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

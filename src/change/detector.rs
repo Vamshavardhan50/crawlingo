@@ -37,7 +37,7 @@ pub struct ChangeEvent {
 fn parse_price(val: &str) -> Option<f64> {
     let clean: String = val
         .chars()
-        .filter(|c| c.is_digit(10) || *c == '.' || *c == '-')
+        .filter(|c| c.is_ascii_digit() || *c == '.' || *c == '-')
         .collect();
     clean.parse::<f64>().ok()
 }

@@ -1,5 +1,5 @@
 use crate::fingerprint::dom::{AncestorNode, DomFingerprint};
-use crate::parser::document::{DomNode, DomTree};
+use crate::parser::document::DomTree;
 use std::collections::{HashMap, HashSet};
 use strsim::jaro_winkler;
 

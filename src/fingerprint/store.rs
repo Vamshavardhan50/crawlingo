@@ -18,7 +18,7 @@ impl FingerprintStore {
     /// Stores a DOM Fingerprint associated with a URL and selector.
     pub fn store(&self, url: &str, selector: &str, fingerprint: &DomFingerprint) -> Result<()> {
         let key = format!("{}:{}", url, selector);
-        let bytes = bincode::serialize(fingerprint).map_err(|e| CrawlingoError::BincodeError(e))?;
+        let bytes = bincode::serialize(fingerprint).map_err(CrawlingoError::BincodeError)?;
         self.db
             .insert(key.as_bytes(), bytes)
             .map_err(|e| CrawlingoError::FingerprintStoreError(e.to_string()))?;
@@ -39,7 +39,7 @@ impl FingerprintStore {
         match bytes_opt {
             Some(ivec) => {
                 let fingerprint =
-                    bincode::deserialize(&ivec).map_err(|e| CrawlingoError::BincodeError(e))?;
+                    bincode::deserialize(&ivec).map_err(CrawlingoError::BincodeError)?;
                 Ok(Some(fingerprint))
             }
             None => Ok(None),

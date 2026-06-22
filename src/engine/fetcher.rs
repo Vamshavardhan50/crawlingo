@@ -3,7 +3,7 @@ use crate::engine::rate_limiter::HostRateLimiter;
 use crate::error::{CrawlingoError, Result};
 use std::sync::Arc;
 use std::time::Duration;
-use wreq::{Client, Method, RequestBuilder, Response};
+use wreq::{Client, Method, Response};
 use wreq_util::Emulation;
 
 /// The fetcher tier mode.

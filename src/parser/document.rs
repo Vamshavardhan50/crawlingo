@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+#[cfg(feature = "python")]
 use std::sync::Arc;
 
 /// A node in the custom in-memory DOM Tree.

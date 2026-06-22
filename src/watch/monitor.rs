@@ -1,9 +1,13 @@
+#[cfg(feature = "python")]
 use crate::change::detector::{detect_changes, ChangeType};
-use crate::dataset::builder::{Dataset, DatasetField};
+#[cfg(feature = "python")]
+use crate::dataset::builder::Dataset;
+use crate::dataset::builder::DatasetField;
 use crate::engine::session::Session;
-use crate::error::{CrawlingoError, Result};
+#[cfg(feature = "python")]
 use std::collections::HashMap;
 use std::sync::Arc;
+#[cfg(feature = "python")]
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
