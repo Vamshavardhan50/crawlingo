@@ -1,0 +1,8 @@
+{
+  "name": "crawlingo-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build --prefix waitlist && npm run build --prefix docs && node build-merge.js"
+  }
+}
