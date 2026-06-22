@@ -1,0 +1,53 @@
+---
+title: Changelog
+description: Release logs and version history details for Crawlingo framework components.
+---
+
+# Changelog
+
+Release logs and version history details for Crawlingo framework components.
+
+---
+
+## v1.3.0
+
+<span className="text-xs text-gray-400">2026-06-19 • stable</span>
+
+### ADDED
+- **Enhanced Auto-Match**: Customizable similarity scoring weights (text, class, depth, tags, attributes) for finer healing control.
+- **Built-in IP Proxy Pools**: Rotation with provider URL loading supports directly on `Session` level.
+- **Scheduled Crawling**: Background cron/interval runner for recurring crawl tasks.
+- **Real-time Webhook Delivery**: Stream extracted JSON items dynamically to external API endpoints during crawls.
+- **Native Bindings**: Exposed Python & napi-rs Node.js bindings mapping the new session and crawler structures.
+
+---
+
+## v1.2.0
+
+<span className="text-xs text-gray-400">2026-06-18 • stable</span>
+
+### ADDED
+- **Session variables** with timeout, headers, cookies, and `rate_limits` configuration.
+- **Page selectors** with `css()`, `xpath()`, `find_text()`, `after_text()`, `before_text()` interfaces.
+- **Auto-match self-healing** capabilities utilizing Jaro-Winkler scores stored in `sled` databases.
+- **Direct Arrow table parsing** with parquet/json exports and Pandas `df()` callbacks.
+- **Stealth browser emulation** signatures using `wreq` bindings.
+
+---
+
+<HoverBorderCard className="p-6 my-6">
+  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div>
+      <h3 className="text-sm font-semibold text-black dark:text-white">Stay Tuned</h3>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Watch releases directly on GitHub for real-time update notifications.</p>
+    </div>
+    <a
+      href="https://github.com/Vamshavardhan50/crawlingo/releases"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="bg-black text-white hover:opacity-90 dark:bg-white dark:text-black py-2 px-4 text-xs font-semibold rounded-lg flex items-center gap-1.5"
+    >
+      View Releases
+    </a>
+  </div>
+</HoverBorderCard>

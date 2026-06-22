@@ -1,0 +1,887 @@
+---
+title: API References
+description: Detailed schemas, function signatures, types, default values, and usage specifications for Crawlingo classes.
+---
+
+# API References
+
+Detailed schemas, function signatures, types, default values, and usage specifications for Crawlingo classes.
+
+---
+
+## Session
+
+Central configuration for all scraping operations.
+
+### Methods
+
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">Session()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Create a new session with defaults.</p>
+      </div>
+    </div>
+    <div className="mt-3">
+      ```python
+      session = Session()
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.headers(dict)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set custom HTTP headers.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.headers({"Accept-Language": "en-US"})
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.cookies(dict)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set cookies for requests.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.cookies({"sid": "abc"})
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.proxy(str)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set proxy URL.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.proxy("http://proxy:8080")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.rate_limit(float)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Requests per second per host.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.rate_limit(5.0)
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.timeout(int)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Request timeout in seconds.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.timeout(30)
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.auto_match(bool)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Enable self-healing selectors.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.auto_match(True)
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.fetcher_tier(str)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">"standard" or "stealthy" (browser impersonation).</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.fetcher_tier("stealthy")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.browser_profile(str)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">"chrome", "firefox", or "safari".</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.browser_profile("chrome")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.fingerprint_path(str)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Path for auto-match fingerprint store.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.fingerprint_path(".crawlingo")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.auto_match_weights(dict)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set custom similarity scoring weights for healing.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.auto_match_weights({"text": 2.0, "class": 1.0})
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.proxy_pool(list)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Rotate requests through a pool of proxies round-robin.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.proxy_pool(["http://p1:80", "http://p2:80"])
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.proxy_provider(str)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Pull rotating proxies dynamically from a provider API URL.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.proxy_provider("https://provider.api/proxies")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.page(url)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Fetch a single page.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Page</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page = session.page("https://example.com")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.dataset(url)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Create a dataset builder.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Dataset</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      ds = session.dataset("https://example.com")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.crawl(url)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Create a multi-page crawler.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      cr = session.crawl("https://example.com")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.watch(url)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Create a change monitor.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Watch</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      w = session.watch("https://example.com")
+      ```
+    </div>
+  </HoverBorderCard>
+</div>
+
+---
+
+## Page
+
+Lazy-loaded page with selector methods. Fetches on first access.
+
+### Methods
+
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.url</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Final URL after redirects.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.status</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">HTTP status code.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">int</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.html()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Raw HTML content.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.title()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Content of &lt;title&gt; tag.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.css(selector)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Query by CSS selector.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page.css("h1")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.xpath(query)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Query by XPath expression.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page.xpath("//div[@class='x']")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.find_text(text)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Find nodes containing text.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page.find_text("Price:")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.after_text(text)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Element after text anchor.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page.after_text("Price:")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.before_text(text)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Element before text anchor.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page.before_text("Footer")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.regex(pattern)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Match text against regex.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page.regex(r"\d+\.\d{2}")
+      ```
+    </div>
+  </HoverBorderCard>
+</div>
+
+---
+
+## Element
+
+Single DOM element with navigation and attribute access.
+
+### Methods
+
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.text()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Text content of element.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.html()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Inner HTML.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.attr(name)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Get attribute value.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      el.attr("href")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.attrs()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">All attributes as dict.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">dict</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.parent()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Parent element.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Element | None</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.children()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Child elements.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.next()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Next sibling.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Element | None</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.prev()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Previous sibling.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Element | None</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.siblings()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">All siblings.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+  </HoverBorderCard>
+</div>
+
+---
+
+## ElementCollection
+
+Collection of elements with chainable methods.
+
+### Methods
+
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.text()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Concatenated text of all elements.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.texts()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">List of text values.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">List[str]</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.attr(name)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Attribute from first element.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.first()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">First element.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Element | None</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.last()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Last element.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Element | None</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.nth(n)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Element at index n.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Element | None</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.filter(fn)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Filter elements.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      coll.filter(lambda e: "sale" in e.text())
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.map(fn)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Map elements to values.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">list</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      coll.map(lambda e: e.text())
+      ```
+    </div>
+  </HoverBorderCard>
+</div>
+
+---
+
+## Dataset
+
+Structured data extraction from a single URL.
+
+### Methods
+
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.field(name, selector, selector_type, default)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Add extraction field.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Dataset</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      ds.field("title", "h1", selector_type="css")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.auto_match(bool)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Enable auto-match for this dataset.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Dataset</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.build()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Execute extraction (sync).</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">DatasetResult</span>
+    </div>
+  </HoverBorderCard>
+</div>
+
+---
+
+## DatasetResult
+
+Result of a dataset build with export methods.
+
+### Methods
+
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">[key]</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Access field by name.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      result["title"]
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.to_json(path)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Export to JSON file.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">None</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.to_csv(path)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Export to CSV file.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">None</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.to_parquet(path)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Export to Parquet file.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">None</span>
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.df()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Convert to Pandas DataFrame.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">DataFrame</span>
+    </div>
+  </HoverBorderCard>
+</div>
+
+---
+
+## Crawl
+
+Recursive crawler with concurrency limits, delay pacing, webhooks, and background scheduling.
+
+### Methods
+
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">Crawl(start_url, session)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Create a new crawler.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl = Crawl("https://example.com", session)
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.follow(selector)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">CSS selector of links to follow recursively.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.follow("a.next-page")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.limit(pages)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Limit the crawler to a maximum page count.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.limit(50)
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.depth(max_depth)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Maximum links hop depth.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.depth(3)
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.concurrency(n)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Max concurrent fetching workers.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.concurrency(4)
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.delay(seconds)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Politeness pacing delay.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.delay(0.5)
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.field(name, selector, selector_type, default)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Define fields to extract from every page.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.field("title", "h1", selector_type="css")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.webhook(url)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Real-time JSON result delivery webhook URL.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.webhook("https://api.myweb.com/webhook")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.schedule(interval_seconds)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Run scheduled recurring crawl background loops.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">None</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.schedule(3600)
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.build()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Run crawl loops synchronously.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">CrawlResults</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      results = crawl.build()
+      ```
+    </div>
+  </HoverBorderCard>
+</div>

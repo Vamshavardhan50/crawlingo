@@ -1,0 +1,53 @@
+---
+title: Troubleshooting FAQ
+description: Quickly resolve common setup failures, selector issues, and rate limits problems.
+---
+
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
+# Troubleshooting FAQ
+
+Quickly resolve common setup failures, selector issues, and rate limits problems.
+
+---
+
+## Installation Failures
+
+<Accordions>
+  <Accordion title="Fails with 'No matching distribution found'">
+    Crawlingo requires Python 3.8+ or Node.js 16+. Check your version and ensure you have a compatible platform (Linux, macOS, or Windows x86_64).
+
+    ```bash
+    python --version # Check Python
+    node --version   # Check Node.js
+    ```
+  </Accordion>
+  <Accordion title="Rust compiler tools requested during installation">
+    You do NOT need Rust compiler chains. Pre-compiled binaries are shipped directly on PyPI/npm. Force a binary clean install:
+
+    ```bash
+    # Re-install Python SDK
+    pip install --force-reinstall crawlingo
+
+    # Re-install Node.js SDK
+    npm install @crawlingo/sdk --force
+    ```
+  </Accordion>
+</Accordions>
+
+---
+
+## Selector Extraction Issues
+
+<Accordions>
+  <Accordion title="CSS selectors return empty arrays">
+    Verify selectors inside browser inspection tools. Crawlingo parses static elements list, so client-side dynamic frame tags (like canvas templates) might require wait conditions.
+  </Accordion>
+  <Accordion title="XPath selectors fail to resolve">
+    Standard child/sibling paths are fully supported. For dynamic index checks, use `find_text`/`after_text` instead.
+  </Accordion>
+</Accordions>
+
+<Callout type="info">
+  Still having problems? Join the Discord channel or open an issue on the GitHub repository.
+</Callout>

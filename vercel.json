@@ -6,12 +6,9 @@
       "destination": "/api/waitlist"
     },
     {
-      "source": "/docs/:path*",
-      "destination": "/docs/index.html"
-    },
-    {
       "source": "/((?!api/|docs/).*)",
       "destination": "/index.html"
     }
+
   ]
 }
