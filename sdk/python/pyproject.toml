@@ -35,6 +35,8 @@ test-command = "python -c \"import crawlingo; print(crawlingo.__version__)\""
 environment = { CIBW_BUILD_VERBOSITY = "1" }
 
 [tool.cibuildwheel.linux]
+before-all = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
+environment = { PATH = "$PATH:$HOME/.cargo/bin", CIBW_BUILD_VERBOSITY = "1" }
 archs = ["x86_64", "aarch64"]
 
 [tool.cibuildwheel.macos]
