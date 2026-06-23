@@ -156,6 +156,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Rust (host)
+        if: matrix.os != 'ubuntu-latest'
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Set up QEMU (for arm64 Linux builds)
         if: matrix.os == 'ubuntu-latest'
         uses: docker/setup-qemu-action@v3
@@ -168,6 +172,12 @@ jobs:
           CIBW_BUILD_VERBOSITY: 1
           CIBW_TEST_COMMAND: python -c "import crawlingo; print(crawlingo.__version__)"
           CIBW_BEFORE_ALL: pip install maturin
+          CIBW_BEFORE_ALL_LINUX: >
+            curl https://sh.rustup.rs -sSf | sh -s -- -y &&
+            (yum install -y clang || dnf install -y clang || apt-get install -y clang || true) &&
+            pip install maturin
+          CIBW_ENVIRONMENT_LINUX: PATH="$PATH:$HOME/.cargo/bin" MATURIN_NO_INSTALL_RUST="1"
+          CIBW_ENVIRONMENT_MACOS: PATH="$PATH:$HOME/.cargo/bin" MATURIN_NO_INSTALL_RUST="1"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
