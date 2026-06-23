@@ -29,14 +29,14 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: docs-v2/package-lock.json
+          cache-dependency-path: docs/package-lock.json
 
       - name: Install dependencies
-        working-directory: docs-v2
+        working-directory: docs
         run: npm ci
 
       - name: Build documentation
-        working-directory: docs-v2
+        working-directory: docs
         run: npm run build
 
       - name: Setup Pages
@@ -47,7 +47,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs-v2/dist
+          path: docs/out
 
   deploy:
     environment:
