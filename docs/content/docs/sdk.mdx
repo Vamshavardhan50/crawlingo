@@ -1,219 +1,358 @@
 ---
-title: SDK Documentation
-description: Detailed developer guides for our Python and Node.js SDK bindings, providing idiomatic class wraps around our shared Rust scraper core.
+title: SDK Guides & Core Concepts
+description: Detailed developer guides and in-depth code walkthroughs for Crawlingo's Python and Node.js SDK bindings.
 ---
 
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
 
-# SDK Documentation
+# SDK Guides & Core Concepts
 
-Detailed developer guides for our Python and Node.js SDK bindings, providing idiomatic class wraps around our shared Rust scraper core.
+Crawlingo SDKs provide idiomatic, high-level developer bindings for **Python** and **Node.js**. Both SDKs wrap a shared, high-performance **Rust Core Engine** via native bindings (`pyo3` and `napi-rs`), ensuring ultra-fast HTML parsing, concurrency, and memory safety.
 
 ---
 
 ## SDK Features Comparison
 
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
-  <HoverBorderCard className="p-6 h-full flex flex-col justify-between">
+  <Card className="p-6 h-full flex flex-col justify-between border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 rounded-xl">
     <div>
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-black text-white dark:bg-white dark:text-black flex items-center justify-center font-bold font-mono">
+        <div className="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold font-mono">
           Py
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-black dark:text-white">Python SDK</h3>
-          <span className="text-[10px] font-mono text-gray-400">pip install crawlingo</span>
+          <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">Python SDK</h3>
+          <span className="text-[10px] font-mono text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded">pip install crawlingo</span>
         </div>
       </div>
       <ul className="space-y-2">
-        <li className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-black dark:bg-white shrink-0" />
-          Session, Page, Element, ElementCollection mapping classes.
+        <li className="text-xs text-neutral-600 dark:text-neutral-400 flex items-start gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />
+          <span>**Idiomatic Wrappers**: Dedicated classes for `Session`, `Page`, `Element`, `ElementCollection`, `Dataset`, `Crawl`, and `Watch`.</span>
         </li>
-        <li className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-black dark:bg-white shrink-0" />
-          Dataset, DatasetResult, Crawl, and Watch pipeline hooks.
+        <li className="text-xs text-neutral-600 dark:text-neutral-400 flex items-start gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />
+          <span>**Context Managers**: Native support for Python's `with` syntax to manage session lifecycles.</span>
         </li>
-        <li className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-black dark:bg-white shrink-0" />
-          Direct Pandas DataFrame conversion via .df() interface.
-        </li>
-        <li className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-black dark:bg-white shrink-0" />
-          Syntax-supported context managers: with Session() as s.
+        <li className="text-xs text-neutral-600 dark:text-neutral-400 flex items-start gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />
+          <span>**Data Science Integration**: Direct conversion of extraction results to Pandas DataFrames via `.df()`.</span>
         </li>
       </ul>
     </div>
-  </HoverBorderCard>
+  </Card>
 
-  <HoverBorderCard className="p-6 h-full flex flex-col justify-between">
+  <Card className="p-6 h-full flex flex-col justify-between border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 rounded-xl">
     <div>
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-black text-white dark:bg-white dark:text-black flex items-center justify-center font-bold font-mono">
+        <div className="w-10 h-10 rounded-lg bg-yellow-600 text-white flex items-center justify-center font-bold font-mono">
           JS
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-black dark:text-white">Node.js SDK</h3>
-          <span className="text-[10px] font-mono text-gray-400">npm install @crawlingo/sdk</span>
+          <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">Node.js SDK</h3>
+          <span className="text-[10px] font-mono text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded">npm install @crawlingo/sdk</span>
         </div>
       </div>
       <ul className="space-y-2">
-        <li className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-black dark:bg-white shrink-0" />
-          Complete Typescript definitions compile-time validated.
+        <li className="text-xs text-neutral-600 dark:text-neutral-400 flex items-start gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0 mt-1.5" />
+          <span>**First-Class TypeScript**: Ships with complete, auto-generated TypeScript declarations.</span>
         </li>
-        <li className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-black dark:bg-white shrink-0" />
-          Tokio-backed asynchronous promise methods.
+        <li className="text-xs text-neutral-600 dark:text-neutral-400 flex items-start gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0 mt-1.5" />
+          <span>**Asynchronous Tokyo Runtime**: Non-blocking asynchronous promise methods powered by native Node.js event-loop integrations.</span>
         </li>
-        <li className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-black dark:bg-white shrink-0" />
-          Platform-specific native NAPI binary builds.
-        </li>
-        <li className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-black dark:bg-white shrink-0" />
-          Compatible with standard CommonJS and ESM imports.
+        <li className="text-xs text-neutral-600 dark:text-neutral-400 flex items-start gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0 mt-1.5" />
+          <span>**CommonJS & ESM Support**: Compatible with both traditional `require()` and modern `import` modules.</span>
         </li>
       </ul>
     </div>
-  </HoverBorderCard>
+  </Card>
 </div>
 
 ---
 
-## Basic Scrapes
+## Core Architecture & Classes (Word-by-Word)
+
+To build robust scrapers, it is essential to understand the SDK's object model and how each class communicates with the Rust engine:
+
+*   **`Session`**: The root configuration unit. Manages a shared connection pool, cookie jars, proxy rotation pools, and auto-match selector healing parameters. Using a single `Session` for multiple pages significantly speeds up scraping by reusing TCP connections (HTTP Keep-Alive).
+*   **`Page`**: A lazy-loaded reference to a single URL. Creating a `Page` object does **not** trigger a network request. The request is only executed when you first access content (e.g., calling `.html()`, `.title()`, or `.css()`), or when you manually trigger it.
+*   **`Element`**: A wrapper around a specific DOM node in the parsed page tree. It allows traversing parent/child relationships and extracting text, HTML, or individual attribute values.
+*   **`ElementCollection`**: A lightweight list wrapper around multiple elements. It supports standard collection operations (`len()`, indexing, slicing, iteration) as well as lazy collection filtering and mapping without cloning the underlying DOM data.
+*   **`Crawl`**: The spider-crawling configuration engine. It queues start URLs, parses followed page links, checks duplication histories, applies rate limits, and processes page extraction configurations across multiple worker threads.
+*   **`Dataset`**: A specialized extraction unit focused on mapping a single page into structured data (JSON, CSV) based on defined extraction fields.
+
+---
+
+## Walkthrough 1: E-Commerce Product Scraping
+
+Below is a detailed, real-world scenario scraping product info from an online store. It demonstrates how to initialize a custom session, set stealth browser headers, query using CSS selectors, and loop through elements.
+
+### The Code
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+    ```python
+    # Import the Session class from the SDK package
+    from crawlingo import Session
+
+    # 1. Initialize a custom session context manager
+    with Session() as session:
+        # Enable auto-match self-healing selectors globally
+        session.auto_match(True)
+        
+        # Configure stealth browser impersonation profile to avoid bot detection
+        session.fetcher_tier("stealthy")
+        session.browser_profile("chrome")
+        
+        # 2. Open a lazy page reference
+        page = session.page("https://example-shop.com/products")
+        
+        # 3. Retrieve page metadata (this triggers the network fetch)
+        print(f"Page Title: {page.title()}")
+        print(f"HTTP Status: {page.status}")
+        
+        # 4. Extract product cards using CSS selectors
+        products = page.css("div.product-card")
+        print(f"Found {len(products)} products on page.")
+        
+        # 5. Loop through elements and extract fields
+        for product in products:
+            title = product.css("h2.title").first().text()
+            price = product.css("span.price").first().text()
+            link = product.css("a.product-link").first().attr("href")
+            
+            print(f"Product: {title} | Price: {price} | URL: {link}")
+    ```
+  </Tab>
+  <Tab value="Node.js">
+    ```typescript
+    // Import Session class from the Node.js SDK
+    import { Session } from '@crawlingo/sdk';
+
+    async function main() {
+      // 1. Initialize a custom session
+      const session = new Session();
+      
+      // Enable auto-match self-healing selectors globally
+      session.autoMatch(true);
+      
+      // Configure stealth browser impersonation profile to avoid bot detection
+      session.fetcher_tier("stealthy");
+      session.browser_profile("chrome");
+      
+      // 2. Open a lazy page reference
+      const page = await session.page("https://example-shop.com/products");
+      
+      // 3. Retrieve page metadata (this triggers the network fetch)
+      console.log(`Page Title: ${await page.title()}`);
+      console.log(`HTTP Status: ${await page.status}`);
+      
+      // 4. Extract product cards using CSS selectors
+      const products = await page.css("div.product-card");
+      console.log(`Found ${products.length} products on page.`);
+      
+      // 5. Loop through elements and extract fields
+      for (let i = 0; i < products.length; i++) {
+        const product = products.nth(i);
+        if (!product) continue;
+        
+        const titleEl = (await product.css("h2.title")).first();
+        const priceEl = (await product.css("span.price")).first();
+        const linkEl = (await product.css("a.product-link")).first();
+        
+        const title = titleEl ? titleEl.text() : "N/A";
+        const price = priceEl ? priceEl.text() : "N/A";
+        const link = linkEl ? linkEl.attr("href") : "#";
+        
+        console.log(`Product: ${title} | Price: ${price} | URL: ${link}`);
+      }
+    }
+
+    main().catch(console.error);
+    ```
+  </Tab>
+</Tabs>
+
+### Line-by-Line Code Walkthrough
+
+| Action / Line | Description & SDK Magic |
+| :--- | :--- |
+| `Session()` | Creates the connection and configures HTTP client parameters. Prepares cookie stores and thread pools. |
+| `.auto_match(True)` | Tells the Rust engine to record fingerprints of selectors. If elements shift or class names change in the future, the engine automatically matches using semantic weights rather than throwing an error. |
+| `.fetcher_tier("stealthy")` | Swaps default HTTP engine for TLS-fingerprinted stealth fetcher, simulating Chrome TLS handshakes and request pacing. |
+| `.browser_profile("chrome")` | Generates browser-specific headers, HTTP/2 settings, and user agent parameters aligned with real Google Chrome browser sessions. |
+| `.page(url)` | Creates a lazy object. Network requests are deferred until access properties are queried, saving resources. |
+| `.title()` / `.status` | Invokes the actual HTTP request on demand. Parses HTML into a shared memory DOM tree inside Rust. |
+| `.css("div.product-card")` | Performs high-speed CSS selector querying. Returns an `ElementCollection` which acts as a window to a vector of pointers of matching nodes. |
+| `.first().text()` / `.attr("href")` | Traverses down the selected sub-node and extracts text/attributes, instantly applying any defined extraction post-processing hooks. |
+
+---
+
+## Walkthrough 2: Advanced Distributed Crawling
+
+Below is an advanced multi-page crawling recipe. It configures proxy rotation, restricts crawl depth and rate-limiting to be polite, hooks up real-time webhooks, and schedules recurring crawls.
+
+### The Code
 
 <Tabs items={['Python', 'Node.js']}>
   <Tab value="Python">
     ```python
     from crawlingo import Session
 
+    # 1. Initialize session with a rotating proxy pool
     session = Session()
-    session.auto_match(True)
+    session.proxy_pool([
+        "http://username:password@proxy-us.com:10001",
+        "http://username:password@proxy-eu.com:10002",
+        "http://username:password@proxy-as.com:10003"
+    ])
+    
+    # Restrict session rate limits globally to avoid overloading target servers
+    session.rate_limit(2.0)  # max 2 requests per second
+    session.timeout(15)      # 15s timeout limit
 
-    # Query tags
-    page = session.page("https://example.com")
-    print(page.css("h1").first().text())
+    # 2. Initialize a Crawl spider
+    crawl = session.crawl("https://example-blog.com/posts")
+    
+    # 3. Configure traversal rules
+    crawl.follow("a.next-page-button") # CSS selector to locate pagination links
+    crawl.limit(100)                    # Limit the spider to max 100 pages
+    crawl.depth(5)                      # Stop crawling if link depth exceeds 5 hops
+
+    # 4. Map structured extraction fields (schema)
+    crawl.field("title", "h1.entry-title")
+    crawl.field("author", "span.author-name", default="Anonymous")
+    crawl.field("published", "time.published-date", selector_type="css")
+
+    # 5. Configure real-time webhooks (results are POSTed here page-by-page)
+    crawl.webhook("https://my-api-receiver.com/crawls")
+
+    # 6. Schedule as a recurring background runner (run every 2 hours)
+    # This spawns a thread and handles scheduling via Rust's Tokio runtime.
+    crawl.schedule(7200) 
+    print("Crawl scheduled successfully. Running background worker loops.")
+    
+    # Or, to run it synchronously on demand:
+    # results = crawl.build()
+    # results.to_json("output_posts.json")
+    # results.to_csv("output_posts.csv")
+    ```
+  </Tab>
+  <Tab value="Node.js">
+    ```typescript
+    import { Session, Crawl } from '@crawlingo/sdk';
+
+    async function main() {
+      // 1. Initialize session with proxy pool and rate limiters
+      const session = new Session();
+      session.proxyPool([
+        "http://username:password@proxy-us.com:10001",
+        "http://username:password@proxy-eu.com:10002",
+        "http://username:password@proxy-as.com:10003"
+      ]);
+      session.rate_limit(2.0); // max 2 requests per second
+      session.timeout(15);     // 15s timeout limit
+
+      // 2. Initialize Crawl spider
+      const crawl = new Crawl("https://example-blog.com/posts", session);
+      
+      // 3. Configure traversal rules
+      crawl.follow("a.next-page-button");
+      crawl.limit(100);
+      crawl.depth(5);
+
+      // 4. Map structured extraction fields (schema)
+      crawl.field("title", "h1.entry-title");
+      crawl.field("author", "span.author-name", "css", "Anonymous");
+      crawl.field("published", "time.published-date", "css");
+
+      // 5. Configure real-time webhooks
+      crawl.webhook("https://my-api-receiver.com/crawls");
+
+      // 6. Schedule recurring crawls (run every 2 hours in the background)
+      crawl.schedule(7200);
+      console.log("Crawl scheduled successfully. Running background loops.");
+      
+      // Or run synchronously:
+      // const results = await crawl.run();
+      // console.log(`Crawled ${results.length} pages.`);
+    }
+
+    main().catch(console.error);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Hooks Lifecycle & Data Interception
+
+The SDK supports intercepting data at various points in the request/extract lifecycle. This is useful for customizing headers on the fly, modifying HTML prior to parsing, or cleaning text data:
+
+*   **`before_fetch(request_context)`**: Access and mutate URL, headers, and parameters before a request is fired.
+*   **`after_fetch(response_context)`**: Inspect response status, duration, and metrics.
+*   **`before_parse(html_str)`**: Modify raw HTML source before parsing it into the DOM tree (e.g., removing heavy inline script tags).
+*   **`after_extract(extracted_val)`**: Intercept and clean extracted string values (e.g., converting prices to numbers or removing white spaces).
+
+### Lifecycle Example
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+    ```python
+    from crawlingo import Session
+
+    def add_auth_header(req_ctx):
+        # Inject authorization header on the fly
+        req_ctx.headers["Authorization"] = "Bearer token123"
+
+    def clean_text_whitespace(text_val):
+        # Strip white space and strip currency symbols
+        return text_val.strip().replace("$", "")
+
+    with Session() as session:
+        page = session.page("https://example.com/prices")
+        
+        # Register hooks
+        page.before_fetch(add_auth_header)
+        page.after_extract(clean_text_whitespace)
+        
+        # Query (hooks are automatically applied)
+        price = page.css("span.price-val").first().text()
+        print(f"Cleaned Price: {price}")
     ```
   </Tab>
   <Tab value="Node.js">
     ```typescript
     import { Session } from '@crawlingo/sdk';
 
-    const session = new Session();
-    session.autoMatch(true);
-
-    const page = await session.page("https://example.com");
-    console.log((await page.css("h1")).first()?.text);
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Multi-Page Crawling
-
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
-    ```python
-    from crawlingo import Session
-
-    session = Session()
-    crawl = session.crawl("https://example.com/products")
-    crawl.follow("a.next-page")
-    crawl.limit(30)
-    crawl.field("title", "h1")
-
-    results = crawl.build()
-    for res in results:
-        print(res["title"])
-    ```
-  </Tab>
-  <Tab value="Node.js">
-    ```typescript
-    import { Session, Crawl } from '@crawlingo/sdk';
-
-    const session = new Session();
-    const crawl = new Crawl("https://example.com/products", session);
-    crawl.follow("a.next-page");
-    crawl.limit(30);
-    crawl.field("title", "h1");
-
-    const results = await crawl.run();
-    for (const res of results) {
-      console.log(res["title"]);
+    async function main() {
+      const session = new Session();
+      const page = await session.page("https://example.com/prices");
+      
+      // Register hooks
+      page.before_fetch((reqCtx) => {
+        reqCtx.headers["Authorization"] = "Bearer token123";
+      });
+      
+      page.after_extract((textVal) => {
+        return textVal.trim().replace("$", "");
+      });
+      
+      // Query (hooks are automatically applied)
+      const priceEl = (await page.css("span.price-val")).first();
+      const price = priceEl ? priceEl.text() : "";
+      console.log(`Cleaned Price: ${price}`);
     }
-    ```
-  </Tab>
-</Tabs>
 
----
-
-## Advanced Configuration (Proxy Pools, Webhooks & Scheduling)
-
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
-    ```python
-    from crawlingo import Session
-
-    # 1. Custom similarity weights & proxy rotation pool
-    session = Session()
-    session.auto_match_weights({
-        "text": 3.0,
-        "class": 1.0,
-        "depth": 0.5
-    })
-    session.proxy_pool([
-        "http://proxy1.example.com:8080",
-        "http://proxy2.example.com:8080"
-    ])
-
-    crawl = session.crawl("https://example.com/products")
-    crawl.follow("a.next-page")
-    crawl.field("title", "h1")
-
-    # 2. Configure real-time webhook endpoints
-    crawl.webhook("https://my-api.com/webhooks/crawl")
-
-    # 3. Schedule recurring crawl loops in background (interval in seconds)
-    crawl.schedule(3600)  # every 1 hour
-
-    # Or run immediate synchronous crawl
-    # results = crawl.build()
-    ```
-  </Tab>
-  <Tab value="Node.js">
-    ```typescript
-    import { Session, Crawl } from '@crawlingo/sdk';
-
-    // 1. Custom similarity weights & proxy rotation pool
-    const session = new Session();
-    session.autoMatchWeights({
-      text: 3.0,
-      class: 1.0,
-      depth: 0.5
-    });
-    session.proxyPool([
-      "http://proxy1.example.com:8080",
-      "http://proxy2.example.com:8080"
-    ]);
-
-    const crawl = new Crawl("https://example.com/products", session);
-    crawl.follow("a.next-page");
-    crawl.field("title", "h1");
-
-    // 2. Configure real-time webhook endpoints
-    crawl.webhook("https://my-api.com/webhooks/crawl");
-
-    // 3. Schedule recurring crawl loops in background (interval in seconds)
-    crawl.schedule(3600); // every 1 hour
-
-    // Or run immediate synchronous crawl
-    // const results = await crawl.run();
+    main().catch(console.error);
     ```
   </Tab>
 </Tabs>
 
 <Callout type="info">
-  Both libraries use dynamic runtime allocations to ensure minimal data duplication when mapping DOM lists.
+  Extraction hooks execute within the active thread, ensuring minimal overhead when transforming large arrays of text nodes.
 </Callout>
