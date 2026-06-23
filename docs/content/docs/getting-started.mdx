@@ -88,7 +88,7 @@ Install the appropriate library package for your programming language:
   </Tab>
   <Tab value="Node.js">
     ```bash
-    npm install @crawlingo/sdk
+    npm install crawlingo
     ```
     <Callout type="info">
       Uses Node API (NAPI-RS) to bind Javascript promises straight to Rust async threads.
@@ -137,7 +137,7 @@ All HTTP calls and document extractions originate from a `Session`. The session 
   </Tab>
   <Tab value="Node.js">
     ```typescript
-    import { Session } from '@crawlingo/sdk';
+    import { Session } from 'crawlingo';
 
     const session = new Session();
     session.timeout(15);
@@ -200,7 +200,7 @@ Fetch pages to generate a `Page`, then use CSS, XPath, or anchors to select tags
   </Tab>
   <Tab value="Node.js">
     ```typescript
-    import { Session } from '@crawlingo/sdk';
+    import { Session } from 'crawlingo';
 
     const session = new Session();
     const page = await session.page("https://example.com/products");
@@ -218,5 +218,5 @@ Fetch pages to generate a `Page`, then use CSS, XPath, or anchors to select tags
 </Tabs>
 
 <Callout type="success" title="Setup Complete!">
-  You have successfully initialized a Session and executed a DOM fetch. Explore the [Architecture](/docs/architecture) details to understand how the scheduler and self-healing algorithms operate under the hood.
+  You have successfully initialized a Session and executed a DOM fetch. Explore the [Architecture](/architecture) details to understand how the scheduler and self-healing algorithms operate under the hood.
 </Callout>

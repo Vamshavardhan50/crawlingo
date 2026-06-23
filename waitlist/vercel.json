@@ -7,11 +7,11 @@
     },
     {
       "source": "/docs",
-      "destination": "https://crawlingo-docs.vercel.app/docs"
+      "destination": "https://crawlingo-docs.vercel.app/"
     },
     {
       "source": "/docs/:path*",
-      "destination": "https://crawlingo-docs.vercel.app/docs/:path*"
+      "destination": "https://crawlingo-docs.vercel.app/:path*"
     },
     {
       "source": "/((?!api/|docs/).*)",

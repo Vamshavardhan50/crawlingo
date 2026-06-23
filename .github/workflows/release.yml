@@ -176,8 +176,8 @@ jobs:
             curl https://sh.rustup.rs -sSf | sh -s -- -y &&
             (yum install -y clang || dnf install -y clang || apt-get install -y clang || true) &&
             pip install maturin
-          CIBW_ENVIRONMENT_LINUX: PATH="$PATH:$HOME/.cargo/bin" MATURIN_NO_INSTALL_RUST="1"
-          CIBW_ENVIRONMENT_MACOS: PATH="$PATH:$HOME/.cargo/bin" MATURIN_NO_INSTALL_RUST="1"
+          CIBW_ENVIRONMENT_LINUX: PATH=/root/.cargo/bin:$PATH MATURIN_NO_INSTALL_RUST=1
+          CIBW_ENVIRONMENT_MACOS: PATH=$HOME/.cargo/bin:$PATH MATURIN_NO_INSTALL_RUST=1
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4

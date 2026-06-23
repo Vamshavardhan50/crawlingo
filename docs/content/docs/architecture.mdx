@@ -18,7 +18,7 @@ Crawlingo is split into a core Rust library and native bindings targeting Python
     <div>
       <span className="text-[10px] font-mono text-gray-400 dark:text-gray-500 uppercase font-semibold">Step 1</span>
       <h4 className="text-sm font-semibold text-black dark:text-white mt-1 mb-2">SDK Client</h4>
-      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">User initiates a Session script in Python, JS, or Go.</p>
+      <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">User initiates a Session script in Python, JS, or Go.</div>
     </div>
   </HoverBorderCard>
 
@@ -26,7 +26,7 @@ Crawlingo is split into a core Rust library and native bindings targeting Python
     <div>
       <span className="text-[10px] font-mono text-gray-400 dark:text-gray-500 uppercase font-semibold">Step 2</span>
       <h4 className="text-sm font-semibold text-black dark:text-white mt-1 mb-2">Rust FFI Layer</h4>
-      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Memory pointers are shared directly across Maturin/NAPI-RS boundaries.</p>
+      <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Memory pointers are shared directly across Maturin/NAPI-RS boundaries.</div>
     </div>
   </HoverBorderCard>
 
@@ -34,7 +34,7 @@ Crawlingo is split into a core Rust library and native bindings targeting Python
     <div>
       <span className="text-[10px] font-mono text-gray-400 dark:text-gray-500 uppercase font-semibold">Step 3</span>
       <h4 className="text-sm font-semibold text-black dark:text-white mt-1 mb-2">Parsing Engine</h4>
-      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">lol-html builds DOM maps; Jaro-Winkler scoring repairs drifted elements.</p>
+      <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">lol-html builds DOM maps; Jaro-Winkler scoring repairs drifted elements.</div>
     </div>
   </HoverBorderCard>
 
@@ -42,7 +42,7 @@ Crawlingo is split into a core Rust library and native bindings targeting Python
     <div>
       <span className="text-[10px] font-mono text-gray-400 dark:text-gray-500 uppercase font-semibold">Step 4</span>
       <h4 className="text-sm font-semibold text-black dark:text-white mt-1 mb-2">Arrow Output</h4>
-      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Streams memory blocks out to CSV, Parquet, or JSON formats.</p>
+      <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Streams memory blocks out to CSV, Parquet, or JSON formats.</div>
     </div>
   </HoverBorderCard>
 </div>
@@ -59,7 +59,7 @@ Crawlingo is split into a core Rust library and native bindings targeting Python
       </div>
       <h4 className="text-sm font-semibold text-black dark:text-white">Session</h4>
     </div>
-    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Central config holder holding user-agent headers, session cookies, rate limit, timeout, proxy strings, and browser profile settings.</p>
+    <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Central config holder holding user-agent headers, session cookies, rate limit, timeout, proxy strings, and browser profile settings.</div>
   </HoverBorderCard>
 
   <HoverBorderCard className="p-6">
@@ -69,7 +69,7 @@ Crawlingo is split into a core Rust library and native bindings targeting Python
       </div>
       <h4 className="text-sm font-semibold text-black dark:text-white">Fetcher Engine (wreq)</h4>
     </div>
-    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Binds dynamic connection pools, handles custom DNS resolution via hickory-resolver, and rotating browser TLS/JA3 fingerprints.</p>
+    <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Binds dynamic connection pools, handles custom DNS resolution via hickory-resolver, and rotating browser TLS/JA3 fingerprints.</div>
   </HoverBorderCard>
 
   <HoverBorderCard className="p-6">
@@ -79,7 +79,7 @@ Crawlingo is split into a core Rust library and native bindings targeting Python
       </div>
       <h4 className="text-sm font-semibold text-black dark:text-white">Streaming Parser (lol_html)</h4>
     </div>
-    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Fast streaming HTML parser from Cloudflare that processes bytes on the fly and constructs vector-indexed element structures.</p>
+    <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Fast streaming HTML parser from Cloudflare that processes bytes on the fly and constructs vector-indexed element structures.</div>
   </HoverBorderCard>
 
   <HoverBorderCard className="p-6">
@@ -89,7 +89,7 @@ Crawlingo is split into a core Rust library and native bindings targeting Python
       </div>
       <h4 className="text-sm font-semibold text-black dark:text-white">Fuzzy Selector Matcher</h4>
     </div>
-    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Computes character-level tag matching and attribute weights using Jaro-Winkler distances to solve selector drift issues.</p>
+    <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Computes character-level tag matching and attribute weights using Jaro-Winkler distances to solve selector drift issues.</div>
   </HoverBorderCard>
 </div>
 
@@ -102,15 +102,15 @@ Crawlingo leverages modern bindings to run Rust-level speed while exposing nativ
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
   <div className="p-6 border border-gray-200 dark:border-white/10 rounded-2xl bg-white dark:bg-zinc-950">
     <h3 className="text-sm font-semibold text-black dark:text-white mb-2">Python Bindings (PyO3)</h3>
-    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+    <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
       Exposed natively via the PyO3 crate and managed via Maturin. Data conversion operates directly on memory buffers using Apache Arrow, mapping Python Lists to raw C structs without serialization penalties.
-    </p>
+    </div>
   </div>
   <div className="p-6 border border-gray-200 dark:border-white/10 rounded-2xl bg-white dark:bg-zinc-950">
     <h3 className="text-sm font-semibold text-black dark:text-white mb-2">Node.js Bindings (NAPI-RS)</h3>
-    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+    <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
       Exposed natively through Javascript promises mapping to internal Tokio threads inside the Rust core. Fully typed definitions allow typescript projects to check properties natively.
-    </p>
+    </div>
   </div>
 </div>
 
@@ -127,5 +127,5 @@ dataset.build().to_parquet("output_stream.parquet")
 ```
 
 <Callout type="info" title="Need help with the classes?">
-  Review the complete method definitions in the [API Reference](/docs/api-reference).
+  Review the complete method definitions in the [API Reference](/api-reference).
 </Callout>

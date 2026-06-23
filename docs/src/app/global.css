@@ -2,11 +2,174 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 
+@theme {
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-title: var(--font-title), var(--font-sans), sans-serif;
+  
+  --color-brand-cyan: #06b6d4;
+  --color-brand-violet: #a855f7;
+  --color-brand-emerald: #10b981;
+  --color-brand-rose: #f43f5e;
+  
+  --animate-border-beam: border-beam 6s linear infinite;
+  --animate-pulse-slow: pulse-slow 3s ease-in-out infinite;
+  --animate-glow: glow 2s ease-in-out infinite alternate;
+  
+  @keyframes border-beam {
+    0%, 100% {
+      offset-distance: 0%;
+    }
+    50% {
+      offset-distance: 50%;
+    }
+  }
+  @keyframes pulse-slow {
+    0%, 100% {
+      opacity: 0.2;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+  @keyframes glow {
+    from {
+      box-shadow: 0 0 10px -2px rgba(168, 85, 247, 0.2);
+    }
+    to {
+      box-shadow: 0 0 20px 2px rgba(168, 85, 247, 0.4);
+    }
+  }
+}
+
+:root {
+  --background: 0 0% 99%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 99%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 270 91% 60%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 270 91% 96%;
+  --accent-foreground: 270 91% 35%;
+  --border: 240 5.9% 89%;
+  --input: 240 5.9% 89%;
+  --ring: 270 91% 60%;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: 240 10% 2.8%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 4.5%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 2.8%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 270 91% 65%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 3.7% 12.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 8.5%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 270 91% 12%;
+  --accent-foreground: 270 91% 85%;
+  --border: 240 3.7% 12.9%;
+  --input: 240 3.7% 12.9%;
+  --ring: 270 91% 65%;
+}
+
 html {
   scrollbar-gutter: stable;
+  scroll-behavior: smooth;
 }
 
 html > body[data-scroll-locked] {
   margin-right: 0px !important;
   --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* Typography styles */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title), var(--font-sans), sans-serif;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+
+/* Premium gradient overlays for dark mode background */
+.dark body {
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(168, 85, 247, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.03) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.02) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Code block customization */
+pre {
+  border: 1px solid rgba(168, 85, 247, 0.08) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
+  backdrop-filter: blur(5px) !important;
+}
+
+.dark pre {
+  background-color: rgba(9, 9, 11, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 85, 247, 0.3);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Neon subtle grid backgrounds */
+.cyber-grid {
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, rgba(168, 85, 247, 0.02) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(168, 85, 247, 0.02) 1px, transparent 1px);
+}
+.dark .cyber-grid {
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+}
+
+/* Custom heading decoration */
+.heading-accent {
+  position: relative;
+}
+.heading-accent::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 40px;
+  height: 2px;
+  background: linear-gradient(to right, var(--color-brand-violet), var(--color-brand-cyan));
+  border-radius: 1px;
 }

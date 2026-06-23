@@ -51,7 +51,7 @@ Crawlingo SDKs provide idiomatic, high-level developer bindings for **Python** a
         </div>
         <div>
           <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">Node.js SDK</h3>
-          <span className="text-[10px] font-mono text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded">npm install @crawlingo/sdk</span>
+          <span className="text-[10px] font-mono text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded">npm install crawlingo</span>
         </div>
       </div>
       <ul className="space-y-2">
@@ -131,7 +131,7 @@ Below is a detailed, real-world scenario scraping product info from an online st
   <Tab value="Node.js">
     ```typescript
     // Import Session class from the Node.js SDK
-    import { Session } from '@crawlingo/sdk';
+    import { Session } from 'crawlingo';
 
     async function main() {
       // 1. Initialize a custom session
@@ -244,7 +244,7 @@ Below is an advanced multi-page crawling recipe. It configures proxy rotation, r
   </Tab>
   <Tab value="Node.js">
     ```typescript
-    import { Session, Crawl } from '@crawlingo/sdk';
+    import { Session, Crawl } from 'crawlingo';
 
     async function main() {
       // 1. Initialize session with proxy pool and rate limiters
@@ -327,7 +327,7 @@ The SDK supports intercepting data at various points in the request/extract life
   </Tab>
   <Tab value="Node.js">
     ```typescript
-    import { Session } from '@crawlingo/sdk';
+    import { Session } from 'crawlingo';
 
     async function main() {
       const session = new Session();

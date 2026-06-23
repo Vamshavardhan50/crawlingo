@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, ArrowRight, Play, Pause, Zap, Shield, 
   Cpu, Clock, Webhook, Terminal, Check, X, 
-  ChevronRight, RefreshCw, Server 
+  ChevronRight, RefreshCw, Server, Code, Eye
 } from 'lucide-react';
 import EagleLogo from './EagleLogo';
+import { cn } from '@/lib/cn';
 
 export default function DemoSlideshow() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -16,14 +17,9 @@ export default function DemoSlideshow() {
 
   // Dom self-healing simulator states
   const [driftStep, setDriftStep] = useState<number>(0);
-  // 0: Initial page state
-  // 1: Developer updates website (selector drifts)
-  // 2: Traditional scraper tries to run & crashes
-  // 3: Crawlingo runs scanner / computes Jaro-Winkler
-  // 4: Crawlingo auto-heals and extracts successfully
   
   // Stealth fetcher client simulation states
-  const [stealthActive, setStealthActive] = useState<boolean>(false);
+  const [stealthActive, setStealthActive] = useState<boolean>(true);
 
   // Scheduler / Webhook timeline
   const [schedulerTick, setSchedulerTick] = useState<number>(0);
@@ -59,7 +55,7 @@ export default function DemoSlideshow() {
     if (currentSlide === 2) {
       const interval = setInterval(() => {
         setStealthActive((prev) => !prev);
-      }, 5000);
+      }, 4000);
       return () => clearInterval(interval);
     }
   }, [currentSlide]);
@@ -68,20 +64,21 @@ export default function DemoSlideshow() {
   useEffect(() => {
     if (currentSlide === 3) {
       const interval = setInterval(() => {
-        setSchedulerTick((prev) => (prev + 1) % 4);
-        const timeStr = new Date().toLocaleTimeString();
-        if (schedulerTick === 2) {
-          setWebhookLog((prev) => [
-            { time: timeStr, msg: `POST /webhook -> Dispatching Crawl dataset`, status: 'ok' },
-            ...prev.slice(0, 3)
-          ]);
-        }
+        setSchedulerTick((prev) => (prev + 1) % 3);
       }, 2000);
       return () => clearInterval(interval);
-    } else {
-      setWebhookLog([]);
     }
-  }, [currentSlide, schedulerTick]);
+  }, [currentSlide]);
+
+  useEffect(() => {
+    if (currentSlide === 3 && schedulerTick === 2) {
+      const timeStr = new Date().toLocaleTimeString();
+      setWebhookLog((prev) => [
+        { time: timeStr, msg: `POST /webhook -> Dispatching Crawl dataset`, status: 'ok' },
+        ...prev.slice(0, 3)
+      ]);
+    }
+  }, [schedulerTick, currentSlide]);
 
   const slideTitles = [
     "Introducing Crawlingo",
@@ -92,16 +89,16 @@ export default function DemoSlideshow() {
   ];
 
   return (
-    <div className="flex flex-col justify-between py-6 space-y-6">
+    <div className="flex flex-col justify-between py-6 space-y-6 my-6">
       
       {/* Top Slide Header & Progress */}
       <div className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-white/10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-150 dark:border-white/5">
           <div>
-            <span className="text-xs font-mono font-bold tracking-widest text-zinc-500 uppercase">
-              Demo Slideshow • Slide {currentSlide + 1} of {totalSlides}
+            <span className="text-[10px] font-mono font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase flex items-center gap-1.5">
+              <Eye size={12} /> Slide {currentSlide + 1} of {totalSlides}
             </span>
-            <h2 className="text-xl md:text-2xl font-black text-black dark:text-white mt-1">
+            <h2 className="text-xl md:text-2xl font-title font-bold text-gray-900 dark:text-white mt-1.5 tracking-tight">
               {slideTitles[currentSlide]}
             </h2>
           </div>
@@ -109,15 +106,15 @@ export default function DemoSlideshow() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/10 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors text-xs font-medium"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-55 dark:hover:bg-white/5 transition-all text-xs font-semibold text-gray-700 dark:text-zinc-300"
             >
               {isPlaying ? (
                 <>
-                  <Pause size={14} /> Pause Auto-play
+                  <Pause size={13} className="text-brand-violet" /> Pause
                 </>
               ) : (
                 <>
-                  <Play size={14} /> Auto-play
+                  <Play size={13} /> Auto-play
                 </>
               )}
             </button>
@@ -125,9 +122,9 @@ export default function DemoSlideshow() {
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full h-1 bg-zinc-200 dark:bg-white/5 rounded-full overflow-hidden">
+        <div className="w-full h-1 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
           <motion.div 
-            className="h-full bg-black dark:bg-white"
+            className="h-full bg-brand-violet"
             initial={{ width: "0%" }}
             animate={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` }}
             transition={{ duration: 0.3 }}
@@ -136,18 +133,19 @@ export default function DemoSlideshow() {
       </div>
 
       {/* Main Slide Panel Area */}
-      <div className="flex-1 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-2xl p-6 md:p-8 flex flex-col justify-center min-h-[450px] relative overflow-hidden">
+      <div className="flex-1 bg-white dark:bg-zinc-950/40 border border-gray-150 dark:border-white/5 rounded-3xl p-6 md:p-8 flex flex-col justify-center min-h-[460px] relative overflow-hidden shadow-inner">
         
         {/* Background Decorative Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808007_1px,transparent_1px),linear-gradient(to_bottom,#80808007_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-brand-violet/5 rounded-full filter blur-[80px] pointer-events-none" />
 
         <AnimatePresence mode="wait">
           <motion.div
             key={currentSlide}
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 15 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, x: -15 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
             className="w-full h-full relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center"
           >
             
@@ -155,59 +153,70 @@ export default function DemoSlideshow() {
             {currentSlide === 0 && (
               <>
                 <div className="lg:col-span-7 space-y-6">
-                  <div className="flex items-center gap-3">
-                    <EagleLogo size="xl" />
+                  <div className="flex items-center gap-3.5">
+                    <div className="p-1 rounded-2xl bg-gray-50 dark:bg-zinc-900 border border-gray-200/50 dark:border-white/10 shadow-sm">
+                      <EagleLogo size="lg" />
+                    </div>
                     <div>
-                      <h3 className="text-2xl font-black tracking-tight text-black dark:text-white">
+                      <h3 className="text-2xl font-title font-bold tracking-tight text-gray-900 dark:text-white">
                         Crawlingo
                       </h3>
-                      <p className="text-sm font-mono text-zinc-500">
-                        The Self-Healing Scraping Framework
+                      <p className="text-xs font-mono text-brand-violet font-semibold tracking-wider uppercase">
+                        Self-Healing Scraping Framework
                       </p>
                     </div>
                   </div>
 
-                  <p className="text-base text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    Crawlingo is a high-performance web extraction tool written in Rust. 
-                    It solves the fragile selector problem by dynamically matching changed elements on webpage revisions. 
-                    No more broken pipelines when websites update class names, ids, or structures.
+                  <p className="text-sm text-gray-600 dark:text-zinc-400 leading-relaxed font-normal">
+                    Crawlingo is an ultra-fast web scraper built in Rust. It eliminates pipeline failures by dynamically repairing selectors when layouts update. No more broken integrations when classes, tags, or DOM trees drift.
                   </p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 rounded-xl flex items-start gap-3">
-                      <Zap className="text-black dark:text-white shrink-0 mt-0.5" size={18} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div className="p-4 bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-150 dark:border-white/5 rounded-2xl flex items-start gap-3 hover:border-brand-violet/20 transition-all duration-300">
+                      <Zap className="text-brand-violet shrink-0 mt-0.5" size={18} />
                       <div>
-                        <h4 className="text-sm font-bold text-black dark:text-white">Self-Healing Selectors</h4>
-                        <p className="text-xs text-zinc-500 mt-0.5">Jaro-Winkler similarity matching repairs broken selectors instantly.</p>
+                        <h4 className="text-xs font-bold text-gray-900 dark:text-white">Self-Healing Selectors</h4>
+                        <p className="text-[11px] text-gray-500 dark:text-zinc-550 mt-1 leading-normal">Jaro-Winkler + attribute matching recovers drift variables in milliseconds.</p>
                       </div>
                     </div>
 
-                    <div className="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 rounded-xl flex items-start gap-3">
-                      <Shield className="text-black dark:text-white shrink-0 mt-0.5" size={18} />
+                    <div className="p-4 bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-150 dark:border-white/5 rounded-2xl flex items-start gap-3 hover:border-brand-cyan/20 transition-all duration-300">
+                      <Shield className="text-brand-cyan shrink-0 mt-0.5" size={18} />
                       <div>
-                        <h4 className="text-sm font-bold text-black dark:text-white">Stealth Engine</h4>
-                        <p className="text-xs text-zinc-500 mt-0.5">TLS & header fingerprint spoofing without heavy browser overhead.</p>
+                        <h4 className="text-xs font-bold text-gray-900 dark:text-white">Stealth Engine</h4>
+                        <p className="text-[11px] text-gray-500 dark:text-zinc-550 mt-1 leading-normal">Bypasses Cloudflare & anti-bot handshakes natively without browser overhead.</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="lg:col-span-5 flex justify-center">
-                  <motion.div 
-                    className="relative w-64 h-64 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-full shadow-2xl"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                  >
-                    <div className="absolute inset-4 rounded-full border border-dashed border-zinc-300 dark:border-white/20" />
-                    <div className="absolute inset-12 rounded-full bg-zinc-200 dark:bg-zinc-800/80 flex items-center justify-center">
-                      <Cpu size={40} className="text-black dark:text-white" />
+                  <div className="relative w-64 h-64 flex items-center justify-center">
+                    <motion.div 
+                      className="absolute inset-0 rounded-full border border-dashed border-gray-200 dark:border-white/10"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+                    />
+                    <motion.div 
+                      className="absolute inset-6 rounded-full border border-dashed border-brand-violet/20"
+                      animate={{ rotate: -360 }}
+                      transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                    />
+                    
+                    {/* Inner glowing core */}
+                    <div className="absolute inset-16 rounded-full bg-gray-55 dark:bg-zinc-900/80 border border-gray-200 dark:border-white/10 flex items-center justify-center shadow-lg dark:shadow-[0_0_50px_rgba(168,85,247,0.15)]">
+                      <Cpu size={36} className="text-brand-violet animate-pulse" />
                     </div>
+
                     {/* Orbiting particles */}
-                    <div className="absolute top-0 w-4 h-4 bg-black dark:bg-white rounded-full" />
-                    <div className="absolute bottom-0 w-4 h-4 bg-zinc-400 dark:bg-zinc-600 rounded-full" />
-                    <div className="absolute left-0 w-3 h-3 bg-zinc-300 dark:bg-zinc-700 rounded-full" />
-                    <div className="absolute right-0 w-3 h-3 bg-zinc-300 dark:bg-zinc-700 rounded-full" />
-                  </motion.div>
+                    <motion.div 
+                      className="absolute top-0 w-3 h-3 bg-brand-violet rounded-full shadow-[0_0_10px_#a855f7]"
+                      animate={{ y: [0, 4, 0] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                    <div className="absolute bottom-6 left-6 w-2.5 h-2.5 bg-brand-cyan rounded-full shadow-[0_0_10px_#06b6d4]" />
+                    <div className="absolute right-4 bottom-12 w-2 h-2 bg-brand-emerald rounded-full" />
+                  </div>
                 </div>
               </>
             )}
@@ -216,35 +225,36 @@ export default function DemoSlideshow() {
             {currentSlide === 1 && (
               <>
                 <div className="lg:col-span-6 space-y-6">
-                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 text-xs font-mono font-bold">
-                    <Zap size={12} />
-                    Feature Focus: Resilient Matching
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-violet/10 text-brand-violet text-xs font-mono font-bold">
+                    <Zap size={12} className="animate-bounce" />
+                    Feature: Self-Healing System
                   </div>
-                  <h3 className="text-xl font-bold text-black dark:text-white">
-                    The Healing Simulator
+                  <h3 className="text-xl font-title font-bold text-gray-900 dark:text-white">
+                    Auto-Recover Drifted Selectors
                   </h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    Watch the drift simulator on the right. When the website layout shifts (classes change from <code className="font-mono bg-zinc-200 dark:bg-white/10 px-1 py-0.5 rounded text-black dark:text-white">.price</code> to <code className="font-mono bg-zinc-200 dark:bg-white/10 px-1 py-0.5 rounded text-black dark:text-white">.amount-tag</code>), Crawlingo scans alternative element tags, contents, and ancestors to automatically fix the broken reference.
+                  <p className="text-sm text-gray-600 dark:text-zinc-400 leading-relaxed font-normal">
+                    When a website update changes class names, tags, or paths, traditional scrapers instantly break. Crawlingo evaluates candidate nodes and compares text, tags, weights, and ancestors to automatically update selectors.
                   </p>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3 pt-2">
                     <div className="flex justify-between text-xs font-mono">
-                      <span className="text-zinc-500">Current Phase:</span>
-                      <span className="font-bold text-black dark:text-white uppercase">
-                        {driftStep === 0 && "1. Original Layout"}
-                        {driftStep === 1 && "2. Website Updates classes"}
+                      <span className="text-zinc-500">Healing Phase:</span>
+                      <span className="font-bold text-gray-900 dark:text-white tracking-wide">
+                        {driftStep === 0 && "1. Base Page State"}
+                        {driftStep === 1 && "2. Class names Update"}
                         {driftStep === 2 && "3. Traditional Scraper Crashes"}
-                        {driftStep === 3 && "4. Crawlingo Runs Matching Scan"}
-                        {driftStep === 4 && "5. Auto-Healed & Extracted!"}
+                        {driftStep === 3 && "4. Crawlingo Evaluates Candidates"}
+                        {driftStep === 4 && "5. Auto-Healed & Restored"}
                       </span>
                     </div>
-                    <div className="grid grid-cols-5 gap-1.5 h-1.5 bg-zinc-200 dark:bg-white/5 rounded-full overflow-hidden">
+                    <div className="grid grid-cols-5 gap-1.5 h-1.5 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
                       {[0, 1, 2, 3, 4].map((step) => (
                         <div 
                           key={step} 
-                          className={`h-full transition-colors duration-300 ${
-                            step <= driftStep ? 'bg-black dark:bg-white' : 'bg-transparent'
-                          }`} 
+                          className={cn(
+                            "h-full transition-all duration-300",
+                            step <= driftStep ? 'bg-brand-violet' : 'bg-transparent'
+                          )} 
                         />
                       ))}
                     </div>
@@ -252,47 +262,51 @@ export default function DemoSlideshow() {
                 </div>
 
                 <div className="lg:col-span-6">
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-2xl p-5 shadow-lg space-y-4">
-                    <div className="flex items-center justify-between border-b border-zinc-100 dark:border-white/5 pb-3">
-                      <span className="text-xs font-mono font-semibold text-zinc-400">Selector Sim Log</span>
-                      <span className="flex items-center gap-1.5 text-xs font-mono">
-                        <span className={`w-2 h-2 rounded-full ${driftStep === 4 ? 'bg-green-500 animate-ping' : driftStep === 2 ? 'bg-red-500 animate-pulse' : 'bg-yellow-500'}`} />
+                  <div className="bg-white dark:bg-zinc-950/70 border border-gray-150 dark:border-white/10 rounded-2xl p-5 shadow-lg space-y-4 relative">
+                    <div className="flex items-center justify-between border-b border-gray-150 dark:border-white/5 pb-3">
+                      <span className="text-[10px] font-mono font-semibold text-gray-400 dark:text-zinc-500">Auto-Healer Sandbox</span>
+                      <span className="flex items-center gap-1.5 text-[10px] font-mono font-semibold">
+                        <span className={cn(
+                          "w-2 h-2 rounded-full",
+                          driftStep === 4 ? 'bg-brand-emerald animate-ping' : 
+                          driftStep === 2 ? 'bg-brand-rose animate-pulse' : 'bg-brand-violet'
+                        )} />
                         {driftStep === 0 && "Active"}
-                        {driftStep === 1 && "Layout changed"}
+                        {driftStep === 1 && "DOM Drifted"}
                         {driftStep === 2 && "Traditional Error"}
                         {driftStep === 3 && "Healing..."}
-                        {driftStep === 4 && "Healed Successful"}
+                        {driftStep === 4 && "Successfully Healed"}
                       </span>
                     </div>
 
-                    <div className="space-y-3 font-mono text-xs">
-                      <div className="p-3 bg-zinc-50 dark:bg-zinc-950 rounded-lg space-y-1">
-                        <span className="text-zinc-500 text-[10px]">DOM Element Tree</span>
-                        <div className="text-zinc-600 dark:text-zinc-400 pl-2">
-                          &lt;div class=&quot;{driftStep >= 1 ? 'product-card-new' : 'product-card'}&quot;&gt;
+                    <div className="space-y-3 font-mono text-[11px]">
+                      <div className="p-3 bg-gray-50 dark:bg-black/60 rounded-xl space-y-1.5 border border-gray-150 dark:border-white/5">
+                        <span className="text-gray-400 dark:text-zinc-650 text-[9px] font-bold">LIVE DOM TREE</span>
+                        <div className="text-zinc-650 dark:text-zinc-450 pl-2 leading-relaxed">
+                          &lt;div class=&quot;<span className={cn("transition-colors", driftStep >= 1 ? "text-yellow-500 font-bold" : "text-green-500")}>{driftStep >= 1 ? 'product-card-new' : 'product-card'}</span>&quot;&gt;
                           <div className="pl-4">
-                            &lt;span class=&quot;{driftStep >= 1 ? 'amount-tag' : 'price'}&quot;&gt;
-                            <span className="text-black dark:text-white font-bold">$19.99</span>
+                            &lt;span class=&quot;<span className={cn("transition-colors", driftStep >= 1 ? "text-yellow-500 font-bold" : "text-green-500")}>{driftStep >= 1 ? 'amount-tag' : 'price'}</span>&quot;&gt;
+                            <span className="text-gray-900 dark:text-white font-bold">$19.99</span>
                             &lt;/span&gt;
                           </div>
                           &lt;/div&gt;
                         </div>
                       </div>
 
-                      <div className="space-y-1">
-                        <div className="p-2 border border-dashed border-zinc-200 dark:border-white/5 rounded-lg flex items-center justify-between">
-                          <span className="text-zinc-500">Query selector:</span>
-                          <span className="bg-zinc-100 dark:bg-white/5 px-2 py-0.5 rounded font-bold">span.price</span>
+                      <div className="space-y-1.5">
+                        <div className="p-2.5 border border-dashed border-gray-200 dark:border-white/5 rounded-xl flex items-center justify-between text-zinc-550 dark:text-zinc-400">
+                          <span>Target Selector:</span>
+                          <span className="bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded font-bold text-gray-800 dark:text-zinc-300">span.price</span>
                         </div>
 
                         {driftStep === 2 && (
                           <motion.div 
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg flex items-center gap-2"
+                            className="p-3 bg-brand-rose/5 border border-brand-rose/20 text-brand-rose rounded-xl flex items-center gap-2"
                           >
-                            <X size={16} />
-                            <span>Error: element not found (Traditional selector broke!)</span>
+                            <X size={15} />
+                            <span>Error: element not found (Pipeline blocked)</span>
                           </motion.div>
                         )}
 
@@ -300,14 +314,14 @@ export default function DemoSlideshow() {
                           <motion.div 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="p-3 bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 dark:text-yellow-400 rounded-lg space-y-1.5"
+                            className="p-3 bg-brand-violet/5 border border-brand-violet/20 text-brand-violet rounded-xl space-y-1.5"
                           >
                             <div className="flex items-center gap-2">
-                              <RefreshCw size={14} className="animate-spin" />
-                              <span>Scanning candidate matching tree...</span>
+                              <RefreshCw size={12} className="animate-spin" />
+                              <span>Scanning candidate tree...</span>
                             </div>
-                            <div className="text-[10px] text-zinc-500 pl-6">
-                              Match: span.amount-tag (Tag: 100%, Text: 100%, Parents: 85%) {"->"} JW Similarity score: 0.94
+                            <div className="text-[9px] text-zinc-500 pl-5">
+                              Match: span.amount-tag (JW Score: 0.94) {"->"} Verified.
                             </div>
                           </motion.div>
                         )}
@@ -316,14 +330,14 @@ export default function DemoSlideshow() {
                           <motion.div 
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="p-3 bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 rounded-lg space-y-1"
+                            className="p-3 bg-brand-emerald/5 border border-brand-emerald/20 text-brand-emerald rounded-xl space-y-1"
                           >
                             <div className="flex items-center gap-2 font-bold">
-                              <Check size={16} />
-                              <span>Healed Selector Auto-Mapped!</span>
+                              <Check size={15} />
+                              <span>Auto-Healing Complete!</span>
                             </div>
-                            <div className="text-xs pl-6">
-                              Resolved data: <code className="font-semibold text-black dark:text-white">{"{ \"price\": \"$19.99\" }"}</code>
+                            <div className="text-[10px] pl-5 text-gray-500 dark:text-zinc-450">
+                              Payload resolved: <code className="text-gray-900 dark:text-white">{"{ \"price\": \"$19.99\" }"}</code>
                             </div>
                           </motion.div>
                         )}
@@ -338,83 +352,93 @@ export default function DemoSlideshow() {
             {currentSlide === 2 && (
               <>
                 <div className="lg:col-span-6 space-y-6">
-                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-mono font-bold">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-cyan/10 text-brand-cyan text-xs font-mono font-bold">
                     <Shield size={12} />
-                    Core Architecture: Stealth Client
+                    Feature: Stealth Engine
                   </div>
-                  <h3 className="text-xl font-bold text-black dark:text-white">
-                    HTTP/2 & TLS Fingerprint Spoofing
+                  <h3 className="text-xl font-title font-bold text-gray-900 dark:text-white">
+                    HTTP/2 & TLS Handshake Spoofing
                   </h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    Most anti-bot firewalls block basic HTTP clients immediately because of missing HTTP/2 features or raw TLS signature mismatches. Crawlingo's Rust core handles TLS/ALPN handshake configuration and mimics real browsers without the performance bottleneck of opening Chrome.
+                  <p className="text-sm text-gray-600 dark:text-zinc-400 leading-relaxed font-normal">
+                    Most firewalls block requests instantly if they exhibit TLS fingerprint mismatches or missing HTTP/2 parameters. Crawlingo mimics chrome JA3 ciphers, rotations, and multiplex ciphers to return success codes cleanly.
                   </p>
 
-                  <div className="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 rounded-xl space-y-2">
-                    <span className="text-xs font-bold text-black dark:text-white block">Stealth Spoof Settings</span>
-                    <ul className="text-xs text-zinc-500 space-y-1 list-disc pl-4">
-                      <li>Chrome TLS JA3 signature mimicry</li>
-                      <li>HTTP/2 multiplexing & connection headers alignment</li>
-                      <li>User-Agent auto-rotation & headers spoofing</li>
+                  <div className="p-4 bg-gray-55 dark:bg-zinc-900/30 border border-gray-150 dark:border-white/5 rounded-2xl space-y-2">
+                    <span className="text-xs font-bold text-gray-900 dark:text-white block">Stealth Configuration</span>
+                    <ul className="text-xs text-gray-500 dark:text-zinc-400 space-y-1.5 list-disc pl-4 leading-normal">
+                      <li>Chrome TLS JA3 signature spoofing</li>
+                      <li>ALPN connection negotiation details</li>
+                      <li>User-Agent headers & cookie synchronization</li>
                     </ul>
                   </div>
                 </div>
 
                 <div className="lg:col-span-6 space-y-4">
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-2xl p-5 shadow-lg space-y-4">
-                    <div className="flex items-center justify-between text-xs font-mono text-zinc-400 pb-2 border-b border-zinc-100 dark:border-white/5">
-                      <span>Fetcher Comparison</span>
+                  <div className="bg-white dark:bg-zinc-950/70 border border-gray-150 dark:border-white/10 rounded-2xl p-5 shadow-lg space-y-4">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-gray-400 dark:text-zinc-550 pb-2 border-b border-gray-150 dark:border-white/5">
+                      <span>CLIENT SIMULATION</span>
                       <button 
                         onClick={() => setStealthActive(!stealthActive)}
-                        className="text-xs px-2 py-0.5 bg-black dark:bg-white text-white dark:text-black rounded"
+                        className="text-[9px] px-2 py-0.5 bg-black dark:bg-white text-white dark:text-black rounded-md font-semibold"
                       >
-                        Toggle Client Style
+                        Toggle Client
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Left: Traditional Client */}
-                      <div className={`p-3 rounded-xl border transition-all duration-300 ${!stealthActive ? 'border-red-500/30 bg-red-500/5' : 'border-zinc-200 dark:border-white/5 bg-transparent opacity-50'}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-red-500">Standard Requests</span>
-                          <X size={14} className="text-red-500" />
+                      <div className={cn(
+                        "p-3.5 rounded-xl border transition-all duration-300 flex flex-col justify-between min-h-[120px]",
+                        !stealthActive ? 'border-brand-rose/20 bg-brand-rose/5 shadow-sm' : 'border-gray-100 dark:border-white/5 bg-transparent opacity-40'
+                      )}>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-bold text-brand-rose">Standard GET</span>
+                            <X size={12} className="text-brand-rose" />
+                          </div>
+                          <ul className="text-[9px] font-mono text-gray-550 dark:text-zinc-500 space-y-1">
+                            <li>python-requests</li>
+                            <li>HTTP/1.1 Standard</li>
+                            <li>OpenSSL cipher</li>
+                          </ul>
                         </div>
-                        <ul className="text-[10px] font-mono text-zinc-500 space-y-1">
-                          <li>User-Agent: python-requests</li>
-                          <li>HTTP/1.1 Standard</li>
-                          <li>OpenSSL Cipher Suite</li>
-                        </ul>
-                        <div className="mt-4 p-2 bg-red-500/10 text-red-600 rounded text-center text-[10px] font-mono font-bold">
-                          Blocked (403)
+                        <div className="mt-3 p-1.5 bg-brand-rose/10 text-brand-rose rounded-lg text-center text-[9px] font-bold">
+                          Blocked (403 Forbidden)
                         </div>
                       </div>
 
                       {/* Right: Crawlingo Client */}
-                      <div className={`p-3 rounded-xl border transition-all duration-300 ${stealthActive ? 'border-green-500/30 bg-green-500/5 shadow-[0_0_15px_rgba(34,197,94,0.1)]' : 'border-zinc-200 dark:border-white/5 bg-transparent opacity-50'}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-green-500">Crawlingo Stealth</span>
-                          <Check size={14} className="text-green-500" />
+                      <div className={cn(
+                        "p-3.5 rounded-xl border transition-all duration-300 flex flex-col justify-between min-h-[120px]",
+                        stealthActive ? 'border-brand-cyan/20 bg-brand-cyan/5 shadow-[0_0_15px_rgba(6,182,212,0.1)]' : 'border-gray-100 dark:border-white/5 bg-transparent opacity-40'
+                      )}>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-bold text-brand-cyan">Crawlingo Stealth</span>
+                            <Check size={12} className="text-brand-cyan" />
+                          </div>
+                          <ul className="text-[9px] font-mono text-gray-550 dark:text-zinc-500 space-y-1">
+                            <li>Chrome 120 client</li>
+                            <li>HTTP/2 Multiplexing</li>
+                            <li>Chrome JA3 cipher</li>
+                          </ul>
                         </div>
-                        <ul className="text-[10px] font-mono text-zinc-500 space-y-1">
-                          <li>User-Agent: Chrome/120.0</li>
-                          <li>HTTP/2 Multiplexing</li>
-                          <li>Chrome JA3 Fingerprint</li>
-                        </ul>
-                        <div className="mt-4 p-2 bg-green-500/10 text-green-600 rounded text-center text-[10px] font-mono font-bold">
-                          Success (200)
+                        <div className="mt-3 p-1.5 bg-brand-cyan/10 text-brand-cyan rounded-lg text-center text-[9px] font-bold">
+                          Approved (200 OK)
                         </div>
                       </div>
                     </div>
 
-                    <div className="h-12 bg-zinc-50 dark:bg-zinc-950 rounded-xl relative flex items-center justify-between px-6 overflow-hidden">
-                      <Terminal size={16} className="text-zinc-400" />
+                    <div className="h-11 bg-gray-55 dark:bg-black rounded-xl border border-gray-150 dark:border-white/5 relative flex items-center justify-between px-5 overflow-hidden">
+                      <Terminal size={14} className="text-zinc-450" />
                       
                       <motion.div 
-                        className={`w-3.5 h-3.5 rounded-full absolute ${stealthActive ? 'bg-green-500' : 'bg-red-500'}`}
-                        animate={{ left: ["10%", "90%"] }}
-                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                        className={cn("w-3 h-3 rounded-full absolute", stealthActive ? 'bg-brand-cyan shadow-[0_0_10px_#06b6d4]' : 'bg-brand-rose')}
+                        animate={{ left: ["10%", "85%"] }}
+                        transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
                       />
 
-                      <Server size={16} className="text-zinc-400" />
+                      <Server size={14} className="text-zinc-450" />
                     </div>
                   </div>
                 </div>
@@ -425,76 +449,85 @@ export default function DemoSlideshow() {
             {currentSlide === 3 && (
               <>
                 <div className="lg:col-span-6 space-y-6">
-                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-mono font-bold">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-emerald/10 text-brand-emerald text-xs font-mono font-bold">
                     <Clock size={12} />
-                    Automation Pipeline
+                    Feature: Pipeline Scheduler
                   </div>
-                  <h3 className="text-xl font-bold text-black dark:text-white">
-                    Scheduled Crawls & Real-time Webhooks
+                  <h3 className="text-xl font-title font-bold text-gray-900 dark:text-white">
+                    Cron Scrapes & Payload Dispatch
                   </h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    Set up structured scrapers to execute on recurring intervals or standard cron parameters. Data results are immediately pushed directly to target Webhook HTTP endpoints, allowing you to build real-time monitoring workflows seamlessly.
+                  <p className="text-sm text-gray-600 dark:text-zinc-400 leading-relaxed font-normal">
+                    Schedule extractions using custom intervals or cron rules. Crawlingo parses targets recursively and forwards parsed data payloads directly to target webhook endpoints.
                   </p>
 
                   <div className="flex gap-4">
-                    <div className="flex-1 p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 rounded-xl">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-black dark:text-white mb-1">
-                        <Clock size={14} /> Cron Scheduler
+                    <div className="flex-1 p-3 bg-gray-55 dark:bg-zinc-900/30 border border-gray-150 dark:border-white/5 rounded-xl">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white mb-1.5">
+                        <Clock size={13} className="text-brand-emerald" /> Cron Scheduler
                       </div>
-                      <p className="text-[11px] text-zinc-500">Run loops autonomously in secondary OS threads without blocking primary thread execution.</p>
+                      <p className="text-[10px] text-gray-500 dark:text-zinc-450 leading-normal">Scrapers run in separate system threads without blocking primary thread activities.</p>
                     </div>
 
-                    <div className="flex-1 p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 rounded-xl">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-black dark:text-white mb-1">
-                        <Webhook size={14} /> Webhook Delivery
+                    <div className="flex-1 p-3 bg-gray-55 dark:bg-zinc-900/30 border border-gray-150 dark:border-white/5 rounded-xl">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white mb-1.5">
+                        <Webhook size={13} className="text-brand-cyan" /> Webhooks
                       </div>
-                      <p className="text-[11px] text-zinc-500">Post dataset JSON payloads instantly to configured webhook endpoints with automatic retries.</p>
+                      <p className="text-[10px] text-gray-500 dark:text-zinc-450 leading-normal">Posts structured data payloads cleanly with customized retry variables.</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="lg:col-span-6 space-y-4">
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-2xl p-5 shadow-lg space-y-4">
-                    <span className="text-xs font-mono font-bold text-zinc-400 block border-b border-zinc-100 dark:border-white/5 pb-2">
-                      Pipeline Activity Stream
+                  <div className="bg-white dark:bg-zinc-950/70 border border-gray-150 dark:border-white/10 rounded-2xl p-5 shadow-lg space-y-4">
+                    <span className="text-[10px] font-mono font-semibold text-gray-400 dark:text-zinc-550 block border-b border-gray-150 dark:border-white/5 pb-2">
+                      PIPELINE STREAM
                     </span>
 
-                    <div className="flex items-center justify-around py-2">
-                      <div className="flex flex-col items-center gap-1">
-                        <div className={`p-3 rounded-full border ${schedulerTick === 0 ? 'bg-zinc-800 text-white dark:bg-white dark:text-black border-black' : 'bg-zinc-100 dark:bg-white/5 border-zinc-200 dark:border-white/5'}`}>
-                          <Clock size={20} />
+                    <div className="flex items-center justify-around py-1">
+                      <div className="flex flex-col items-center gap-1.5">
+                        <div className={cn(
+                          "p-3 rounded-full border transition-all duration-300",
+                          schedulerTick === 0 ? 'bg-brand-emerald text-white border-brand-emerald shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/5'
+                        )}>
+                          <Clock size={16} />
                         </div>
-                        <span className="text-[10px] font-mono">1. Cron Tick</span>
+                        <span className="text-[9px] font-mono font-semibold">1. Cron Tick</span>
                       </div>
 
-                      <ChevronRight size={16} className="text-zinc-300" />
+                      <ChevronRight size={14} className="text-zinc-300 dark:text-zinc-700" />
 
-                      <div className="flex flex-col items-center gap-1">
-                        <div className={`p-3 rounded-full border ${schedulerTick === 1 ? 'bg-zinc-800 text-white dark:bg-white dark:text-black border-black' : 'bg-zinc-100 dark:bg-white/5 border-zinc-200 dark:border-white/5'}`}>
-                          <Cpu size={20} />
+                      <div className="flex flex-col items-center gap-1.5">
+                        <div className={cn(
+                          "p-3 rounded-full border transition-all duration-300",
+                          schedulerTick === 1 ? 'bg-brand-emerald text-white border-brand-emerald shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/5'
+                        )}>
+                          <Cpu size={16} />
                         </div>
-                        <span className="text-[10px] font-mono">2. Extracting</span>
+                        <span className="text-[9px] font-mono font-semibold">2. Parsing</span>
                       </div>
 
-                      <ChevronRight size={16} className="text-zinc-300" />
+                      <ChevronRight size={14} className="text-zinc-300 dark:text-zinc-700" />
 
-                      <div className="flex flex-col items-center gap-1">
-                        <div className={`p-3 rounded-full border ${schedulerTick === 2 ? 'bg-zinc-800 text-white dark:bg-white dark:text-black border-black animate-pulse' : 'bg-zinc-100 dark:bg-white/5 border-zinc-200 dark:border-white/5'}`}>
-                          <Webhook size={20} />
+                      <div className="flex flex-col items-center gap-1.5">
+                        <div className={cn(
+                          "p-3 rounded-full border transition-all duration-300",
+                          schedulerTick === 2 ? 'bg-brand-emerald text-white border-brand-emerald shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/5'
+                        )}>
+                          <Webhook size={16} />
                         </div>
-                        <span className="text-[10px] font-mono">3. Webhook POST</span>
+                        <span className="text-[9px] font-mono font-semibold">3. Webhook</span>
                       </div>
                     </div>
 
-                    <div className="p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl space-y-1.5 min-h-[90px]">
-                      <span className="text-[10px] font-mono text-zinc-400 block mb-1">Live webhook responses:</span>
+                    <div className="p-3 bg-gray-55 dark:bg-black rounded-xl border border-gray-150 dark:border-white/5 space-y-1.5 min-h-[90px] overflow-y-auto max-h-[110px]">
+                      <span className="text-[9px] font-mono font-bold text-gray-400 dark:text-zinc-650 block">WEBHOOK RESPONSE</span>
                       {webhookLog.length === 0 ? (
-                        <div className="text-xs text-zinc-500 py-2 text-center">Waiting for next schedule cycle...</div>
+                        <div className="text-xs text-zinc-500 py-3 text-center">Waiting for pipeline run cycle...</div>
                       ) : (
                         webhookLog.map((log, idx) => (
-                          <div key={idx} className="flex items-center justify-between font-mono text-[10px] text-zinc-500">
-                            <span>{log.time} - {log.msg}</span>
-                            <span className="px-1.5 py-0.5 rounded bg-green-500/10 text-green-500 font-bold">200 OK</span>
+                          <div key={idx} className="flex items-center justify-between font-mono text-[9px] text-zinc-600 dark:text-zinc-400">
+                            <span>{log.time} - {log.msg.substring(0, 32)}...</span>
+                            <span className="px-1.5 py-0.5 rounded bg-brand-emerald/10 text-brand-emerald font-bold">200 OK</span>
                           </div>
                         ))
                       )}
@@ -508,89 +541,90 @@ export default function DemoSlideshow() {
             {currentSlide === 4 && (
               <>
                 <div className="lg:col-span-6 space-y-6">
-                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-zinc-900 text-white dark:bg-white dark:text-black text-xs font-mono font-bold">
-                    <Terminal size={12} />
-                    Developer Interface
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-900 text-white dark:bg-white dark:text-black text-xs font-mono font-bold">
+                    <Code size={12} />
+                    Developer Bindings
                   </div>
-                  <h3 className="text-xl font-bold text-black dark:text-white">
-                    Clean, Simple API Bindings
+                  <h3 className="text-xl font-title font-bold text-gray-900 dark:text-white">
+                    Clean, Simple API Integration
                   </h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    Crawlingo is fully accessible via native SDK wrappers in Python and Node.js. 
-                    Write a few lines of code to declare your scraping goals and configure parameters like custom weights, proxies, and scheduler parameters.
+                  <p className="text-sm text-gray-600 dark:text-zinc-400 leading-relaxed font-normal">
+                    Crawlingo is fully accessible via native language wraps in Python and Node.js. Setup crawler details, threshold parameters, proxies, and webhooks in just a few lines.
                   </p>
 
                   <div className="flex gap-2">
                     <button 
                       onClick={() => setActiveCodeTab('python')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-colors ${
+                      className={cn(
+                        "px-3.5 py-1.5 rounded-lg text-xs font-mono transition-all duration-300 font-semibold",
                         activeCodeTab === 'python' 
-                          ? 'bg-black text-white dark:bg-white dark:text-black font-semibold' 
-                          : 'bg-zinc-100 dark:bg-white/5 text-zinc-500 hover:text-black dark:hover:text-white'
-                      }`}
+                          ? 'bg-black text-white dark:bg-white dark:text-black shadow-md' 
+                          : 'bg-gray-100 dark:bg-white/5 text-zinc-500 hover:text-gray-900 dark:hover:text-white'
+                      )}
                     >
-                      crawlingo.py (Python)
+                      Python
                     </button>
                     <button 
                       onClick={() => setActiveCodeTab('javascript')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-colors ${
+                      className={cn(
+                        "px-3.5 py-1.5 rounded-lg text-xs font-mono transition-all duration-300 font-semibold",
                         activeCodeTab === 'javascript' 
-                          ? 'bg-black text-white dark:bg-white dark:text-black font-semibold' 
-                          : 'bg-zinc-100 dark:bg-white/5 text-zinc-500 hover:text-black dark:hover:text-white'
-                      }`}
+                          ? 'bg-black text-white dark:bg-white dark:text-black shadow-md' 
+                          : 'bg-gray-100 dark:bg-white/5 text-zinc-500 hover:text-gray-900 dark:hover:text-white'
+                      )}
                     >
-                      crawlingo.js (Node.js)
+                      Node.js
                     </button>
                   </div>
                 </div>
 
                 <div className="lg:col-span-6 space-y-4">
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-lg">
-                    <div className="bg-zinc-100 dark:bg-zinc-950 px-4 py-2 border-b border-zinc-200 dark:border-white/10 flex items-center justify-between text-xs font-mono text-zinc-500">
+                  <div className="bg-zinc-950 dark:bg-black border border-zinc-900 dark:border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+                    <div className="bg-zinc-900 dark:bg-zinc-950 px-4 py-2 border-b border-zinc-800 dark:border-white/5 flex items-center justify-between text-[10px] font-mono text-zinc-500">
                       <span>{activeCodeTab === 'python' ? 'crawlingo_app.py' : 'crawlingo_app.js'}</span>
-                      <div className="flex gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                        <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                        <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                      <div className="flex gap-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
                       </div>
                     </div>
 
-                    <div className="p-4 font-mono text-xs overflow-x-auto bg-zinc-50 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-300">
+                    <div className="p-4 font-mono text-[11px] overflow-x-auto bg-zinc-950 dark:bg-black/90 text-zinc-300 min-h-[220px]">
                       {activeCodeTab === 'python' ? (
-                        <pre className="space-y-1">
-                          <div><span className="text-purple-500">import</span> crawlingo</div>
+                        <pre className="space-y-1 text-zinc-400">
+                          <div><span className="text-pink-500 font-semibold">import</span> crawlingo</div>
                           <div></div>
-                          <div><span className="text-zinc-500"># Setup Stealth session & similarity config</span></div>
-                          <div>session = crawlingo.<span className="text-blue-500">Session</span>(</div>
-                          <div>    proxies=[<span className="text-green-600">&quot;http://127.0.0.1:8000&quot;</span>],</div>
-                          <div>    weights=<span className="text-blue-500">SimilarityWeights</span>(text=<span className="text-amber-500">1.0</span>, tag=<span className="text-amber-500">0.8</span>)</div>
+                          <div><span className="text-zinc-600"># Setup session config</span></div>
+                          <div>session = crawlingo.<span className="text-brand-cyan">Session</span>(</div>
+                          <div>    proxies=[<span className="text-brand-emerald">&quot;http://127.0.0.1:8000&quot;</span>],</div>
+                          <div>    weights=<span className="text-brand-cyan">SimilarityWeights</span>(text=<span className="text-yellow-500">1.0</span>, tag=<span className="text-yellow-500">0.8</span>)</div>
                           <div>)</div>
                           <div></div>
-                          <div><span className="text-zinc-500"># Crawl with auto-healing</span></div>
-                          <div>results = session.<span className="text-blue-500">crawl</span>(</div>
-                          <div>    url=<span className="text-green-600">&quot;https://site.com/products&quot;</span>,</div>
-                          <div>    selector=<span className="text-green-600">&quot;span.price&quot;</span>,</div>
-                          <div>    webhook=<span className="text-green-600">&quot;https://webhook.site/v1&quot;</span></div>
+                          <div><span className="text-zinc-600"># Run auto-healing crawl</span></div>
+                          <div>results = session.<span className="text-brand-cyan">crawl</span>(</div>
+                          <div>    url=<span className="text-brand-emerald">&quot;https://site.com/products&quot;</span>,</div>
+                          <div>    selector=<span className="text-brand-emerald">&quot;span.price&quot;</span>,</div>
+                          <div>    webhook=<span className="text-brand-emerald">&quot;https://webhook.site/v1&quot;</span></div>
                           <div>)</div>
-                          <div><span className="text-purple-500">print</span>(results)</div>
+                          <div><span className="text-pink-500 font-semibold">print</span>(results)</div>
                         </pre>
                       ) : (
-                        <pre className="space-y-1">
-                          <div><span className="text-purple-500">const</span> crawlingo = <span className="text-purple-500">require</span>(<span className="text-green-600">&apos;crawlingo&apos;</span>);</div>
+                        <pre className="space-y-1 text-zinc-400">
+                          <div><span className="text-pink-500 font-semibold">const</span> crawlingo = <span className="text-pink-500 font-semibold">require</span>(<span className="text-brand-emerald">&apos;crawlingo&apos;</span>);</div>
                           <div></div>
-                          <div><span className="text-zinc-500">// Setup Stealth session & similarity config</span></div>
-                          <div><span className="text-purple-500">const</span> session = <span className="text-purple-500">new</span> crawlingo.<span className="text-blue-500">Session</span>({"{"})</div>
-                          <div>  proxies: [<span className="text-green-600">&quot;http://127.0.0.1:8000&quot;</span>],</div>
-                          <div>  weights: {"{"} text: <span className="text-amber-500">1.0</span>, tag: <span className="text-amber-500">0.8</span> {"}"}</div>
+                          <div><span className="text-zinc-600">// Setup session config</span></div>
+                          <div><span className="text-pink-500 font-semibold">const</span> session = <span className="text-pink-500 font-semibold">new</span> crawlingo.<span className="text-brand-cyan">Session</span>({"{"}</div>
+                          <div>  proxies: [<span className="text-brand-emerald">&quot;http://127.0.0.1:8000&quot;</span>],</div>
+                          <div>  weights: {"{"} text: <span className="text-yellow-500">1.0</span>, tag: <span className="text-yellow-500">0.8</span> {"}"}</div>
                           <div>{"}"});</div>
                           <div></div>
-                          <div><span className="text-zinc-500">// Crawl with auto-healing</span></div>
-                          <div><span className="text-purple-500">const</span> results = <span className="text-purple-500">await</span> session.<span className="text-blue-500">crawl</span>({"{"})</div>
-                          <div>  url: <span className="text-green-600">&quot;https://site.com/products&quot;</span>,</div>
-                          <div>  selector: <span className="text-green-600">&quot;span.price&quot;</span>,</div>
-                          <div>  webhook: <span className="text-green-600">&quot;https://webhook.site/v1&quot;</span></div>
+                          <div><span className="text-zinc-600">// Run auto-healing crawl</span></div>
+                          <div><span className="text-pink-500 font-semibold">const</span> results = <span className="text-pink-500 font-semibold">await</span> session.<span className="text-brand-cyan">crawl</span>({"{"})</div>
+                          <div>  url: <span className="text-brand-emerald">&quot;https://site.com/products&quot;</span>,</div>
+                          <div>  selector: <span className="text-brand-emerald">&quot;span.price&quot;</span>,</div>
+                          <div>  webhook: <span className="text-brand-emerald">&quot;https://webhook.site/v1&quot;</span></div>
                           <div>{"}"});</div>
-                          <div>console.<span className="text-blue-500">log</span>(results);</div>
+                          <div>console.<span className="text-brand-cyan">log</span>(results);</div>
                         </pre>
                       )}
                     </div>
@@ -604,13 +638,13 @@ export default function DemoSlideshow() {
       </div>
 
       {/* Bottom Controls / Slide Navigation */}
-      <div className="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-white/10">
+      <div className="flex items-center justify-between pt-4 border-t border-gray-150 dark:border-white/5">
         <button
           onClick={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
           disabled={currentSlide === 0}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-55 dark:hover:bg-white/5 disabled:opacity-40 disabled:pointer-events-none transition-colors"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={14} />
           Back
         </button>
 
@@ -620,11 +654,12 @@ export default function DemoSlideshow() {
             <button
               key={idx}
               onClick={() => setCurrentSlide(idx)}
-              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+              className={cn(
+                "w-2 h-2 rounded-full transition-all duration-300",
                 currentSlide === idx 
-                  ? 'bg-black dark:bg-white scale-125' 
-                  : 'bg-zinc-300 dark:bg-white/20'
-              }`}
+                  ? 'bg-brand-violet scale-125 shadow-[0_0_8px_#a855f7]' 
+                  : 'bg-gray-300 dark:bg-white/20'
+              )}
             />
           ))}
         </div>
@@ -632,18 +667,18 @@ export default function DemoSlideshow() {
         {currentSlide === totalSlides - 1 ? (
           <button
             onClick={() => setCurrentSlide(0)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition-all shadow-sm"
           >
-            Restart Demo
-            <RefreshCw size={16} />
+            Restart
+            <RefreshCw size={13} />
           </button>
         ) : (
           <button
             onClick={() => setCurrentSlide((prev) => prev + 1)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition-all shadow-sm"
           >
-            Next Slide
-            <ArrowRight size={16} />
+            Next
+            <ArrowRight size={13} />
           </button>
         )}
       </div>

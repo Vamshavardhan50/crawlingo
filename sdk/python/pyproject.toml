@@ -36,11 +36,12 @@ environment = { CIBW_BUILD_VERBOSITY = "1" }
 
 [tool.cibuildwheel.linux]
 before-all = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
-environment = { PATH = "$PATH:$HOME/.cargo/bin", CIBW_BUILD_VERBOSITY = "1" }
+environment = { PATH = "/root/.cargo/bin:$PATH", CIBW_BUILD_VERBOSITY = "1", MATURIN_NO_INSTALL_RUST = "1" }
 archs = ["x86_64", "aarch64"]
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
+environment = { PATH = "$HOME/.cargo/bin:$PATH", CIBW_BUILD_VERBOSITY = "1", MATURIN_NO_INSTALL_RUST = "1" }
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64", "x86"]
