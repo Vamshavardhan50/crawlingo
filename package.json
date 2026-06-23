@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "npm run build --prefix waitlist && npm run build --prefix docs && node build-merge.js"
+    "build": "npm ci --prefix waitlist && npm run build --prefix waitlist && npm ci --prefix docs && npm run build --prefix docs && node build-merge.js"
   }
 }
