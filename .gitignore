@@ -18,13 +18,16 @@ dist/
 *.egg-info/
 .maturin/
 
-# Local databases and logs
+# Local databases, logs, and environment files
 .flowscrape/
 *.log
 *.db
 *.csv
 *.json
 *.parquet
+.env
+.env.*
+!.env.example
 
 # Do not ignore configuration and package JSON files
 !package.json
