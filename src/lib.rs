@@ -13,12 +13,11 @@ pub mod error;
 pub mod fingerprint;
 pub mod matcher;
 pub mod parser;
-pub mod queue;
 pub mod selector;
 pub mod watch;
 
 #[cfg(feature = "python")]
-use crate::engine::fetcher::{FetchRequest, Fetcher, FetcherTier};
+use crate::engine::fetcher::{FetchManager, FetchRequest, FetcherTier};
 #[cfg(feature = "python")]
 use crate::engine::pool::ConnectionPoolConfig;
 #[cfg(feature = "python")]
@@ -28,7 +27,7 @@ use crate::parser::document::DomTree;
 #[cfg(feature = "python")]
 use crate::parser::document::PyElementCollection;
 #[cfg(feature = "python")]
-use crate::parser::streaming::parse_html;
+use crate::parser::streaming::HtmlParser;
 #[cfg(feature = "python")]
 use crate::selector::{css, regex_selector, text_anchor, xpath};
 
@@ -71,44 +70,40 @@ impl PyPage {
         let headers_val = headers.unwrap_or_default();
         let cookies_val = cookies.unwrap_or_default();
 
-        let result: Result<(DomTree, u16, String), CrawlingoError> = py.allow_threads(move || {
-            TOKIO_RUNTIME.block_on(async {
-                let req = FetchRequest {
-                    url: url_str.clone(),
-                    tier: if auto_match {
-                        FetcherTier::Stealthy
-                    } else {
-                        FetcherTier::Standard
-                    },
-                    browser_profile: None,
-                    headers: headers_val,
-                    cookies: cookies_val,
-                    proxy,
-                    timeout: std::time::Duration::from_secs(timeout),
-                    retries,
-                    rate_limit_rps: 0.0,
-                };
-                let rate_limiter = Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
-                let fetcher = Fetcher::new(rate_limiter, ConnectionPoolConfig::default());
-                let resp = fetcher.fetch(req).await?;
-                let status = resp.status().as_u16();
-                let bytes = resp
-                    .bytes()
-                    .await
-                    .map_err(|e| CrawlingoError::FetchError(e.to_string()))?;
-                let html = String::from_utf8_lossy(&bytes).to_string();
-                let tree = parse_html(&bytes)?;
-                Ok((tree, status, html))
-            })
-        });
+        let result: Result<crate::parser::document::Page, CrawlingoError> =
+            py.allow_threads(move || {
+                TOKIO_RUNTIME.block_on(async {
+                    let req = FetchRequest {
+                        url: url_str.clone(),
+                        tier: if auto_match {
+                            FetcherTier::Stealthy
+                        } else {
+                            FetcherTier::Standard
+                        },
+                        browser_profile: None,
+                        headers: headers_val,
+                        cookies: cookies_val,
+                        proxy,
+                        timeout: std::time::Duration::from_secs(timeout),
+                        retries,
+                        rate_limit_rps: 0.0,
+                    };
+                    let rate_limiter =
+                        Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
+                    let manager = FetchManager::new(rate_limiter, ConnectionPoolConfig::default());
+                    let resp = manager.dispatch(req).await?;
+                    let page = HtmlParser::parse(resp)?;
+                    Ok(page)
+                })
+            });
 
-        let (tree, status, html) = result?;
+        let page = result?;
 
         Ok(Self {
             url: url.to_string(),
-            tree: Arc::new(tree),
-            status,
-            html,
+            tree: page.dom_tree().clone(),
+            status: page.status(),
+            html: page.html().to_string(),
         })
     }
 

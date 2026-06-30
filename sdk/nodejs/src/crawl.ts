@@ -47,9 +47,10 @@ export class Crawl {
     selector: string,
     options?: {
       selectorType?: 'css' | 'xpath';
+      defaultVal?: string;
     }
   ): this {
-    this.inner.field(name, selector, options?.selectorType ?? 'css');
+    this.inner.field(name, selector, options?.selectorType ?? 'css', options?.defaultVal);
     return this;
   }
 

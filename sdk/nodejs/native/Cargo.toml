@@ -11,7 +11,8 @@ napi = { version = "2.16.8", features = ["tokio_rt", "async", "serde-json"] }
 napi-derive = "2.16.2"
 crawlingo = { path = "../../.." }
 tokio = { version = "1", features = ["full"] }
-tokio-util = { version = "0.7", features = ["rt"] }
+tokio-util = { version = "0.7", features = ["rt", "time"] }
+tracing = "0.1"
 serde_json = "1"
 csv = "1.3"
 

@@ -46,27 +46,29 @@ def handle_core_exception(e: Exception) -> Exception:
     """Maps standard exceptions (like RuntimeError from PyO3) to specific crawlingo exceptions."""
     if not isinstance(e, RuntimeError):
         return e
-    
+
     msg = str(e)
-    if "Fetch failed:" in msg or "HTTP client error:" in msg:
+    msg_lower = msg.lower()
+
+    if any(k in msg_lower for k in ("fetch failed", "http client error", "connection refused", "connection reset", "dns error", "ssl error", "unreachable", "proxy connect")):
         return FetchError(msg)
-    elif "Parse failed:" in msg:
+    elif any(k in msg_lower for k in ("parse failed", "html parse", "lol_html", "invalid html", "encoding error")):
         return ParseError(msg)
-    elif "Selector failed:" in msg:
+    elif any(k in msg_lower for k in ("selector failed", "invalid selector", "selector error", "css parse", "xpath parse")):
         return SelectorError(msg)
-    elif "Auto-match failed" in msg:
+    elif any(k in msg_lower for k in ("auto-match failed", "auto_match failed", "fingerprint not found", "auto match failed")):
         return AutoMatchFailed(msg)
-    elif "Timeout after" in msg:
+    elif any(k in msg_lower for k in ("timeout", "timed out")):
         return TimeoutError(msg)
-    elif "Rate limit reached" in msg:
+    elif any(k in msg_lower for k in ("rate limit", "rate_limit", "too many requests")):
         return RateLimitError(msg)
-    elif "Change detection failed:" in msg:
+    elif any(k in msg_lower for k in ("change detection failed", "detect_changes")):
         return ChangeDetectionError(msg)
-    elif "Export failed:" in msg or "CSV write error" in msg or "Parquet error" in msg or "Arrow error" in msg:
+    elif any(k in msg_lower for k in ("export failed", "csv write error", "parquet error", "arrow error", "csv error", "io error")):
         return ExportError(msg)
-    elif "DNS resolution failed:" in msg:
+    elif any(k in msg_lower for k in ("dns resolution failed", "dns lookup", "dns error")):
         return DnsError(msg)
-    elif "Fingerprint store error:" in msg or "Sled DB error:" in msg:
+    elif any(k in msg_lower for k in ("fingerprint store error", "sled db error", "fingerprint")):
         return FingerprintStoreError(msg)
-    
+
     return CrawlingoError(msg)

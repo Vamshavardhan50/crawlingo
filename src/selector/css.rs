@@ -109,7 +109,7 @@ fn match_group(node: &DomNode, group: &SelectorGroup) -> bool {
 }
 
 /// Recursively checks if a node fits the full hierarchal compiled selector.
-pub fn matches(tree: &DomTree, node_idx: usize, selector: &CompiledSelector) -> bool {
+pub fn selector_matches(tree: &DomTree, node_idx: usize, selector: &CompiledSelector) -> bool {
     if selector.groups.is_empty() {
         return false;
     }
@@ -148,7 +148,7 @@ pub fn query(tree: &DomTree, selector_str: &str) -> Vec<usize> {
     let selector = get_or_compile(selector_str);
     let mut results = Vec::new();
     for idx in 0..tree.nodes.len() {
-        if matches(tree, idx, &selector) {
+        if selector_matches(tree, idx, &selector) {
             results.push(idx);
         }
     }

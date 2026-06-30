@@ -4,7 +4,14 @@ import { baseOptions } from '@/lib/layout.shared';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <DocsLayout tree={source.getPageTree()} {...baseOptions()}>
+    <DocsLayout
+      tree={source.getPageTree()}
+      {...baseOptions()}
+      sidebar={{
+        collapsible: true,
+        tabs: false,
+      }}
+    >
       {children}
     </DocsLayout>
   );

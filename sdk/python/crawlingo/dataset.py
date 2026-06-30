@@ -61,7 +61,7 @@ class Dataset:
     async def build_async(self) -> "DatasetResult":
         """Build and run the dataset query asynchronously."""
         try:
-            res = self._core_dataset.build_async()
+            res = await self._core_dataset.build_async()
             return DatasetResult(res)
         except Exception as e:
             raise handle_core_exception(e)

@@ -4,9 +4,8 @@ use napi_derive::napi;
 use napi::bindgen_prelude::*;
 use crawlingo::engine::session::Session;
 use crawlingo::parser::document::DomTree;
-use crawlingo::engine::fetcher::{Fetcher, FetchRequest, FetcherTier};
+use crawlingo::engine::fetcher::{FetchRequest, FetcherTier};
 use crawlingo::engine::pool::ConnectionPoolConfig;
-use crawlingo::parser::streaming::parse_html;
 use crawlingo::selector::{css, xpath, text_anchor, regex_selector};
 use crawlingo::dataset::builder::{Dataset, DatasetField, DatasetResult};
 use crawlingo::crawl::crawler::Crawler;
@@ -235,6 +234,48 @@ impl JsPage {
     }
 }
 
+fn to_napi_error(err: crawlingo::error::CrawlingoError, url: &str, stage: &str) -> napi::Error {
+    let error_code = match &err {
+        crawlingo::error::CrawlingoError::ParseError(_) => "INVALID_HTML",
+        crawlingo::error::CrawlingoError::TimeoutError { .. } => "TIMEOUT",
+        crawlingo::error::CrawlingoError::RateLimitError { .. } => "RATE_LIMIT",
+        crawlingo::error::CrawlingoError::FetchError(_) | crawlingo::error::CrawlingoError::HttpClientError(_) => "FETCH_FAILED",
+        crawlingo::error::CrawlingoError::AutoMatchFailed => "AUTO_MATCH_FAILED",
+        _ => "GENERIC_FAILURE",
+    };
+
+    let suggestion = match &err {
+        crawlingo::error::CrawlingoError::ParseError(_) => "Falling back to HTML5 parser.",
+        crawlingo::error::CrawlingoError::TimeoutError { .. } => "Increase request timeout or check target server responsiveness.",
+        crawlingo::error::CrawlingoError::RateLimitError { .. } => "Implement exponential backoff or reduce request rate.",
+        crawlingo::error::CrawlingoError::FetchError(_) | crawlingo::error::CrawlingoError::HttpClientError(_) => "Check network connectivity, headers, proxy configuration, or target URL status.",
+        crawlingo::error::CrawlingoError::AutoMatchFailed => "Verify if page structure has changed significantly or update selectors.",
+        _ => "Inspect server logs and try repeating the operation.",
+    };
+
+    let recoverable = match &err {
+        crawlingo::error::CrawlingoError::ParseError(_) |
+        crawlingo::error::CrawlingoError::TimeoutError { .. } |
+        crawlingo::error::CrawlingoError::RateLimitError { .. } |
+        crawlingo::error::CrawlingoError::FetchError(_) |
+        crawlingo::error::CrawlingoError::HttpClientError(_) => true,
+        _ => false,
+    };
+
+    let detailed = serde_json::json!({
+        "success": false,
+        "url": url,
+        "stage": stage,
+        "error_code": error_code,
+        "message": err.to_string(),
+        "recoverable": recoverable,
+        "suggestion": suggestion,
+    });
+
+    let detailed_str = serde_json::to_string(&detailed).unwrap_or_else(|_| err.to_string());
+    napi::Error::from_reason(detailed_str)
+}
+
 #[napi]
 pub async fn fetch_page(
     url: String,
@@ -284,21 +325,17 @@ pub async fn fetch_page(
     };
 
     let rate_limiter = Arc::new(crawlingo::engine::rate_limiter::HostRateLimiter::new());
-    let fetcher = Fetcher::new(rate_limiter, ConnectionPoolConfig::default());
-    let resp = fetcher.fetch(req).await
-        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-    let status = resp.status().as_u16();
-    let bytes = resp.bytes().await
-        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-    let html = String::from_utf8_lossy(&bytes).to_string();
-    let tree = parse_html(&bytes)
-        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let manager = crawlingo::engine::fetcher::FetchManager::new(rate_limiter, ConnectionPoolConfig::default());
+    let resp = manager.dispatch(req).await
+        .map_err(|e| to_napi_error(e, &url, "network"))?;
+    let page = crawlingo::parser::streaming::HtmlParser::parse(resp)
+        .map_err(|e| to_napi_error(e, &url, "parser"))?;
 
     Ok(JsPage {
         url,
-        status,
-        html,
-        tree: Arc::new(tree),
+        status: page.status(),
+        html: page.html().to_string(),
+        tree: page.dom_tree().clone(),
     })
 }
 
@@ -429,6 +466,42 @@ pub struct JsDataset {
     pub(crate) session: Arc<Session>,
 }
 
+impl JsDataset {
+    /// Core logic: zip selector matches from an already-parsed DomTree into structured records.
+    fn extract_from_tree(&self, tree: &crawlingo::parser::document::DomTree) -> Vec<HashMap<String, String>> {
+        use crawlingo::selector::{css, xpath, text_anchor, regex_selector};
+
+        // Collect all match index lists per field
+        let collections: Vec<Vec<usize>> = self.fields.iter().map(|f| {
+            match f.selector_type.as_str() {
+                "xpath"       => xpath::query(tree, &f.selector),
+                "text"        => text_anchor::find(tree, &f.selector),
+                "after_text"  => text_anchor::after(tree, &f.selector),
+                "before_text" => text_anchor::before(tree, &f.selector),
+                "regex"       => regex_selector::query(tree, &f.selector).unwrap_or_default(),
+                _             => css::query(tree, &f.selector),  // default: css
+            }
+        }).collect();
+
+        let max_len = collections.iter().map(|c| c.len()).max().unwrap_or(0);
+        let mut records = Vec::with_capacity(max_len);
+
+        for row_idx in 0..max_len {
+            let mut record = HashMap::new();
+            for (field_idx, field) in self.fields.iter().enumerate() {
+                let text = collections[field_idx]
+                    .get(row_idx)
+                    .map(|&node_idx| tree.get_text(node_idx).trim().to_string())
+                    .unwrap_or_default();
+                record.insert(field.name.clone(), text);
+            }
+            records.push(record);
+        }
+
+        records
+    }
+}
+
 #[napi]
 impl JsDataset {
     #[napi(constructor)]
@@ -456,9 +529,96 @@ impl JsDataset {
         let mut dataset = Dataset::new(&self.url, self.session.clone());
         dataset.fields = self.fields.clone();
         let res = dataset.build_async().await
-            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+            .map_err(|e| to_napi_error(e, &self.url, "dataset"))?;
         Ok(JsDatasetResult { inner: res })
     }
+
+    /// Synchronously extract structured multi-row records from an already-fetched JsPage.
+    /// Returns a Vec of HashMaps, one per row, zipped by element index across all selectors.
+    #[napi]
+    pub fn extract_structured(&self, page: &JsPage) -> Vec<HashMap<String, String>> {
+        self.extract_from_tree(&page.tree)
+    }
+
+    /// Fetch the URL, parse the page, and extract structured multi-row records entirely in Rust.
+    #[napi]
+    pub async fn build_structured(&self) -> napi::Result<Vec<HashMap<String, String>>> {
+        use crawlingo::engine::fetcher::{FetchRequest, FetchManager};
+        use crawlingo::engine::pool::ConnectionPoolConfig;
+        use crawlingo::parser::streaming::HtmlParser;
+
+        let headers = self.session.headers.read().unwrap().clone();
+        let cookies = self.session.cookies.read().unwrap().clone();
+        let proxy   = self.session.get_next_proxy();
+        let rate_limit_rps = *self.session.rate_limit_rps.read().unwrap();
+        let timeout_secs   = *self.session.timeout_seconds.read().unwrap();
+        let fetcher_tier   = *self.session.fetcher_tier.read().unwrap();
+        let browser_profile = self.session.browser_profile.read().unwrap().clone();
+
+        let req = FetchRequest {
+            url: self.url.clone(),
+            tier: fetcher_tier,
+            browser_profile,
+            headers,
+            cookies,
+            proxy,
+            timeout: std::time::Duration::from_secs(timeout_secs),
+            retries: 3,
+            rate_limit_rps,
+        };
+
+        let rate_limiter = Arc::new(crawlingo::engine::rate_limiter::HostRateLimiter::new());
+        let manager = FetchManager::new(rate_limiter, ConnectionPoolConfig::default());
+        let resp  = manager.dispatch(req).await
+            .map_err(|e| to_napi_error(e, &self.url, "network"))?;
+        let page = HtmlParser::parse(resp)
+            .map_err(|e| to_napi_error(e, &self.url, "parser"))?;
+
+        Ok(self.extract_from_tree(page.dom_tree()))
+    }
+}
+
+/// Write structured records as a pretty-printed JSON array to `path`.
+/// Each record is a flat object (field_name → value).
+#[napi]
+pub fn save_structured_json(records: Vec<HashMap<String, String>>, path: String) -> napi::Result<()> {
+    let json = serde_json::to_string_pretty(&records)
+        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    std::fs::write(&path, json)
+        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    Ok(())
+}
+
+/// Write structured records as a clean CSV file to `path`.
+/// The first row is the header (field names); subsequent rows contain values.
+#[napi]
+pub fn save_structured_csv(records: Vec<HashMap<String, String>>, path: String) -> napi::Result<()> {
+    let mut writer = csv::Writer::from_path(&path)
+        .map_err(|e: csv::Error| napi::Error::from_reason(e.to_string()))?;
+
+    if records.is_empty() {
+        writer.flush()
+            .map_err(|e: std::io::Error| napi::Error::from_reason(e.to_string()))?;
+        return Ok(());
+    }
+
+    let headers: Vec<String> = records[0].keys().cloned().collect();
+    let header_refs: Vec<&str> = headers.iter().map(|s| s.as_str()).collect();
+    writer.write_record(&header_refs)
+        .map_err(|e: csv::Error| napi::Error::from_reason(e.to_string()))?;
+
+    for record in &records {
+        let values: Vec<String> = headers.iter()
+            .map(|h| record.get(h).cloned().unwrap_or_default())
+            .collect();
+        let value_refs: Vec<&str> = values.iter().map(|s| s.as_str()).collect();
+        writer.write_record(&value_refs)
+            .map_err(|e: csv::Error| napi::Error::from_reason(e.to_string()))?;
+    }
+
+    writer.flush()
+        .map_err(|e: std::io::Error| napi::Error::from_reason(e.to_string()))?;
+    Ok(())
 }
 
 #[napi]
@@ -501,12 +661,12 @@ impl JsCrawl {
     }
 
     #[napi]
-    pub fn field(&mut self, name: String, selector: String, selector_type: Option<String>) {
+    pub fn field(&mut self, name: String, selector: String, selector_type: Option<String>, default_val: Option<String>) {
         let field = DatasetField {
             name,
             selector,
             selector_type: selector_type.unwrap_or("css".to_string()),
-            default: None,
+            default: default_val,
         };
         self.crawler.fields.push(field);
     }
@@ -524,7 +684,7 @@ impl JsCrawl {
     #[napi]
     pub async fn run(&self) -> napi::Result<Vec<JsDatasetResult>> {
         let res = self.crawler.crawl_async().await
-            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+            .map_err(|e| to_napi_error(e, &self.crawler.start_url, "crawler"))?;
         let results = res.into_iter().map(|item| JsDatasetResult { inner: item }).collect();
         Ok(results)
     }
@@ -555,12 +715,12 @@ impl JsWatch {
     }
 
     #[napi]
-    pub fn field(&mut self, name: String, selector: String) {
+    pub fn field(&mut self, name: String, selector: String, selector_type: Option<String>, default_val: Option<String>) {
         let field = DatasetField {
             name,
             selector,
-            selector_type: "css".to_string(),
-            default: None,
+            selector_type: selector_type.unwrap_or("css".to_string()),
+            default: default_val,
         };
         self.fields.push(field);
     }
@@ -600,15 +760,21 @@ impl JsWatch {
                         let mut dataset = Dataset::new(&url, session.clone());
                         dataset.fields = fields.clone();
 
-                        if let Ok(res) = dataset.build_async().await {
-                            if !previous_data.is_empty() {
-                                let changes = detect_changes(&url, &previous_data, &res.fields);
-                                for change in changes {
-                                    let js_evt = JsChangeEvent::from(change);
-                                    let _ = tsfn.call(Ok(js_evt), ThreadsafeFunctionCallMode::Blocking);
+                        match dataset.build_async().await {
+                            Ok(res) => {
+                                if !previous_data.is_empty() {
+                                    let changes = detect_changes(&url, &previous_data, &res.fields);
+                                    for change in changes {
+                                        let js_evt = JsChangeEvent::from(change);
+                                        let _ = tsfn.call(Ok(js_evt), ThreadsafeFunctionCallMode::NonBlocking);
+                                    }
                                 }
+                                previous_data = res.fields;
                             }
-                            previous_data = res.fields;
+                            Err(e) => {
+                                let err_msg = format!("Watch check failed for {}: {}", url, e);
+                                let _ = tsfn.call(Err(napi::Error::from_reason(err_msg)), ThreadsafeFunctionCallMode::NonBlocking);
+                            }
                         }
                     }
                 }

@@ -11,6 +11,16 @@ export interface JsChangeEvent {
   newValue?: string
 }
 export declare function fetchPage(url: string, autoMatch: boolean, timeout?: number | undefined | null, headers?: Record<string, string> | undefined | null, cookies?: Record<string, string> | undefined | null, proxy?: string | undefined | null, browserProfile?: string | undefined | null, session?: JsSession | undefined | null): Promise<JsPage>
+/**
+ * Write structured records as a pretty-printed JSON array to `path`.
+ * Each record is a flat object (field_name → value).
+ */
+export declare function saveStructuredJson(records: Array<Record<string, string>>, path: string): void
+/**
+ * Write structured records as a clean CSV file to `path`.
+ * The first row is the header (field names); subsequent rows contain values.
+ */
+export declare function saveStructuredCsv(records: Array<Record<string, string>>, path: string): void
 export declare class JsSession {
   constructor()
   headers(headers: Record<string, string>): void
@@ -60,6 +70,13 @@ export declare class JsDataset {
   constructor(url: string, session: JsSession)
   field(name: string, selector: string, selectorType?: string | undefined | null, defaultVal?: string | undefined | null): void
   build(): Promise<JsDatasetResult>
+  /**
+   * Synchronously extract structured multi-row records from an already-fetched JsPage.
+   * Returns a Vec of HashMaps, one per row, zipped by element index across all selectors.
+   */
+  extractStructured(page: JsPage): Array<Record<string, string>>
+  /** Fetch the URL, parse the page, and extract structured multi-row records entirely in Rust. */
+  buildStructured(): Promise<Array<Record<string, string>>>
 }
 export declare class JsCrawl {
   constructor(startUrl: string, session: JsSession)
@@ -68,14 +85,14 @@ export declare class JsCrawl {
   depth(depth: number): void
   concurrency(n: number): void
   delay(seconds: number): void
-  field(name: string, selector: string, selectorType?: string | undefined | null): void
+  field(name: string, selector: string, selectorType?: string | undefined | null, defaultVal?: string | undefined | null): void
   webhook(url: string): void
   schedule(intervalSeconds: number): void
   run(): Promise<Array<JsDatasetResult>>
 }
 export declare class JsWatch {
   constructor(url: string, session: JsSession)
-  field(name: string, selector: string): void
+  field(name: string, selector: string, selectorType?: string | undefined | null, defaultVal?: string | undefined | null): void
   interval(seconds: number): void
   run(callback: (err: Error | null, event: JsChangeEvent) => void): void
   stop(): void

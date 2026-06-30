@@ -1,3 +1,4 @@
+from typing import Optional
 from ._crawlingo_core import Page as _CorePage
 from .element import ElementCollection
 from .exceptions import handle_core_exception
@@ -15,6 +16,7 @@ class Page:
         headers: dict = None,
         cookies: dict = None,
         proxy: str = None,
+        session: Optional["Session"] = None,
     ):
         self._url = url
         self._auto_match = auto_match
@@ -23,6 +25,7 @@ class Page:
         self._headers = headers or {}
         self._cookies = cookies or {}
         self._proxy = proxy
+        self._session = session
         
         self._core_page = None
         self._before_fetch_hooks = []
@@ -34,13 +37,32 @@ class Page:
         if self._core_page is not None:
             return
 
+        # Merge session values as defaults, explicit Page kwargs override
+        headers = {}
+        cookies = {}
+        proxy = None
+        auto_match = self._auto_match
+        timeout = self._timeout
+
+        if self._session is not None:
+            headers.update(self._session._headers)
+            cookies.update(self._session._cookies)
+            proxy = self._session._proxy if self._proxy is None else self._proxy
+            auto_match = self._session._auto_match if not self._auto_match else self._auto_match
+            timeout = self._session._timeout if self._timeout == 30 else self._timeout
+
+        headers.update(self._headers)
+        cookies.update(self._cookies)
+        proxy = self._proxy or proxy
+        auto_match = self._auto_match or auto_match
+
         # 1. Trigger before_fetch hooks
         class RequestContext:
             def __init__(self, url, headers):
                 self.url = url
                 self.headers = headers
         
-        req_ctx = RequestContext(self._url, self._headers)
+        req_ctx = RequestContext(self._url, headers)
         for hook in self._before_fetch_hooks:
             hook(req_ctx)
 
@@ -48,12 +70,12 @@ class Page:
         try:
             self._core_page = _CorePage(
                 self._url,
-                auto_match=self._auto_match,
-                timeout=self._timeout,
+                auto_match=auto_match,
+                timeout=timeout,
                 retries=self._retries,
-                headers=self._headers,
-                cookies=self._cookies,
-                proxy=self._proxy,
+                headers=headers,
+                cookies=cookies,
+                proxy=proxy,
             )
         except Exception as e:
             raise handle_core_exception(e)

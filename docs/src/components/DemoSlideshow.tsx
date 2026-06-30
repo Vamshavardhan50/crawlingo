@@ -93,7 +93,7 @@ export default function DemoSlideshow() {
       
       {/* Top Slide Header & Progress */}
       <div className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-150 dark:border-white/5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-white/5">
           <div>
             <span className="text-[10px] font-mono font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase flex items-center gap-1.5">
               <Eye size={12} /> Slide {currentSlide + 1} of {totalSlides}
@@ -106,7 +106,7 @@ export default function DemoSlideshow() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-55 dark:hover:bg-white/5 transition-all text-xs font-semibold text-gray-700 dark:text-zinc-300"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-xs font-semibold text-gray-700 dark:text-zinc-300"
             >
               {isPlaying ? (
                 <>
@@ -133,7 +133,7 @@ export default function DemoSlideshow() {
       </div>
 
       {/* Main Slide Panel Area */}
-      <div className="flex-1 bg-white dark:bg-zinc-950/40 border border-gray-150 dark:border-white/5 rounded-3xl p-6 md:p-8 flex flex-col justify-center min-h-[460px] relative overflow-hidden shadow-inner">
+      <div className="flex-1 bg-white dark:bg-zinc-950/40 border border-gray-200 dark:border-white/5 rounded-3xl p-6 md:p-8 flex flex-col justify-center min-h-[460px] relative overflow-hidden shadow-inner">
         
         {/* Background Decorative Grid */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808007_1px,transparent_1px),linear-gradient(to_bottom,#80808007_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none" />
@@ -172,19 +172,19 @@ export default function DemoSlideshow() {
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                    <div className="p-4 bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-150 dark:border-white/5 rounded-2xl flex items-start gap-3 hover:border-brand-violet/20 transition-all duration-300">
+                    <div className="p-4 bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-200 dark:border-white/5 rounded-2xl flex items-start gap-3 hover:border-brand-violet/20 transition-all duration-300">
                       <Zap className="text-brand-violet shrink-0 mt-0.5" size={18} />
                       <div>
                         <h4 className="text-xs font-bold text-gray-900 dark:text-white">Self-Healing Selectors</h4>
-                        <p className="text-[11px] text-gray-500 dark:text-zinc-550 mt-1 leading-normal">Jaro-Winkler + attribute matching recovers drift variables in milliseconds.</p>
+                        <p className="text-[11px] text-gray-500 dark:text-zinc-500 mt-1 leading-normal">Jaro-Winkler + attribute matching recovers drift variables in milliseconds.</p>
                       </div>
                     </div>
 
-                    <div className="p-4 bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-150 dark:border-white/5 rounded-2xl flex items-start gap-3 hover:border-brand-cyan/20 transition-all duration-300">
+                    <div className="p-4 bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-200 dark:border-white/5 rounded-2xl flex items-start gap-3 hover:border-brand-cyan/20 transition-all duration-300">
                       <Shield className="text-brand-cyan shrink-0 mt-0.5" size={18} />
                       <div>
                         <h4 className="text-xs font-bold text-gray-900 dark:text-white">Stealth Engine</h4>
-                        <p className="text-[11px] text-gray-500 dark:text-zinc-550 mt-1 leading-normal">Bypasses Cloudflare & anti-bot handshakes natively without browser overhead.</p>
+                        <p className="text-[11px] text-gray-500 dark:text-zinc-500 mt-1 leading-normal">Bypasses Cloudflare & anti-bot handshakes natively without browser overhead.</p>
                       </div>
                     </div>
                   </div>
@@ -204,7 +204,7 @@ export default function DemoSlideshow() {
                     />
                     
                     {/* Inner glowing core */}
-                    <div className="absolute inset-16 rounded-full bg-gray-55 dark:bg-zinc-900/80 border border-gray-200 dark:border-white/10 flex items-center justify-center shadow-lg dark:shadow-[0_0_50px_rgba(168,85,247,0.15)]">
+                    <div className="absolute inset-16 rounded-full bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-white/10 flex items-center justify-center shadow-lg dark:shadow-[0_0_50px_rgba(168,85,247,0.15)]">
                       <Cpu size={36} className="text-brand-violet animate-pulse" />
                     </div>
 
@@ -262,8 +262,8 @@ export default function DemoSlideshow() {
                 </div>
 
                 <div className="lg:col-span-6">
-                  <div className="bg-white dark:bg-zinc-950/70 border border-gray-150 dark:border-white/10 rounded-2xl p-5 shadow-lg space-y-4 relative">
-                    <div className="flex items-center justify-between border-b border-gray-150 dark:border-white/5 pb-3">
+                  <div className="bg-white dark:bg-zinc-950/70 border border-gray-200 dark:border-white/10 rounded-2xl p-5 shadow-lg space-y-4 relative">
+                    <div className="flex items-center justify-between border-b border-gray-200 dark:border-white/5 pb-3">
                       <span className="text-[10px] font-mono font-semibold text-gray-400 dark:text-zinc-500">Auto-Healer Sandbox</span>
                       <span className="flex items-center gap-1.5 text-[10px] font-mono font-semibold">
                         <span className={cn(
@@ -280,9 +280,9 @@ export default function DemoSlideshow() {
                     </div>
 
                     <div className="space-y-3 font-mono text-[11px]">
-                      <div className="p-3 bg-gray-50 dark:bg-black/60 rounded-xl space-y-1.5 border border-gray-150 dark:border-white/5">
-                        <span className="text-gray-400 dark:text-zinc-650 text-[9px] font-bold">LIVE DOM TREE</span>
-                        <div className="text-zinc-650 dark:text-zinc-450 pl-2 leading-relaxed">
+                      <div className="p-3 bg-gray-50 dark:bg-black/60 rounded-xl space-y-1.5 border border-gray-200 dark:border-white/5">
+                        <span className="text-gray-400 dark:text-zinc-600 text-[9px] font-bold">LIVE DOM TREE</span>
+                        <div className="text-zinc-600 dark:text-zinc-400 pl-2 leading-relaxed">
                           &lt;div class=&quot;<span className={cn("transition-colors", driftStep >= 1 ? "text-yellow-500 font-bold" : "text-green-500")}>{driftStep >= 1 ? 'product-card-new' : 'product-card'}</span>&quot;&gt;
                           <div className="pl-4">
                             &lt;span class=&quot;<span className={cn("transition-colors", driftStep >= 1 ? "text-yellow-500 font-bold" : "text-green-500")}>{driftStep >= 1 ? 'amount-tag' : 'price'}</span>&quot;&gt;
@@ -294,7 +294,7 @@ export default function DemoSlideshow() {
                       </div>
 
                       <div className="space-y-1.5">
-                        <div className="p-2.5 border border-dashed border-gray-200 dark:border-white/5 rounded-xl flex items-center justify-between text-zinc-550 dark:text-zinc-400">
+                        <div className="p-2.5 border border-dashed border-gray-200 dark:border-white/5 rounded-xl flex items-center justify-between text-zinc-500 dark:text-zinc-400">
                           <span>Target Selector:</span>
                           <span className="bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded font-bold text-gray-800 dark:text-zinc-300">span.price</span>
                         </div>
@@ -336,7 +336,7 @@ export default function DemoSlideshow() {
                               <Check size={15} />
                               <span>Auto-Healing Complete!</span>
                             </div>
-                            <div className="text-[10px] pl-5 text-gray-500 dark:text-zinc-450">
+                            <div className="text-[10px] pl-5 text-gray-500 dark:text-zinc-400">
                               Payload resolved: <code className="text-gray-900 dark:text-white">{"{ \"price\": \"$19.99\" }"}</code>
                             </div>
                           </motion.div>
@@ -363,7 +363,7 @@ export default function DemoSlideshow() {
                     Most firewalls block requests instantly if they exhibit TLS fingerprint mismatches or missing HTTP/2 parameters. Crawlingo mimics chrome JA3 ciphers, rotations, and multiplex ciphers to return success codes cleanly.
                   </p>
 
-                  <div className="p-4 bg-gray-55 dark:bg-zinc-900/30 border border-gray-150 dark:border-white/5 rounded-2xl space-y-2">
+                  <div className="p-4 bg-gray-50 dark:bg-zinc-900/30 border border-gray-200 dark:border-white/5 rounded-2xl space-y-2">
                     <span className="text-xs font-bold text-gray-900 dark:text-white block">Stealth Configuration</span>
                     <ul className="text-xs text-gray-500 dark:text-zinc-400 space-y-1.5 list-disc pl-4 leading-normal">
                       <li>Chrome TLS JA3 signature spoofing</li>
@@ -374,8 +374,8 @@ export default function DemoSlideshow() {
                 </div>
 
                 <div className="lg:col-span-6 space-y-4">
-                  <div className="bg-white dark:bg-zinc-950/70 border border-gray-150 dark:border-white/10 rounded-2xl p-5 shadow-lg space-y-4">
-                    <div className="flex items-center justify-between text-[10px] font-mono text-gray-400 dark:text-zinc-550 pb-2 border-b border-gray-150 dark:border-white/5">
+                  <div className="bg-white dark:bg-zinc-950/70 border border-gray-200 dark:border-white/10 rounded-2xl p-5 shadow-lg space-y-4">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-gray-400 dark:text-zinc-500 pb-2 border-b border-gray-200 dark:border-white/5">
                       <span>CLIENT SIMULATION</span>
                       <button 
                         onClick={() => setStealthActive(!stealthActive)}
@@ -396,7 +396,7 @@ export default function DemoSlideshow() {
                             <span className="text-xs font-bold text-brand-rose">Standard GET</span>
                             <X size={12} className="text-brand-rose" />
                           </div>
-                          <ul className="text-[9px] font-mono text-gray-550 dark:text-zinc-500 space-y-1">
+                          <ul className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 space-y-1">
                             <li>python-requests</li>
                             <li>HTTP/1.1 Standard</li>
                             <li>OpenSSL cipher</li>
@@ -417,7 +417,7 @@ export default function DemoSlideshow() {
                             <span className="text-xs font-bold text-brand-cyan">Crawlingo Stealth</span>
                             <Check size={12} className="text-brand-cyan" />
                           </div>
-                          <ul className="text-[9px] font-mono text-gray-550 dark:text-zinc-500 space-y-1">
+                          <ul className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 space-y-1">
                             <li>Chrome 120 client</li>
                             <li>HTTP/2 Multiplexing</li>
                             <li>Chrome JA3 cipher</li>
@@ -429,8 +429,8 @@ export default function DemoSlideshow() {
                       </div>
                     </div>
 
-                    <div className="h-11 bg-gray-55 dark:bg-black rounded-xl border border-gray-150 dark:border-white/5 relative flex items-center justify-between px-5 overflow-hidden">
-                      <Terminal size={14} className="text-zinc-450" />
+                    <div className="h-11 bg-gray-50 dark:bg-black rounded-xl border border-gray-200 dark:border-white/5 relative flex items-center justify-between px-5 overflow-hidden">
+                      <Terminal size={14} className="text-zinc-400" />
                       
                       <motion.div 
                         className={cn("w-3 h-3 rounded-full absolute", stealthActive ? 'bg-brand-cyan shadow-[0_0_10px_#06b6d4]' : 'bg-brand-rose')}
@@ -438,7 +438,7 @@ export default function DemoSlideshow() {
                         transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
                       />
 
-                      <Server size={14} className="text-zinc-450" />
+                      <Server size={14} className="text-zinc-400" />
                     </div>
                   </div>
                 </div>
@@ -461,25 +461,25 @@ export default function DemoSlideshow() {
                   </p>
 
                   <div className="flex gap-4">
-                    <div className="flex-1 p-3 bg-gray-55 dark:bg-zinc-900/30 border border-gray-150 dark:border-white/5 rounded-xl">
+                    <div className="flex-1 p-3 bg-gray-50 dark:bg-zinc-900/30 border border-gray-200 dark:border-white/5 rounded-xl">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white mb-1.5">
                         <Clock size={13} className="text-brand-emerald" /> Cron Scheduler
                       </div>
-                      <p className="text-[10px] text-gray-500 dark:text-zinc-450 leading-normal">Scrapers run in separate system threads without blocking primary thread activities.</p>
+                      <p className="text-[10px] text-gray-500 dark:text-zinc-400 leading-normal">Scrapers run in separate system threads without blocking primary thread activities.</p>
                     </div>
 
-                    <div className="flex-1 p-3 bg-gray-55 dark:bg-zinc-900/30 border border-gray-150 dark:border-white/5 rounded-xl">
+                    <div className="flex-1 p-3 bg-gray-50 dark:bg-zinc-900/30 border border-gray-200 dark:border-white/5 rounded-xl">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white mb-1.5">
                         <Webhook size={13} className="text-brand-cyan" /> Webhooks
                       </div>
-                      <p className="text-[10px] text-gray-500 dark:text-zinc-450 leading-normal">Posts structured data payloads cleanly with customized retry variables.</p>
+                      <p className="text-[10px] text-gray-500 dark:text-zinc-400 leading-normal">Posts structured data payloads cleanly with customized retry variables.</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="lg:col-span-6 space-y-4">
-                  <div className="bg-white dark:bg-zinc-950/70 border border-gray-150 dark:border-white/10 rounded-2xl p-5 shadow-lg space-y-4">
-                    <span className="text-[10px] font-mono font-semibold text-gray-400 dark:text-zinc-550 block border-b border-gray-150 dark:border-white/5 pb-2">
+                  <div className="bg-white dark:bg-zinc-950/70 border border-gray-200 dark:border-white/10 rounded-2xl p-5 shadow-lg space-y-4">
+                    <span className="text-[10px] font-mono font-semibold text-gray-400 dark:text-zinc-500 block border-b border-gray-200 dark:border-white/5 pb-2">
                       PIPELINE STREAM
                     </span>
 
@@ -519,8 +519,8 @@ export default function DemoSlideshow() {
                       </div>
                     </div>
 
-                    <div className="p-3 bg-gray-55 dark:bg-black rounded-xl border border-gray-150 dark:border-white/5 space-y-1.5 min-h-[90px] overflow-y-auto max-h-[110px]">
-                      <span className="text-[9px] font-mono font-bold text-gray-400 dark:text-zinc-650 block">WEBHOOK RESPONSE</span>
+                    <div className="p-3 bg-gray-50 dark:bg-black rounded-xl border border-gray-200 dark:border-white/5 space-y-1.5 min-h-[90px] overflow-y-auto max-h-[110px]">
+                      <span className="text-[9px] font-mono font-bold text-gray-400 dark:text-zinc-600 block">WEBHOOK RESPONSE</span>
                       {webhookLog.length === 0 ? (
                         <div className="text-xs text-zinc-500 py-3 text-center">Waiting for pipeline run cycle...</div>
                       ) : (
@@ -638,11 +638,11 @@ export default function DemoSlideshow() {
       </div>
 
       {/* Bottom Controls / Slide Navigation */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-150 dark:border-white/5">
+      <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-white/5">
         <button
           onClick={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
           disabled={currentSlide === 0}
-          className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-55 dark:hover:bg-white/5 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-40 disabled:pointer-events-none transition-colors"
         >
           <ArrowLeft size={14} />
           Back

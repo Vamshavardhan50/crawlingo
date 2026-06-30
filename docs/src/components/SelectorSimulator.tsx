@@ -66,9 +66,9 @@ export default function SelectorSimulator() {
   };
 
   return (
-    <div className="border border-gray-150 dark:border-white/10 rounded-2xl overflow-hidden bg-white dark:bg-zinc-950/70 dark:backdrop-blur-xl my-10 shadow-[0_10px_35px_-10px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+    <div className="border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden bg-white dark:bg-zinc-950/70 dark:backdrop-blur-xl my-10 shadow-[0_10px_35px_-10px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
       {/* Simulator Header */}
-      <div className="px-6 py-4 bg-gray-50/50 dark:bg-zinc-900/30 border-b border-gray-150 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="px-6 py-4 bg-gray-50/50 dark:bg-zinc-900/30 border-b border-gray-200 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-brand-violet/10 dark:bg-brand-violet/20 flex items-center justify-center text-brand-violet shadow-sm">
             <Zap size={18} className="animate-pulse" />
@@ -110,7 +110,7 @@ export default function SelectorSimulator() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-gray-150 dark:divide-white/5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 dark:divide-white/5">
         
         {/* Left Side: DOM Visualizations - Mock Editor (Lg: col-span-5) */}
         <div className="lg:col-span-5 p-6 space-y-6 bg-transparent">
@@ -123,7 +123,7 @@ export default function SelectorSimulator() {
                 CSS Selector
               </span>
             </div>
-            <div className="bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-150 dark:border-white/5 rounded-xl p-3 font-mono text-xs text-gray-900 dark:text-brand-cyan font-semibold flex items-center justify-between">
+            <div className="bg-gray-50/50 dark:bg-zinc-900/30 border border-gray-200 dark:border-white/5 rounded-xl p-3 font-mono text-xs text-gray-900 dark:text-brand-cyan font-semibold flex items-center justify-between">
               <code>button#submit.btn-primary</code>
               <span className="w-1.5 h-1.5 rounded-full bg-brand-cyan animate-ping" />
             </div>
@@ -235,7 +235,7 @@ export default function SelectorSimulator() {
                     log.includes("complete") || log.includes("confidence") || log.includes("success") ? "text-brand-emerald" : "text-zinc-300"
                   )}
                 >
-                  <span className="text-zinc-650 select-none shrink-0">&gt;</span>
+                  <span className="text-zinc-600 select-none shrink-0">&gt;</span>
                   <span className="flex-1">{log}</span>
                 </motion.div>
               ))}
@@ -243,7 +243,7 @@ export default function SelectorSimulator() {
           </div>
 
           {/* Visual Indicator of Healing Stage */}
-          <div className="mt-5 border-t border-gray-150 dark:border-white/5 pt-4">
+          <div className="mt-5 border-t border-gray-200 dark:border-white/5 pt-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-gray-500 dark:text-zinc-400">Analysis status:</span>
               <AnimatePresence mode="wait">

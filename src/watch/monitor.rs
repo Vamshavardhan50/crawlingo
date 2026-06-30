@@ -65,13 +65,20 @@ impl PyWatch {
         }
     }
 
-    pub fn field(mut self_: PyRefMut<'_, Self>, name: &str, selector: &str) -> PyResult<Py<Self>> {
+    #[pyo3(signature = (name, selector, selector_type="css", default=None))]
+    pub fn field(
+        mut self_: PyRefMut<'_, Self>,
+        name: &str,
+        selector: &str,
+        selector_type: &str,
+        default: Option<String>,
+    ) -> PyResult<Py<Self>> {
         let field = DatasetField {
             name: name.to_string(),
             selector: selector.to_string(),
-            selector_type: "css".to_string(),
+            selector_type: selector_type.to_string(),
             transform: None,
-            default: None,
+            default,
         };
         self_.inner.fields.push(field);
         Ok(self_.into())

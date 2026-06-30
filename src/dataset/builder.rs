@@ -1,13 +1,13 @@
-use crate::engine::fetcher::{FetchRequest, Fetcher};
+use crate::engine::fetcher::{FetchManager, FetchRequest};
 use crate::engine::pool::ConnectionPoolConfig;
 #[cfg(feature = "python")]
 use crate::engine::session::PySession;
 use crate::engine::session::Session;
-use crate::error::{CrawlingoError, Result};
-use crate::fingerprint::store::FingerprintStore;
+use crate::error::Result;
 use crate::matcher::auto_matcher;
-use crate::parser::streaming::parse_html;
-use crate::selector::{css, regex_selector, text_anchor, xpath};
+use crate::parser::document::Page;
+use crate::parser::streaming::HtmlParser;
+use crate::selector::SelectorQuery;
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -66,12 +66,10 @@ impl Dataset {
         let proxy = self.session.get_next_proxy();
         let rate_limit_rps = *self.session.rate_limit_rps.read().unwrap();
         let timeout_secs = *self.session.timeout_seconds.read().unwrap();
-        let auto_match_enabled = *self.session.auto_match.read().unwrap();
-        let fingerprint_dir = self.session.fingerprint_path.read().unwrap().clone();
         let fetcher_tier = *self.session.fetcher_tier.read().unwrap();
         let browser_profile = self.session.browser_profile.read().unwrap().clone();
 
-        // 2. Fetch page HTML
+        // 2. Build Fetch Request options
         let req = FetchRequest {
             url: self.url.clone(),
             tier: fetcher_tier,
@@ -84,35 +82,41 @@ impl Dataset {
             rate_limit_rps,
         };
 
+        // 3. Fetch using Fetch Manager and standard pool
         let rate_limiter = Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
-        let fetcher = Fetcher::new(rate_limiter, ConnectionPoolConfig::default());
-        let resp = fetcher.fetch(req).await?;
-        let bytes = resp
-            .bytes()
-            .await
-            .map_err(|e| CrawlingoError::FetchError(e.to_string()))?;
+        let manager = FetchManager::new(rate_limiter, ConnectionPoolConfig::default());
+        let response = manager.dispatch(req).await?;
 
-        let tree = parse_html(&bytes)?;
+        // 4. Parse using HtmlParser producing Page
+        let page = HtmlParser::parse(response)?;
 
-        // Open sled fingerprint store
-        let store = FingerprintStore::open(std::path::Path::new(&fingerprint_dir))?;
+        // 5. Extract fields from Page
+        self.extract_from_page(&page).await
+    }
 
-        // 3. Process fields
+    /// Extracts fields directly from a pre-parsed Page object.
+    pub async fn extract_from_page(&self, page: &Page) -> Result<DatasetResult> {
+        let auto_match_enabled = *self.session.auto_match.read().unwrap();
+
+        // Retrieve long-lived fingerprint store from Session
+        let store = self.session.get_fingerprint_store()?;
+
         let mut fields_map = HashMap::new();
 
         for f in &self.fields {
             let mut extracted_val = None;
 
-            // Resolve selector matches
-            let mut matches = match f.selector_type.as_str() {
-                "css" => css::query(&tree, &f.selector),
-                "xpath" => xpath::query(&tree, &f.selector),
-                "text" => text_anchor::find(&tree, &f.selector),
-                "after_text" => text_anchor::after(&tree, &f.selector),
-                "before_text" => text_anchor::before(&tree, &f.selector),
-                "regex" => regex_selector::query(&tree, &f.selector).unwrap_or_default(),
-                _ => Vec::new(),
+            let query = match f.selector_type.as_str() {
+                "xpath" => SelectorQuery::XPath(&f.selector),
+                "regex" => SelectorQuery::Regex(&f.selector),
+                "text" => SelectorQuery::TextAnchor(&f.selector),
+                "after_text" => SelectorQuery::AfterText(&f.selector),
+                "before_text" => SelectorQuery::BeforeText(&f.selector),
+                _ => SelectorQuery::Css(&f.selector),
             };
+
+            // Resolve selector matches
+            let mut matches = page.query(query).unwrap_or_default();
 
             // Auto-matching recovery logic
             if matches.is_empty() && auto_match_enabled && f.selector_type == "css" {
@@ -122,20 +126,20 @@ impl Dataset {
                 } else {
                     Some(&*weights)
                 };
-                if let Ok(recovered_idx) =
-                    auto_matcher::auto_match(&tree, &self.url, &f.selector, &store, weights_opt)
-                {
+                if let Ok(recovered_idx) = auto_matcher::auto_match(
+                    page.dom_tree(),
+                    page.url(),
+                    &f.selector,
+                    &store,
+                    weights_opt,
+                ) {
                     matches = vec![recovered_idx];
                 }
             }
 
             // Extract combined text
             if !matches.is_empty() {
-                let combined_text = matches
-                    .iter()
-                    .map(|&idx| tree.get_text(idx))
-                    .collect::<Vec<String>>()
-                    .join(" ");
+                let combined_text = page.get_nodes_combined_text(&matches);
                 let trimmed = combined_text.trim().to_string();
                 if !trimmed.is_empty() {
                     extracted_val = Some(trimmed);
@@ -150,10 +154,36 @@ impl Dataset {
         }
 
         Ok(DatasetResult {
-            url: self.url.clone(),
+            url: page.url().to_string(),
             fields: fields_map,
             timestamp: Utc::now(),
         })
+    }
+
+    /// Compiles a stream of Page objects into a stream of DatasetResult records.
+    pub fn compile_stream(
+        &self,
+        mut page_receiver: tokio::sync::mpsc::Receiver<Page>,
+    ) -> tokio::sync::mpsc::Receiver<Result<DatasetResult>> {
+        let (tx, rx) = tokio::sync::mpsc::channel(100);
+        let fields = self.fields.clone();
+        let session = self.session.clone();
+
+        tokio::spawn(async move {
+            let temp_dataset = Dataset {
+                url: String::new(),
+                fields,
+                session,
+            };
+            while let Some(page) = page_receiver.recv().await {
+                let res = temp_dataset.extract_from_page(&page).await;
+                if tx.send(res).await.is_err() {
+                    break;
+                }
+            }
+        });
+
+        rx
     }
 }
 

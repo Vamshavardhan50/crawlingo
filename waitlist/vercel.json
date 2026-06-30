@@ -2,10 +2,6 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/api/waitlist",
-      "destination": "/api/waitlist"
-    },
-    {
       "source": "/docs",
       "destination": "https://crawlingo-docs.vercel.app/"
     },

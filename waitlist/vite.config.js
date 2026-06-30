@@ -1,17 +1,30 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import fs from 'fs';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 function waitlistPlugin() {
   return {
     name: 'waitlist-api',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+        if (req.url === '/api/waitlist' && req.method === 'OPTIONS') {
+          res.statusCode = 200;
+          res.end();
+          return;
+        }
+
         if (req.url === '/api/waitlist' && req.method === 'POST') {
           let body = '';
           req.on('data', chunk => {
@@ -21,7 +34,7 @@ function waitlistPlugin() {
             try {
               const data = JSON.parse(body);
               const { name, email, company, useCase } = data;
-              
+
               if (!email || !name) {
                 res.statusCode = 400;
                 res.setHeader('Content-Type', 'application/json');
@@ -29,37 +42,30 @@ function waitlistPlugin() {
                 return;
               }
 
-              // Create waitlist.csv in root scraper directory
-              const csvPath = path.resolve(__dirname, '../waitlist.csv');
-              const exists = fs.existsSync(csvPath);
-              
-              const escapeCSV = (str) => {
-                if (typeof str !== 'string') return '';
-                return '"' + str.replace(/"/g, '""') + '"';
-              };
-
-              const newRow = `${escapeCSV(name)},${escapeCSV(email)},${escapeCSV(company || '')},${escapeCSV(useCase || '')},${escapeCSV(new Date().toISOString())}\n`;
-
-              if (!exists) {
-                const header = 'Name,Email,Company,Use Case,Signup Date\n';
-                fs.writeFileSync(csvPath, header + newRow);
-              } else {
-                fs.appendFileSync(csvPath, newRow);
+              // CSV logging (graceful on error)
+              try {
+                const csvPath = path.resolve(__dirname, '../waitlist.csv');
+                const exists = fs.existsSync(csvPath);
+                const escapeCSV = (str) => {
+                  if (typeof str !== 'string') return '';
+                  return '"' + str.replace(/"/g, '""') + '"';
+                };
+                const newRow = `${escapeCSV(name)},${escapeCSV(email)},${escapeCSV(company || '')},${escapeCSV(useCase || '')},${escapeCSV(new Date().toISOString())}\n`;
+                if (!exists) {
+                  fs.writeFileSync(csvPath, 'Name,Email,Company,Use Case,Signup Date\n' + newRow);
+                } else {
+                  fs.appendFileSync(csvPath, newRow);
+                }
+              } catch (csvErr) {
+                console.warn('[waitlist-api] CSV write failed:', csvErr.message);
               }
 
               // 1. Post to Google Sheets if configured
               if (process.env.GOOGLE_SHEET_WEBHOOK_URL) {
                 fetch(process.env.GOOGLE_SHEET_WEBHOOK_URL, {
                   method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    name,
-                    email,
-                    company: company || '',
-                    useCase: useCase || '',
-                  }),
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name, email, company: company || '', useCase: useCase || '' }),
                 })
                   .then(async (response) => {
                     if (!response.ok) {
@@ -69,9 +75,7 @@ function waitlistPlugin() {
                       console.log('[waitlist-api] Waitlist entry synced to Google Sheets.');
                     }
                   })
-                  .catch((err) => {
-                    console.error('[waitlist-api] Error posting to Google Sheets:', err);
-                  });
+                  .catch((err) => console.error('[waitlist-api] Error posting to Google Sheets:', err));
               } else {
                 console.warn('[waitlist-api] GOOGLE_SHEET_WEBHOOK_URL not set. Google Sheets sync skipped.');
               }
@@ -196,21 +200,17 @@ function waitlistPlugin() {
                   </html>
                 `;
 
-                const mailOptions = {
+                const logoPath = path.resolve(__dirname, 'public/logo.svg');
+
+                transporter.sendMail({
                   from: `"Crawlingo" <${process.env.SMTP_USER}>`,
                   to: email,
                   subject: 'You are on the Crawlingo Waitlist!',
                   html: htmlContent,
-                  attachments: [
-                    {
-                      filename: 'logo.svg',
-                      path: path.resolve(__dirname, 'public/logo.svg'),
-                      cid: 'logo_svg'
-                    }
-                  ]
-                };
-
-                transporter.sendMail(mailOptions, (error, info) => {
+                  attachments: fs.existsSync(logoPath) ? [
+                    { filename: 'logo.svg', path: logoPath, cid: 'logo_svg' }
+                  ] : [],
+                }, (error, info) => {
                   if (error) {
                     console.error('[waitlist-api] Error sending confirmation email:', error);
                   } else {
@@ -225,6 +225,7 @@ function waitlistPlugin() {
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({ success: true, message: 'Signed up successfully!' }));
             } catch (err) {
+              console.error('[waitlist-api] Server error:', err);
               res.statusCode = 500;
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({ error: 'Server error: ' + err.message }));

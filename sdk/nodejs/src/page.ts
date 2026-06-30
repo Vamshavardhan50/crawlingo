@@ -3,7 +3,7 @@ import { ElementCollection } from './element';
 import { Session } from './session';
 
 export class Page {
-  private constructor(private readonly inner: JsPage) {}
+  constructor(public readonly nativePage: JsPage) {}
 
   /**
    * Fetches a web page and returns a parsed `Page` object.
@@ -28,48 +28,48 @@ export class Page {
       options?.cookies,
       options?.proxy,
       options?.browserProfile,
-      options?.session ? (options.session as any).inner : undefined
+      options?.session?.inner
     );
     return new Page(raw);
   }
 
   public get url(): string {
-    return this.inner.url;
+    return this.nativePage.url;
   }
 
   public get status(): number {
-    return this.inner.status;
+    return this.nativePage.status;
   }
 
   public get html(): string {
-    return this.inner.html;
+    return this.nativePage.html;
   }
 
   public title(): string {
-    return this.inner.title();
+    return this.nativePage.title();
   }
 
   public css(selector: string): ElementCollection {
-    return new ElementCollection(this.inner.css(selector));
+    return new ElementCollection(this.nativePage.css(selector));
   }
 
   public xpath(query: string): ElementCollection {
-    return new ElementCollection(this.inner.xpath(query));
+    return new ElementCollection(this.nativePage.xpath(query));
   }
 
   public findText(text: string): ElementCollection {
-    return new ElementCollection(this.inner.findText(text));
+    return new ElementCollection(this.nativePage.findText(text));
   }
 
   public afterText(text: string): ElementCollection {
-    return new ElementCollection(this.inner.afterText(text));
+    return new ElementCollection(this.nativePage.afterText(text));
   }
 
   public beforeText(text: string): ElementCollection {
-    return new ElementCollection(this.inner.beforeText(text));
+    return new ElementCollection(this.nativePage.beforeText(text));
   }
 
   public regex(pattern: string): ElementCollection {
-    return new ElementCollection(this.inner.regex(pattern));
+    return new ElementCollection(this.nativePage.regex(pattern));
   }
 }

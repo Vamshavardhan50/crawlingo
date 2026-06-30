@@ -1,4 +1,4 @@
-from typing import List, Callable, Iterator
+from typing import List, Callable, Iterator, Optional
 from ._crawlingo_core import Element as _CoreElement, ElementCollection as _CoreElementCollection
 
 class Element:
@@ -100,26 +100,29 @@ class ElementCollection:
             return self._items[0].attrs() if self._items else {}
         return self._core.attrs() if self._core else {}
 
-    def first(self) -> Element:
+    def first(self) -> Optional[Element]:
         """Get the first element."""
         if self._items is not None:
             return self._items[0] if self._items else None
         e = self._core.first() if self._core else None
         return Element(e, self._after_extract_hooks) if e else None
 
-    def last(self) -> Element:
+    def last(self) -> Optional[Element]:
         """Get the last element."""
         if self._items is not None:
             return self._items[-1] if self._items else None
         e = self._core.last() if self._core else None
         return Element(e, self._after_extract_hooks) if e else None
 
-    def nth(self, n: int) -> Element:
+    def nth(self, n: int) -> Optional[Element]:
         """Get the nth element."""
         if self._items is not None:
             return self._items[n] if 0 <= n < len(self._items) else None
         e = self._core.nth(n) if self._core else None
         return Element(e, self._after_extract_hooks) if e else None
+
+    def __getitem__(self, index: int) -> Optional[Element]:
+        return self.nth(index)
 
     def __iter__(self) -> Iterator[Element]:
         if self._items is not None:

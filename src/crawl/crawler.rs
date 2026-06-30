@@ -1,10 +1,10 @@
 use crate::dataset::builder::{DatasetField, DatasetResult};
-use crate::engine::fetcher::{FetchRequest, Fetcher};
+use crate::engine::fetcher::{FetchManager, FetchRequest};
 use crate::engine::pool::ConnectionPoolConfig;
 use crate::engine::session::Session;
 use crate::error::Result;
-use crate::parser::streaming::parse_html;
-use crate::selector::css;
+use crate::parser::streaming::HtmlParser;
+use crate::selector::SelectorQuery;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -68,7 +68,10 @@ impl Crawler {
         let webhook_url = self.webhook_url.clone();
 
         let rate_limiter = Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
-        let fetcher = Arc::new(Fetcher::new(rate_limiter, ConnectionPoolConfig::default()));
+        let manager = Arc::new(FetchManager::new(
+            rate_limiter,
+            ConnectionPoolConfig::default(),
+        ));
 
         // Create field extraction instructions
         let mut fields_def = Vec::new();
@@ -78,7 +81,7 @@ impl Crawler {
                 selector: f.selector.clone(),
                 selector_type: f.selector_type.clone(),
                 #[cfg(feature = "python")]
-                transform: None,
+                transform: f.transform.clone(),
                 default: f.default.clone(),
             });
         }
@@ -90,7 +93,7 @@ impl Crawler {
             let visited = visited.clone();
             let results = results.clone();
             let pending_queue = pending_queue.clone();
-            let fetcher = fetcher.clone();
+            let manager = manager.clone();
             let session = self.session.clone();
             let fields = fields_def_arc.clone();
             let follow_sel = follow_sel.clone();
@@ -152,59 +155,63 @@ impl Crawler {
                         tokio::time::sleep(std::time::Duration::from_secs_f64(delay)).await;
                     }
 
-                    match fetcher.fetch(req).await {
+                    match manager.dispatch(req).await {
                         Ok(response) => {
-                            if let Ok(bytes) = response.bytes().await {
-                                if let Ok(tree) = parse_html(&bytes) {
-                                    // Extract data
-                                    let mut fields_map = HashMap::new();
-                                    for f in fields.iter() {
-                                        let matches = css::query(&tree, &f.selector);
-                                        let text_val = matches
-                                            .iter()
-                                            .map(|&idx| tree.get_text(idx))
-                                            .collect::<Vec<String>>()
-                                            .join(" ");
-                                        fields_map.insert(f.name.clone(), text_val);
-                                    }
-
-                                    let result = DatasetResult {
-                                        url: url_str.clone(),
-                                        fields: fields_map,
-                                        timestamp: chrono::Utc::now(),
+                            if let Ok(page) = HtmlParser::parse(response) {
+                                // Extract data using unified SelectorEngine queries
+                                let mut fields_map = HashMap::new();
+                                for f in fields.iter() {
+                                    let query = match f.selector_type.as_str() {
+                                        "xpath" => SelectorQuery::XPath(&f.selector),
+                                        "regex" => SelectorQuery::Regex(&f.selector),
+                                        "text" => SelectorQuery::TextAnchor(&f.selector),
+                                        "after_text" => SelectorQuery::AfterText(&f.selector),
+                                        "before_text" => SelectorQuery::BeforeText(&f.selector),
+                                        _ => SelectorQuery::Css(&f.selector),
                                     };
-                                    results.lock().await.push(result.clone());
 
-                                    // Deliver Webhook POST request if configured
-                                    if let Some(ref hook_url) = webhook_url {
-                                        let client = wreq::Client::new();
-                                        let _ = client
-                                            .request(wreq::Method::POST, hook_url.clone())
-                                            .json(&result)
-                                            .send()
-                                            .await;
-                                    }
+                                    let matches = page.query(query).unwrap_or_default();
+                                    let text_val = page.get_nodes_combined_text(&matches);
+                                    fields_map.insert(f.name.clone(), text_val);
+                                }
 
-                                    // Discover links to follow if depth limit is not reached
-                                    if depth < max_depth && !follow_sel.is_empty() {
-                                        let links = css::query(&tree, &follow_sel);
-                                        let mut new_links = Vec::new();
-                                        for &link_idx in &links {
-                                            if let Some(href) =
-                                                tree.nodes[link_idx].attrs.get("href")
+                                let result = DatasetResult {
+                                    url: url_str.clone(),
+                                    fields: fields_map,
+                                    timestamp: chrono::Utc::now(),
+                                };
+                                results.lock().await.push(result.clone());
+
+                                // Deliver Webhook POST request if configured
+                                if let Some(ref hook_url) = webhook_url {
+                                    let client = wreq::Client::new();
+                                    let _ = client
+                                        .request(wreq::Method::POST, hook_url.clone())
+                                        .json(&result)
+                                        .send()
+                                        .await;
+                                }
+
+                                // Discover links to follow if depth limit is not reached
+                                if depth < max_depth && !follow_sel.is_empty() {
+                                    let matches = page
+                                        .query(SelectorQuery::Css(&follow_sel))
+                                        .unwrap_or_default();
+                                    let mut new_links = Vec::new();
+                                    for &link_idx in &matches {
+                                        if let Some(href) =
+                                            page.dom_tree().nodes[link_idx].attrs.get("href")
+                                        {
+                                            if let Some(abs_url) = Self::resolve_url(&url_str, href)
                                             {
-                                                if let Some(abs_url) =
-                                                    Self::resolve_url(&url_str, href)
-                                                {
-                                                    new_links.push(abs_url);
-                                                }
+                                                new_links.push(abs_url);
                                             }
                                         }
+                                    }
 
-                                        let mut queue = pending_queue.lock().await;
-                                        for link in new_links {
-                                            queue.push((link, depth + 1));
-                                        }
+                                    let mut queue = pending_queue.lock().await;
+                                    for link in new_links {
+                                        queue.push((link, depth + 1));
                                     }
                                 }
                             }

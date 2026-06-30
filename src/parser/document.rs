@@ -1,5 +1,5 @@
+use once_cell::sync::OnceCell;
 use std::collections::HashMap;
-#[cfg(feature = "python")]
 use std::sync::Arc;
 
 /// A node in the custom in-memory DOM Tree.
@@ -274,5 +274,113 @@ impl PyElementCollection {
     /// Length of the collection.
     pub fn __len__(&self) -> usize {
         self.node_indices.len()
+    }
+}
+
+/// The core Page object representing a fetched and parsed web page document.
+pub struct Page {
+    url: String,
+    status: u16,
+    headers: HashMap<String, String>,
+    cookies: HashMap<String, String>,
+    html: String,
+    tree: Arc<DomTree>,
+    text_cache: OnceCell<String>,
+    links_cache: OnceCell<Vec<String>>,
+}
+
+impl Page {
+    pub fn new(
+        url: String,
+        status: u16,
+        headers: HashMap<String, String>,
+        cookies: HashMap<String, String>,
+        html: String,
+        tree: DomTree,
+    ) -> Self {
+        Self {
+            url,
+            status,
+            headers,
+            cookies,
+            html,
+            tree: Arc::new(tree),
+            text_cache: OnceCell::new(),
+            links_cache: OnceCell::new(),
+        }
+    }
+
+    pub fn url(&self) -> &str {
+        &self.url
+    }
+
+    pub fn status(&self) -> u16 {
+        self.status
+    }
+
+    pub fn headers(&self) -> &HashMap<String, String> {
+        &self.headers
+    }
+
+    pub fn cookies(&self) -> &HashMap<String, String> {
+        &self.cookies
+    }
+
+    pub fn html(&self) -> &str {
+        &self.html
+    }
+
+    pub fn dom_tree(&self) -> &Arc<DomTree> {
+        &self.tree
+    }
+
+    pub fn text(&self) -> &str {
+        self.text_cache.get_or_init(|| self.tree.get_text(0))
+    }
+
+    pub fn links(&self) -> &[String] {
+        self.links_cache.get_or_init(|| {
+            let mut resolved = Vec::new();
+            let matches = crate::selector::css::query(&self.tree, "a");
+            for &idx in &matches {
+                if let Some(href) = self.tree.nodes[idx].attrs.get("href") {
+                    if let Ok(base) = url::Url::parse(&self.url) {
+                        if let Ok(abs_url) = base.join(href) {
+                            resolved.push(abs_url.to_string());
+                            continue;
+                        }
+                    }
+                    resolved.push(href.clone());
+                }
+            }
+            resolved
+        })
+    }
+
+    pub fn images(&self) -> Vec<(String, Option<String>)> {
+        let mut imgs = Vec::new();
+        let matches = crate::selector::css::query(&self.tree, "img");
+        for &idx in &matches {
+            if let Some(src) = self.tree.nodes[idx].attrs.get("src") {
+                let alt = self.tree.nodes[idx].attrs.get("alt").cloned();
+                imgs.push((src.clone(), alt));
+            }
+        }
+        imgs
+    }
+
+    pub fn query(
+        &self,
+        query: crate::selector::SelectorQuery<'_>,
+    ) -> crate::error::Result<Vec<usize>> {
+        crate::selector::SelectorEngine::query(&self.tree, query)
+    }
+
+    pub fn get_nodes_combined_text(&self, indices: &[usize]) -> String {
+        indices
+            .iter()
+            .map(|&idx| self.tree.get_text(idx))
+            .collect::<Vec<String>>()
+            .join(" ")
     }
 }

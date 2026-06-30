@@ -17,8 +17,15 @@ export class Watch {
     this.inner = new JsWatch(url, activeSession.inner);
   }
 
-  public field(name: string, selector: string): this {
-    this.inner.field(name, selector);
+  public field(
+    name: string,
+    selector: string,
+    options?: {
+      selectorType?: 'css' | 'xpath';
+      defaultVal?: string;
+    }
+  ): this {
+    this.inner.field(name, selector, options?.selectorType ?? 'css', options?.defaultVal);
     return this;
   }
 
@@ -36,9 +43,9 @@ export class Watch {
       callback(null, {
         url: evt.url,
         field: evt.field,
-        changeType: evt.changeType ?? (evt as any).change_type,
-        oldValue: evt.oldValue ?? (evt as any).old_value ?? undefined,
-        newValue: evt.newValue ?? (evt as any).new_value ?? undefined,
+        changeType: evt.changeType,
+        oldValue: evt.oldValue ?? undefined,
+        newValue: evt.newValue ?? undefined,
       });
     });
   }

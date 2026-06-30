@@ -11,8 +11,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 # Async runtime
 tokio = { version = "1", features = ["full"] }
-tokio-stream = "0.1"
-tokio-util = { version = "0.7", features = ["rt"] }
+tokio-util = { version = "0.7", features = ["rt", "time", "slab"] }
 futures = "0.3"
 
 # HTTP/Stealth client (wreq is the successor of rquest)
@@ -28,11 +27,9 @@ moka = { version = "0.12", features = ["future"] }
 
 # Concurrency & Lock-free
 dashmap = "5.5"
-crossbeam = "0.8"
 
 # Rate Limiter
 governor = "0.6"
-tower = "0.4"
 
 # Similarity algorithms
 strsim = "0.11"
@@ -60,12 +57,6 @@ serde_json = "1"
 csv = "1.3"
 arrow = { version = "51" }
 parquet = { version = "51", features = ["arrow"] }
-
-# FFI and MCP Web server
-axum = "0.7"
-clap = { version = "4", features = ["derive"] }
-indicatif = "0.17"
-colored = "2.1"
 
 # Utilities
 thiserror = "1"

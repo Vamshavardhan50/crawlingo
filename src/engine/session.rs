@@ -1,4 +1,5 @@
 use crate::engine::fetcher::FetcherTier;
+use crate::fingerprint::store::FingerprintStore;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::RwLock;
@@ -18,6 +19,7 @@ pub struct Session {
     pub proxy_pool: RwLock<Vec<String>>,
     pub proxy_index: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     pub proxy_provider_url: RwLock<Option<String>>,
+    pub fingerprint_store: RwLock<Option<(String, Arc<FingerprintStore>)>>,
 }
 
 impl Session {
@@ -37,6 +39,7 @@ impl Session {
             proxy_pool: RwLock::new(Vec::new()),
             proxy_index: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             proxy_provider_url: RwLock::new(None),
+            fingerprint_store: RwLock::new(None),
         }
     }
 
@@ -92,6 +95,33 @@ impl Session {
             }
         }
         Ok(())
+    }
+
+    /// Retrieves the long-lived fingerprint store cached connection.
+    pub fn get_fingerprint_store(
+        &self,
+    ) -> Result<Arc<FingerprintStore>, crate::error::CrawlingoError> {
+        let path = self.fingerprint_path.read().unwrap().clone();
+
+        {
+            let store_opt = self.fingerprint_store.read().unwrap();
+            if let Some((ref cached_path, ref store)) = *store_opt {
+                if cached_path == &path {
+                    return Ok(store.clone());
+                }
+            }
+        }
+
+        let mut store_opt = self.fingerprint_store.write().unwrap();
+        if let Some((ref cached_path, ref store)) = *store_opt {
+            if cached_path == &path {
+                return Ok(store.clone());
+            }
+        }
+
+        let new_store = Arc::new(FingerprintStore::open(std::path::Path::new(&path))?);
+        *store_opt = Some((path, new_store.clone()));
+        Ok(new_store)
     }
 }
 

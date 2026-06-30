@@ -43,7 +43,8 @@ pub fn parse_html(html: &[u8]) -> Result<DomTree> {
         // Tags that are self-closing do not get pushed to the stack
         let self_closing_tags = [
             "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param",
-            "source", "track", "wbr",
+            "source", "track", "wbr", "path", "rect", "circle", "line", "polygon", "polyline",
+            "ellipse", "use", "stop", "image",
         ];
 
         if !self_closing_tags.contains(&tag.as_str()) {
@@ -106,6 +107,26 @@ pub fn parse_html(html: &[u8]) -> Result<DomTree> {
         .into_inner();
 
     Ok(final_tree)
+}
+
+/// The single-responsibility HTML parser that converts normalized responses into compiled Page objects.
+pub struct HtmlParser;
+
+impl HtmlParser {
+    pub fn parse(
+        response: crate::engine::fetcher::NormalizedResponse,
+    ) -> Result<crate::parser::document::Page> {
+        let tree = parse_html(&response.body)?;
+        let html = String::from_utf8_lossy(&response.body).to_string();
+        Ok(crate::parser::document::Page::new(
+            response.url,
+            response.status,
+            response.headers,
+            response.cookies,
+            html,
+            tree,
+        ))
+    }
 }
 
 #[cfg(test)]

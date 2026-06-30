@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://example.com/edge-cases">
+    <link rel="alternate" hreflang="es" href="https://example.com/es/edge-cases">
+    <title>Crawlingo Local Edge Cases Test Bed</title>
+    
+    <!-- 16. Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": "Edge Cases Test Device",
+      "image": "https://example.com/photo.jpg",
+      "description": "A device designed to trigger parser edge cases.",
+      "offers": {
+        "@type": "Offer",
+        "price": "99.99",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+</head>
+<body>
+    <!-- 1. HTML Structure & 13. Images (SVG) -->
+    <header>
+        <h1>Crawlingo Test Suite</h1>
+        <!-- Malformed SVG and inline elements -->
+        <svg width="100" height="100" viewBox="0 0 100 100">
+            <rect x="10" y="10" width="80" height="80" fill="blue" />
+            <circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" />
+            <path d="M 10 10 L 90 90" />
+        </svg>
+        <!-- MathML malformed fragment -->
+        <math><mfrac><mi>x</mi><mi>y</mi></mfrac></math>
+    </header>
+
+    <!-- 2. Encoding / Unicode -->
+    <section id="encodings">
+        <h2>2. Encoding Tests</h2>
+        <p class="utf8">UTF-8 Emoji: 🚀🔥🌟👾</p>
+        <p class="rtl" dir="rtl">RTL Text: שלום עולם (Hebrew) / مرحبا بك (Arabic)</p>
+        <p class="combining">Combining character: ñ (n + ~)</p>
+        <p class="accents">Accented Latin-1 representation: Caf&eacute; / Café</p>
+    </section>
+
+    <!-- 6. DOM / Shadow DOM template indicators -->
+    <section id="dom-elements">
+        <h2>6. DOM Structure</h2>
+        <template id="shadow-template">
+            <style>p { color: red; }</style>
+            <div class="shadow-content">
+                <p>Inside Shadow DOM</p>
+                <slot name="custom-slot"></slot>
+            </div>
+        </template>
+        
+        <custom-web-component>
+            <span slot="custom-slot">Slotted Content</span>
+        </custom-web-component>
+
+        <!-- Nested iframes structure placeholder -->
+        <iframe src="about:blank" name="test-iframe" sandbox="allow-scripts"></iframe>
+    </section>
+
+    <!-- 8. CSS Hidden elements -->
+    <section id="css-styles">
+        <h2>8. CSS Hidden Elements</h2>
+        <div style="display: none;" class="hidden-display">Hidden via display:none</div>
+        <div style="visibility: hidden;" class="hidden-visibility">Hidden via visibility:hidden</div>
+        <div style="opacity: 0;" class="hidden-opacity">Hidden via opacity:0</div>
+    </section>
+
+    <!-- 11. Links -->
+    <section id="links">
+        <h2>11. Link Formats</h2>
+        <ul>
+            <li><a href="/relative-path" id="rel-link">Relative URL</a></li>
+            <li><a href="//example.com/protocol-relative" id="proto-link">Protocol-Relative</a></li>
+            <li><a href="#section-top" id="frag-link">Fragment link</a></li>
+            <li><a href="mailto:test@example.com" id="mail-link">Mailto link</a></li>
+            <li><a href="tel:+1234567890" id="tel-link">Tel link</a></li>
+            <li><a href="javascript:void(0)" id="js-link">Javascript link</a></li>
+            <li><a href="data:text/plain;base64,SGVsbG8=" id="data-link">Data URI</a></li>
+        </ul>
+    </section>
+
+    <!-- 12. Forms -->
+    <section id="forms">
+        <h2>12. Forms</h2>
+        <form action="/search" method="GET" id="get-form">
+            <input type="text" name="query" value="crawlingo test" />
+            <input type="submit" value="Search" />
+        </form>
+        <form action="/upload" method="POST" enctype="multipart/form-data" id="post-form">
+            <input type="hidden" name="csrf_token" value="abc123csrf" />
+            <input type="file" name="attachment" />
+            <button type="submit">Upload</button>
+        </form>
+    </section>
+
+    <!-- 14. Tables -->
+    <section id="tables">
+        <h2>14. Complex Tables</h2>
+        <table border="1" id="test-table">
+            <thead>
+                <tr>
+                    <th colspan="2">Merged Header</th>
+                    <th>Single</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td rowspan="2">Rowspan Cell</td>
+                    <td>Normal A</td>
+                    <td>Normal B</td>
+                </tr>
+                <tr>
+                    <td>Normal C</td>
+                    <td>Normal D</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- 15. Media -->
+    <section id="media">
+        <h2>15. Media</h2>
+        <video src="media/sample.mp4" controls width="250">
+            <track kind="captions" src="captions.vtt" srclang="en">
+        </video>
+        <audio src="media/sample.mp3" controls></audio>
+        <canvas id="test-canvas"></canvas>
+    </section>
+
+    <!-- 21. AI-Specific (Markdown & Table extraction targets) -->
+    <section id="ai-specific">
+        <h2>21. AI Extraction Content</h2>
+        <article class="main-content">
+            <h3>Heading Level 3</h3>
+            <p>This is the main target text that needs to be extracted. Navigation and boilerplates should be ignored.</p>
+            <pre><code>
+def test_crawlingo():
+    print("Code Block preservation test")
+            </code></pre>
+        </article>
+        <nav class="boilerplate-navigation">
+            <a href="/home">Home</a> | <a href="/about">About Us</a> | <a href="/privacy">Privacy</a>
+        </nav>
+    </section>
+</body>
+</html>

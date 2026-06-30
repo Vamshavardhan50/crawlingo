@@ -101,16 +101,16 @@ Crawlingo packs all components required to scrape, watch, and pipe modern web pa
 
 ### 1. Basic Web Scrape
 ```typescript
-import { Session } from 'crawlingo';
+import { Session, Page } from 'crawlingo';
 
 const session = new Session();
 session.autoMatch(true);
 
-const page = await session.page("https://example.com");
+const page = await Page.create("https://example.com", { session });
 console.log("Page Title:", page.title());
 
 const headings = page.css("h1");
-console.log("Header text:", headings.text());
+console.log("Header text:", headings.text.join(", "));
 ```
 
 ### 2. Multi-Page Crawling & Webhooks

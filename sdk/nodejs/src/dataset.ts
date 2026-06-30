@@ -1,5 +1,6 @@
-import { JsDataset, JsDatasetResult } from './native.js';
+import { JsDataset, JsDatasetResult, JsPage, saveStructuredJson, saveStructuredCsv } from './native.js';
 import { Session } from './session';
+import type { Page } from './page';
 
 export class DatasetResult {
   constructor(private readonly inner: JsDatasetResult) {}
@@ -21,6 +22,12 @@ export class DatasetResult {
   }
 }
 
+export interface DatasetFieldConfig {
+  name: string;
+  selector: string;
+  selectorType: string;
+}
+
 export class Dataset {
   private readonly inner: JsDataset;
   private readonly session: Session;
@@ -38,7 +45,8 @@ export class Dataset {
       defaultVal?: string;
     }
   ): this {
-    this.inner.field(name, selector, options?.selectorType ?? 'css', options?.defaultVal);
+    const selType = options?.selectorType ?? 'css';
+    this.inner.field(name, selector, selType, options?.defaultVal);
     return this;
   }
 
@@ -60,5 +68,37 @@ export class Dataset {
   public async build(): Promise<DatasetResult> {
     const raw = await this.inner.build();
     return new DatasetResult(raw);
+  }
+
+  /**
+   * Extracts clean, structured multi-row records from a parsed Page object.
+   * Implemented entirely in Rust: zips selector results by element index.
+   */
+  public extractStructured(page: Page | JsPage): Array<Record<string, string>> {
+    const jsPage = (page as any).nativePage ?? page;
+    return this.inner.extractStructured(jsPage) as Array<Record<string, string>>;
+  }
+
+  /**
+   * Fetch the page URL and extract structured multi-row records entirely in Rust.
+   */
+  public async buildStructured(): Promise<Array<Record<string, string>>> {
+    return this.inner.buildStructured() as Promise<Array<Record<string, string>>>;
+  }
+
+  /**
+   * Write structured records to a pretty-printed JSON file.
+   * Implemented entirely in Rust via native FFI.
+   */
+  public static saveJson(records: Array<Record<string, string>>, path: string): void {
+    saveStructuredJson(records as any, path);
+  }
+
+  /**
+   * Write structured records to a clean CSV file with header row.
+   * Implemented entirely in Rust via native FFI.
+   */
+  public static saveCsv(records: Array<Record<string, string>>, path: string): void {
+    saveStructuredCsv(records as any, path);
   }
 }

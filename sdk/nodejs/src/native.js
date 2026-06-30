@@ -310,7 +310,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { JsSession, JsPage, fetchPage, JsElementCollection, JsElement, JsDatasetResult, JsDataset, JsCrawl, JsWatch } = nativeBinding
+const { JsSession, JsPage, fetchPage, JsElementCollection, JsElement, JsDatasetResult, JsDataset, saveStructuredJson, saveStructuredCsv, JsCrawl, JsWatch } = nativeBinding
 
 module.exports.JsSession = JsSession
 module.exports.JsPage = JsPage
@@ -319,5 +319,7 @@ module.exports.JsElementCollection = JsElementCollection
 module.exports.JsElement = JsElement
 module.exports.JsDatasetResult = JsDatasetResult
 module.exports.JsDataset = JsDataset
+module.exports.saveStructuredJson = saveStructuredJson
+module.exports.saveStructuredCsv = saveStructuredCsv
 module.exports.JsCrawl = JsCrawl
 module.exports.JsWatch = JsWatch
