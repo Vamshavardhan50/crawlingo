@@ -1,7 +1,7 @@
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import type { Metadata } from 'next';
 import './global.css';
-import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
+import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -13,15 +13,24 @@ const plusJakarta = Plus_Jakarta_Sans({
   variable: '--font-title',
 });
 
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://crawlingo.com'),
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${plusJakarta.variable}`} suppressHydrationWarning>
-      <body className="flex flex-col min-h-screen font-sans antialiased">
-        <RootProvider>{children}</RootProvider>
+    <html
+      lang="en"
+      className={`${inter.variable} ${plusJakarta.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="flex flex-col min-h-screen bg-background text-foreground font-sans antialiased">
+        <RootProvider search={{ options: { type: 'static' } }}>{children}</RootProvider>
       </body>
     </html>
   );

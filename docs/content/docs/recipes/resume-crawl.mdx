@@ -1,0 +1,79 @@
+---
+title: Resume an Interrupted Crawl
+description: Recipe for resuming a crawl that was interrupted — save progress, skip visited URLs, and continue from where you left off.
+---
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+
+# Resume an Interrupted Crawl
+
+## Problem
+
+A long-running crawl was interrupted. You need to resume without re-crawling already-visited pages.
+
+## Solution
+
+Track visited URLs externally and skip them on resume.
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Session, Crawl
+    import json, os
+
+    CHECKPOINT_FILE = "crawl_checkpoint.json"
+
+    def load_checkpoint():
+        if os.path.exists(CHECKPOINT_FILE):
+            with open(CHECKPOINT_FILE) as f:
+                return json.load(f)
+        return {"visited": [], "results": []}
+
+    def save_checkpoint(visited, results):
+        with open(CHECKPOINT_FILE, "w") as f:
+            json.dump({"visited": list(visited), "results": results}, f)
+
+    # Resume or start fresh
+    checkpoint = load_checkpoint()
+    visited = set(checkpoint["visited"])
+    results = checkpoint["results"]
+
+    session = Session()
+    session.rate_limit(3.0)
+
+    crawl = session.crawl("https://example.com")
+    crawl.follow("a[href]")
+    crawl.limit(500)
+
+    # ... run crawl and save periodically
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Session, Crawl } from 'crawlingo';
+    import { readFile, writeFile } from 'fs/promises';
+    import { existsSync } from 'fs';
+
+    const CHECKPOINT_FILE = "crawl_checkpoint.json";
+
+    async function loadCheckpoint() {
+      if (!existsSync(CHECKPOINT_FILE)) return { visited: [], results: [] };
+      const data = await readFile(CHECKPOINT_FILE, "utf-8");
+      return JSON.parse(data);
+    }
+
+    const checkpoint = await loadCheckpoint();
+    // Use checkpoint.visited to skip URLs, checkpoint.results to accumulate
+    ```
+
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+- Save checkpoints every N pages (e.g., every 50 pages)
+- Use a database (SQLite) for large crawls instead of JSON files
+- Deduplicate by URL, not by content
+- Store crawl configuration with the checkpoint for full reproducibility

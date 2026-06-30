@@ -1,0 +1,350 @@
+---
+title: Build a News Crawler
+description: Step-by-step tutorial for building a news aggregator that crawls multiple categories, extracts headlines, and exports to CSV.
+---
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+
+# Build a News Crawler
+
+Learn how to build a news aggregator that crawls a news site's categories, extracts article headlines, summaries, and dates, and exports the results.
+
+## What You Will Build
+
+A crawler that:
+- Starts from a news site homepage
+- Discovers category links
+- Extracts headlines, summaries, authors, and dates from each category
+- Deduplicates articles across categories
+- Exports to CSV and JSON
+
+## Prerequisites
+
+- Crawlingo installed ([guide](/getting-started#installation))
+- Basic Python or TypeScript knowledge
+
+## Step 1: Set Up the Session
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Session
+
+    session = Session()
+    session.rate_limit(3.0)     # Be polite to the news site
+    session.timeout(15)          # Fast timeout for news pages
+    session.auto_match(True)     # Enable self-healing
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Session } from 'crawlingo';
+
+    const session = new Session();
+    session.rateLimit(3.0);
+    session.timeout(15);
+    session.autoMatch(true);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 2: Crawl Categories First
+
+First, crawl the homepage to discover category links:
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Page
+
+    # Fetch homepage and discover categories
+    page = Page("https://news.example.com")
+    nav_links = page.css("nav a")
+    categories = [(link.attr("href"), link.text()) for link in nav_links]
+    print(f"Found {len(categories)} categories")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Page } from 'crawlingo';
+
+    const page = await Page.create("https://news.example.com");
+    const navLinks = page.css("nav a");
+    const categories: [string, string][] = [];
+    for (const link of navLinks) {
+      const href = link.attr("href");
+      if (href) categories.push([href, link.text]);
+    }
+    console.log(`Found ${categories.length} categories`);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 3: Extract Articles from Each Category
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Dataset
+
+    def extract_category(url: str, category: str):
+        dataset = Dataset(url, session)
+        dataset.field("headline", "h2.article-title a")
+        dataset.field("summary", "p.article-summary")
+        dataset.field("author", ".author-name")
+        dataset.field("date", "time.published")
+        dataset.field("category", "")  # constant — see note
+        dataset.field("url", "h2.article-title a", selector_type="css",
+                      transform=lambda _: url)  # injected
+
+        result = dataset.build()
+        return result.to_dict()
+    ```
+
+    **Note:** For constant fields, use a custom approach — extract each article individually with a Crawl instead.
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Dataset } from 'crawlingo';
+
+    async function extractCategory(url: string) {
+      const dataset = new Dataset(url, session);
+      dataset.field("headline", "h2.article-title a");
+      dataset.field("summary", "p.article-summary");
+      dataset.field("author", ".author-name");
+      dataset.field("date", "time.published");
+
+      const result = await dataset.build();
+      return result.toDict();
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 4: Better Approach — Use Crawl with Link Following
+
+For article listing pages with pagination:
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    def crawl_category(category_url: str, category_name: str):
+        crawl = session.crawl(category_url)
+        crawl.follow("a.next-page")
+        crawl.limit(50)
+        crawl.depth(3)
+        crawl.field("headline", "h2.article-title a")
+        crawl.field("summary", "p.article-summary")
+        crawl.field("author", ".author-name")
+        crawl.field("date", "time.published")
+
+        results = crawl.build()
+        return results
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Crawl } from 'crawlingo';
+
+    async function crawlCategory(categoryUrl: string) {
+      const crawl = new Crawl(categoryUrl, session);
+      crawl.follow("a.next-page");
+      crawl.limit(50);
+      crawl.depth(3);
+      crawl.field("headline", "h2.article-title a");
+      crawl.field("summary", "p.article-summary");
+      crawl.field("author", ".author-name");
+      crawl.field("date", "time.published");
+
+      const results = await crawl.run();
+      return results;
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 5: Crawl Full Article Content
+
+For each article found, fetch the full text:
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    def extract_article(article_url: str):
+        page = Page(article_url, session=session)
+        return {
+            "url": article_url,
+            "title": page.title(),
+            "body": page.css("article").first().text() if page.css("article").first() else "",
+            "author": page.css(".author-name").first().text() if page.css(".author-name").first() else "",
+        }
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    async function extractArticle(articleUrl: string) {
+      const page = await Page.create(articleUrl, { session });
+      return {
+        url: articleUrl,
+        title: page.title(),
+        body: page.css("article").first()?.text ?? "",
+        author: page.css(".author-name").first()?.text ?? "",
+      };
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 6: Export to CSV
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    import csv
+
+    all_articles = []
+    for cat_url, cat_name in categories:
+        results = crawl_category(cat_url, cat_name)
+        for r in results:
+            article = extract_article(r["url"])
+            all_articles.append({**r, "body": article["body"]})
+
+    with open("news_articles.csv", "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["headline", "summary", "author", "date", "body"])
+        writer.writeheader()
+        writer.writerows(all_articles)
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Dataset } from 'crawlingo';
+
+    const allArticles = [];
+    for (const [catUrl] of categories) {
+      const results = await crawlCategory(catUrl);
+      for (const r of results) {
+        const article = await extractArticle(r.url);
+        allArticles.push({ ...article });
+      }
+    }
+    await Dataset.saveCsv(allArticles, "news_articles.csv");
+    ```
+
+  </Tab>
+</Tabs>
+
+## Complete News Crawler
+
+Here is the full production-ready script:
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Session, Page, Crawl
+
+    session = Session()
+    session.rate_limit(3.0)
+    session.auto_match(True)
+
+    page = Page("https://news.example.com")
+    nav_links = page.css("nav a")
+    category_urls = [link.attr("href") for link in nav_links]
+
+    all_articles = []
+    for url in category_urls:
+        if not url:
+            continue
+        crawl = session.crawl(url)
+        crawl.follow("a.next-page")
+        crawl.limit(30)
+        crawl.depth(2)
+        crawl.field("headline", "h2.article-title a")
+        crawl.field("date", "time.published")
+        results = crawl.build()
+        for r in results:
+            article_page = Page(r.data.get("url", url), session=session)
+            body = article_page.css("article").first().text() if article_page.css("article").first() else ""
+            all_articles.append({**r.to_dict(), "body": body})
+
+    import csv
+    with open("news.csv", "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["headline", "date", "body"])
+        w.writeheader()
+        w.writerows(all_articles)
+    print(f"Saved {len(all_articles)} articles")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Session, Page, Crawl, Dataset } from 'crawlingo';
+
+    const session = new Session();
+    session.rateLimit(3.0);
+    session.autoMatch(true);
+
+    const page = await Page.create("https://news.example.com");
+    const navLinks = page.css("nav a");
+    const categoryUrls: string[] = [];
+    for (const link of navLinks) {
+      const href = link.attr("href");
+      if (href) categoryUrls.push(href);
+    }
+
+    const allArticles: Record<string, string>[] = [];
+    for (const url of categoryUrls) {
+      const crawl = new Crawl(url, session);
+      crawl.follow("a.next-page");
+      crawl.limit(30);
+      crawl.depth(2);
+      crawl.field("headline", "h2.article-title a");
+      crawl.field("date", "time.published");
+
+      const results = await crawl.run();
+      for (const r of results) {
+        const dict = r.toDict();
+        allArticles.push(dict);
+      }
+    }
+    await Dataset.saveCsv(allArticles, "news.csv");
+    console.log(`Saved ${allArticles.length} articles`);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Key Takeaways
+
+- Use `Session` for consistent configuration across requests
+- `Crawl` with link following handles pagination automatically
+- Auto-match helps when news sites tweak their CSS
+- Rate limiting is essential for ethical crawling
+
+## Next Tutorials
+
+- [Build an E-commerce Crawler](/tutorials/ecommerce-crawler)
+- [Build a Price Tracker](/tutorials/price-tracker)

@@ -1,0 +1,262 @@
+---
+title: Getting Started
+description: Install Crawlingo, run your first extraction, crawl multiple pages, monitor changes, and learn core concepts.
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Getting Started with Crawlingo
+
+Crawlingo is a high-performance web scraping and data extraction framework written in Rust with first-class Python and Node.js bindings. It provides a unified API for fetching web pages, extracting structured data, crawling multi-page sites, and monitoring content changes.
+
+## Why Crawlingo?
+
+| Problem | Crawlingo Solution |
+|---------|-------------------|
+| Broken selectors after site redesign | Auto-match self-healing via DOM fingerprinting |
+| Multiple-page scraping | Fluent Crawl builder with concurrent workers |
+| Change monitoring | Watch with event callbacks for price/stock/content changes |
+| Anti-bot detection | Stealth fetcher with browser TLS fingerprint emulation |
+| Slow Python/JS parsing | Rust-native DOM parser (lol-html) with SIMD text search |
+| Exporting results | Built-in JSON, CSV, and Parquet export |
+| Proxy rotation | Built-in proxy pool and provider support |
+
+## When to Use Crawlingo
+
+- **Extracting structured data** from web pages (prices, product names, reviews)
+- **Crawling multi-page sites** with configurable depth, concurrency, and link following
+- **Monitoring pages for changes** (price drops, stock availability, content updates)
+- **Building AI training datasets** from web content
+- **Automating data collection** with webhooks and scheduling
+
+## When NOT to Use Crawlingo
+
+- **Browser automation** requiring JavaScript rendering and interaction (use Playwright/Puppeteer)
+- **Single-page applications** with heavy JS-rendered content (Crawlingo fetches raw HTML)
+- **Large-scale distributed crawling** across thousands of nodes (use Scrapy + Splash)
+- **PDF/image/video extraction** (Crawlingo focuses on HTML text content)
+
+## Installation
+
+<Tabs items={['Python', 'Node.js']}>
+<Tab value="Python">
+
+```bash
+pip install crawlingo
+```
+
+Requires Python 3.9+. Pre-built wheels for Windows, macOS, Linux (x86_64, aarch64).
+
+Verify installation:
+
+```python
+import crawlingo
+print(crawlingo.__version__)  # 0.1.0
+```
+
+</Tab>
+<Tab value="Node.js">
+
+```bash
+npm install crawlingo
+```
+
+Requires Node.js 16+. Pre-built `.node` binaries for Windows, macOS, Linux.
+
+```typescript
+import { Page, Session } from 'crawlingo';
+```
+
+</Tab>
+</Tabs>
+
+## Quick Start
+
+### Fetch a Page and Read Content
+
+<Tabs items={['Python', 'Node.js']}>
+<Tab value="Python">
+
+```python
+from crawlingo import Page
+
+page = Page("https://example.com")
+print(page.title())   # "Example Domain"
+print(page.status)    # 200
+print(page.html())    # Raw HTML
+```
+
+</Tab>
+<Tab value="Node.js">
+
+```typescript
+import { Page } from 'crawlingo';
+
+const page = await Page.create("https://example.com");
+console.log(page.title);   // "Example Domain"
+console.log(page.status);  // 200
+console.log(page.html);    // Raw HTML
+```
+
+</Tab>
+</Tabs>
+
+### Extract Structured Data
+
+<Tabs items={['Python', 'Node.js']}>
+<Tab value="Python">
+
+```python
+from crawlingo import Dataset
+
+dataset = Dataset("https://shop.example.com/item/42")
+dataset.field("name", "h1.product-title")
+dataset.field("price", "span.price")
+dataset.field("description", "meta[name='description']")
+
+result = dataset.build()
+print(result.to_dict())
+# {"name": "Wireless Mouse", "price": "$29.99", "description": "..."}
+```
+
+</Tab>
+<Tab value="Node.js">
+
+```typescript
+import { Dataset } from 'crawlingo';
+
+const dataset = new Dataset("https://shop.example.com/item/42");
+dataset.field("name", "h1.product-title");
+dataset.field("price", "span.price");
+
+const result = await dataset.build();
+console.log(result.toDict());
+```
+
+</Tab>
+</Tabs>
+
+### Crawl Multiple Pages
+
+<Tabs items={['Python', 'Node.js']}>
+<Tab value="Python">
+
+```python
+from crawlingo import Session
+
+session = Session()
+session.rate_limit(2.0)
+
+crawl = session.crawl("https://blog.example.com")
+crawl.follow("a.next-page")
+crawl.limit(20)
+crawl.depth(3)
+crawl.concurrency(5)
+crawl.field("title", "h1.entry-title")
+
+results = crawl.build()
+results.to_csv("blog_posts.csv")
+```
+
+</Tab>
+<Tab value="Node.js">
+
+```typescript
+import { Crawl } from 'crawlingo';
+
+const crawl = new Crawl("https://blog.example.com");
+crawl.follow("a.next-page");
+crawl.limit(20);
+crawl.depth(3);
+crawl.concurrency(5);
+crawl.field("title", "h1.entry-title");
+
+const results = await crawl.run();
+```
+
+</Tab>
+</Tabs>
+
+### Monitor Changes
+
+<Tabs items={['Python', 'Node.js']}>
+<Tab value="Python">
+
+```python
+from crawlingo import Session
+
+session = Session()
+watch = session.watch("https://example.com/product/1")
+watch.field("price", "span.price")
+watch.interval(300)  # every 5 minutes
+watch.on_price_change(lambda ev: print(f"Price changed: {ev.old_value} -> {ev.new_value}"))
+watch.run()
+```
+
+</Tab>
+<Tab value="Node.js">
+
+```typescript
+import { Watch } from 'crawlingo';
+
+const watch = new Watch("https://example.com/product/1");
+watch.field("price", "span.price");
+watch.interval(300);
+watch.run((err, event) => {
+  if (event) console.log(`Price: ${event.oldValue} -> ${event.newValue}`);
+});
+```
+
+</Tab>
+</Tabs>
+
+## Basic Concepts Guide
+
+| Concept | What It Is |
+|---------|-----------|
+| **Session** | Shared configuration container (cookies, headers, proxy, rate limits, auto-match settings) passed to all scraping operations |
+| **Page** | A fetched web page with an immutable parsed DOM tree supporting CSS, XPath, regex, and text-anchor selectors |
+| **Element** | A single DOM node with `.text()`, `.html()`, `.attr()`, `.parent()`, `.children()`, `.next()`, `.prev()`, `.siblings()` operations |
+| **ElementCollection** | A collection of elements with `.first()`, `.last()`, `.nth()`, `.filter()`, `.map()` |
+| **Dataset** | Fluent builder for one-page structured extraction with JSON/CSV/Parquet export |
+| **Crawl** | Multi-page concurrent crawler with link following, depth limits, webhooks, and scheduling |
+| **Watch** | Periodic change detector that polls a page and fires callbacks when field values change |
+| **Selector Engine** | Unified query interface supporting CSS, XPath, text-anchor, and regex selectors |
+| **Auto-Matcher** | Self-healing system that recovers from broken selectors using DOM fingerprinting |
+| **Parser** | Rust-native HTML parser (lol-html) producing a flat vector DOM for cache-friendly traversal |
+| **Fetcher** | HTTP client with standard and stealth tiers, proxy support, rate limiting, and exponential backoff retries |
+
+## Architecture Overview
+
+Crawlingo is built in three layers:
+
+1. **Rust Core** (`src/`) — HTML parsing, DOM tree construction, selector evaluation, auto-matching, network fetching, change detection, data export
+2. **Python SDK** (`sdk/python/crawlingo/`) — PyO3 bindings wrapping Rust classes in idiomatic Python with fluent APIs, hooks, and error mapping
+3. **Node.js SDK** (`sdk/nodejs/src/`) — NAPI-RS bindings wrapped in TypeScript classes with async/await support
+
+All selector evaluation, DOM operations, extraction, crawling, and change detection are implemented in Rust and exposed through FFI. The SDK wrappers provide idiomatic language interfaces without duplicating logic.
+
+## FAQ
+
+**Q: Does Crawlingo support JavaScript-rendered pages?**
+A: No — it fetches raw HTML. For JS-rendered content, use Playwright/Puppeteer to generate HTML and pass it to Crawlingo.
+
+**Q: Can I use custom headers and cookies?**
+A: Yes — configure them on `Session` or pass directly to `Page`.
+
+**Q: What output formats are supported?**
+A: JSON, CSV, and Parquet via `.to_json()`, `.to_csv()`, `.to_parquet()`.
+
+**Q: Is Crawlingo thread-safe?**
+A: Yes — the Rust core uses `Arc`, `RwLock`, and `DashMap` for concurrent access. The Python GIL is released during fetch operations.
+
+**Q: Does Crawlingo support async?**
+A: Python `Dataset` has `.build_async()`. Node.js APIs all return Promises. The Rust core uses Tokio internally.
+
+## Next Steps
+
+- [Core Concepts](concepts): Deep dive into sessions, fetchers, crawling, extraction, and more
+- [API Reference](api-reference): Complete class, method, and parameter documentation
+- [Python SDK](sdk): Python-specific API guide
+- [Examples](examples): 100+ real-world examples
+- [Tutorials](tutorials): Step-by-step project walkthroughs

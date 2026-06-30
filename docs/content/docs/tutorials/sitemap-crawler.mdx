@@ -1,0 +1,256 @@
+---
+title: Build a Sitemap Crawler
+description: Step-by-step tutorial for parsing XML sitemaps and crawling every URL listed for complete site extraction.
+---
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+
+# Build a Sitemap Crawler
+
+Learn how to parse a website's XML sitemap and crawl every page it lists — useful for documentation sites, blogs, and content-heavy sites.
+
+## What You Will Build
+
+A crawler that:
+- Fetches and parses the `/sitemap.xml`
+- Extracts all URLs from the sitemap (including nested sitemaps)
+- Crawls each page and extracts metadata
+- Tracks crawl progress with stats
+- Exports a complete site index
+
+## Step 1: Fetch and Parse the Sitemap
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    import xml.etree.ElementTree as ET
+    from urllib.parse import urljoin
+    from crawlingo import Page
+
+    def parse_sitemap(sitemap_url: str, session=None) -> list[str]:
+        page = Page(sitemap_url, session=session)
+        root = ET.fromstring(page.html())
+
+        # Namespace-aware parsing
+        ns = {"ns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+        urls = []
+
+        # Check for nested sitemaps
+        for sitemap in root.findall(".//ns:loc", ns):
+            nested_urls = parse_sitemap(sitemap.text.strip(), session)
+            urls.extend(nested_urls)
+
+        # Extract regular URLs
+        for url in root.findall(".//ns:url/ns:loc", ns):
+            urls.append(url.text.strip())
+
+        return urls
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Page } from 'crawlingo';
+    import { XMLParser } from 'fast-xml-parser'; // npm install fast-xml-parser
+
+    const parser = new XMLParser();
+
+    async function parseSitemap(sitemapUrl: string, session?: any): Promise<string[]> {
+      const page = await Page.create(sitemapUrl, { session });
+      const xml = parser.parse(page.html());
+
+      const urls: string[] = [];
+      const urlset = xml.urlset?.url;
+      const sitemapIndex = xml.sitemapindex?.sitemap;
+
+      if (sitemapIndex) {
+        const nested = Array.isArray(sitemapIndex) ? sitemapIndex : [sitemapIndex];
+        for (const s of nested) {
+          const nestedUrls = await parseSitemap(s.loc, session);
+          urls.push(...nestedUrls);
+        }
+      }
+
+      if (urlset) {
+        const urlList = Array.isArray(urlset) ? urlset : [urlset];
+        for (const u of urlList) {
+          urls.push(u.loc);
+        }
+      }
+
+      return urls;
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 2: Crawl All Sitemap URLs
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Session, Crawl
+    import time
+
+    session = Session()
+    session.rate_limit(5.0)
+    session.timeout(15)
+
+    urls = parse_sitemap("https://example.com/sitemap.xml", session)
+    print(f"Found {len(urls)} URLs in sitemap")
+
+    # Use Crawl starting from the first URL
+    crawl = session.crawl(urls[0])
+    for url in urls:
+        crawl.field(f"page_{urls.index(url)}", "title")
+    # Actually, Crawl discovers URLs via follow — for sitemap, use Dataset per page
+    ```
+
+    **Better approach — iterate URLs directly:**
+
+    ```python
+    from crawlingo import Dataset
+
+    all_data = []
+    for i, url in enumerate(urls):
+        dataset = Dataset(url, session)
+        dataset.field("title", "title")
+        dataset.field("description", "meta[name='description']")
+        result = dataset.build()
+        row = result.to_dict()
+        row["url"] = url
+        all_data.append(row)
+        if (i + 1) % 10 == 0:
+            print(f"Progress: {i + 1}/{len(urls)}")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Session, Dataset } from 'crawlingo';
+
+    const session = new Session();
+    session.rateLimit(5.0);
+    session.timeout(15);
+
+    const urls = await parseSitemap("https://example.com/sitemap.xml", session);
+    console.log(`Found ${urls.length} URLs in sitemap`);
+
+    const allData: Record<string, string>[] = [];
+    for (let i = 0; i < urls.length; i++) {
+      const dataset = new Dataset(urls[i], session);
+      dataset.field("title", "title");
+      dataset.field("description", "meta[name='description']");
+      const result = await dataset.build();
+      const row = result.toDict();
+      row.url = urls[i];
+      allData.push(row);
+      if ((i + 1) % 10 === 0) {
+        console.log(`Progress: ${i + 1}/${urls.length}`);
+      }
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 3: Add Progress Tracking
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    import time
+
+    start_time = time.time()
+    all_data = []
+
+    for i, url in enumerate(urls):
+        try:
+            dataset = Dataset(url, session)
+            dataset.field("title", "title")
+            dataset.field("h1", "h1")
+            dataset.field("description", "meta[name='description']", default="")
+            result = dataset.build()
+            row = result.to_dict()
+            row["url"] = url
+            all_data.append(row)
+        except Exception as e:
+            print(f"Failed: {url} — {e}")
+
+        if (i + 1) % 10 == 0:
+            elapsed = time.time() - start_time
+            rate = (i + 1) / elapsed
+            print(f"{i + 1}/{len(urls)} ({rate:.1f} pages/sec)")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    const startTime = Date.now();
+    const allData: Record<string, string>[] = [];
+
+    for (let i = 0; i < urls.length; i++) {
+      try {
+        const dataset = new Dataset(urls[i], session);
+        dataset.field("title", "title");
+        dataset.field("h1", "h1");
+        dataset.field("description", "meta[name='description']", { defaultVal: "" });
+        const result = await dataset.build();
+        const row = result.toDict();
+        row.url = urls[i];
+        allData.push(row);
+      } catch (e) {
+        console.log(`Failed: ${urls[i]} — ${e}`);
+      }
+
+      if ((i + 1) % 10 === 0) {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const rate = (i + 1) / elapsed;
+        console.log(`${i + 1}/${urls.length} (${rate.toFixed(1)} pages/sec)`);
+      }
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 4: Export Site Index
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    import csv
+    with open("site_index.csv", "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["url", "title", "h1", "description"])
+        writer.writeheader()
+        writer.writerows(all_data)
+
+    print(f"Saved {len(all_data)} pages to site_index.csv")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Dataset } from 'crawlingo';
+    await Dataset.saveCsv(allData, "site_index.csv");
+    console.log(`Saved ${allData.length} pages to site_index.csv`);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Key Takeaways
+
+- Sitemaps give you the complete URL list — no link discovery needed
+- Handle nested sitemaps (sitemap index files)
+- Track progress with timing for large crawls
+- Use try/catch per URL to avoid failing the entire crawl
+- Rate limit aggressively for large sites

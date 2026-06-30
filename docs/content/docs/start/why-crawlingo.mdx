@@ -1,0 +1,58 @@
+---
+title: Why Crawlingo
+description: Why Crawlingo exists, how it compares to alternatives, and when it is the right choice for your web scraping stack.
+---
+
+# Why Crawlingo
+
+## The Problem
+
+Web scraping is fragile. CSS classes change, DOM structures shift, and layouts get redesigned. Every update to a target website can break your carefully crafted selectors, requiring manual intervention to find new selectors, rewrite code, and redeploy.
+
+Traditional scraping tools leave you vulnerable to this constant breakage.
+
+## The Solution
+
+Crawlingo is a Rust-powered web scraping framework that solves the fragile selector problem through **DOM fingerprinting** and **fuzzy-match self-healing**. When a website updates its layout, Crawlingo automatically recovers broken selectors by comparing structural features of the DOM.
+
+## Key Differentiators
+
+| Feature | Crawlingo | BeautifulSoup | Scrapy | Playwright |
+|---------|-----------|---------------|--------|------------|
+| Self-healing selectors | ✅ Automatic | ❌ | ❌ | ❌ |
+| Engine | Rust (FFI) | Python (Pure) | Python (Twisted) | Node/Python (Browser) |
+| Memory usage | Very Low (streaming) | Medium | Medium | Extremely High |
+| Stealth TLS | ✅ Built-in | ❌ | ❌ (plugins) | ✅ (browser) |
+| MCP Server | ✅ Built-in | ❌ | ❌ | ❌ |
+| Multi-language SDKs | Python, Node.js, Rust, Go | Python only | Python only | Python, Node.js |
+| DOM fingerprinting | ✅ | ❌ | ❌ | ❌ |
+| SIMD text search | ✅ (memchr) | ❌ | ❌ | ❌ |
+
+## When to Use Crawlingo
+
+- **Long-running scrapers** that must survive website redesigns
+- **Production data pipelines** that cannot tolerate silent breakage
+- **Multi-page crawls** needing concurrent extraction with rate limiting
+- **Price monitoring** and change detection with callback-based watches
+- **Large-scale extraction** where memory efficiency matters
+- **Stealth scraping** where TLS fingerprint blocking is a concern
+- **AI dataset generation** needing structured output (JSON, CSV, Parquet)
+
+## When NOT to Use Crawlingo
+
+- **JavaScript-heavy SPAs** — use Playwright or Puppeteer when you need full JS rendering
+- **Single one-off fetches** — `curl` or `requests` is simpler
+- **Interactive browser testing** — Crawlingo is not a browser automation tool
+- **When you control the API** — use the site's official API instead
+
+## Design Philosophy
+
+1. **Rust core, idiomatic SDKs** — All heavy lifting in Rust, exposed through native Python/Node.js APIs
+2. **Zero-cost abstractions** — No overhead for features you don't use
+3. **Fail gracefully** — Self-healing, retries, fallbacks
+4. **Stream by default** — Never load everything into memory
+5. **Observable** — tracing, hooks, webhooks for every stage
+
+## Who Built It
+
+Crawlingo was built to solve real production scraping challenges — websites that change weekly, datasets that must stay fresh, and pipelines that cannot afford downtime.

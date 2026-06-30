@@ -1,0 +1,817 @@
+---
+title: Core Concepts
+description: Deep reference for Sessions, Fetchers, Parsing, Selectors, Auto-Match, Elements, Dataset Extraction, Crawling, Change Detection, Errors, and Export.
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Core Concepts
+
+Deep reference for every foundational concept in Crawlingo.
+
+## Sessions
+
+A `Session` is a shared configuration container that coordinates cookies, headers, proxy settings, rate limits, and auto-match state across multiple requests.
+
+### What It Is
+
+A lightweight wrapper around thread-safe internal state (`Arc<Session>` with `RwLock`-protected fields). Sessions are passed to `Page`, `Dataset`, `Crawl`, and `Watch` to inherit their configuration.
+
+### When to Use
+
+- You need consistent headers/cookies across multiple pages
+- You want shared rate limiting across concurrent requests
+- You need proxy rotation or auto-match enabled globally
+- You are building a `Crawl` or `Watch` that makes repeated requests
+
+### When NOT to Use
+
+- A single one-off page fetch (use `Page` directly)
+- Each request needs completely different configuration
+
+### Configuration Reference
+
+| Method | Type | Default | Description |
+|--------|------|---------|-------------|
+| `.headers(dict)` | `dict[str,str]` | `{}` | HTTP headers applied to every request |
+| `.cookies(dict)` | `dict[str,str]` | `{}` | Cookie jar shared across requests |
+| `.proxy(url)` | `str` | `None` | Proxy URL (http, https, socks5) |
+| `.rate_limit(rps)` | `float` | `0.0` | Max requests per second per host |
+| `.auto_match(bool)` | `bool` | `False` | Enable self-healing selector recovery globally |
+| `.timeout(secs)` | `int` | `30` | Request timeout in seconds |
+| `.fingerprint_path(path)` | `str` | `".crawlingo"` | Directory for fingerprint store database (sled) |
+| `.fetcher_tier(tier)` | `str` | `"standard"` | `"standard"` or `"stealthy"` |
+| `.browser_profile(profile)` | `str` | `None` | `"chrome"`, `"firefox"`, or `"safari"` |
+| `.auto_match_weights(dict)` | `dict[str,float]` | `{}` | Custom similarity weights for auto-match |
+| `.proxy_pool(list)` | `list[str]` | `[]` | Rotating proxy list (round-robin) |
+| `.proxy_provider(url)` | `str` | `None` | API endpoint that returns a proxy list |
+
+### Factory Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `.page(url)` | `Page` | Create Page inheriting session config |
+| `.dataset(url)` | `Dataset` | Create Dataset inheriting session config |
+| `.crawl(url)` | `Crawl` | Create Crawl inheriting session config |
+| `.watch(url)` | `Watch` | Create Watch inheriting session config |
+
+### Internal Architecture
+
+The Session struct stores its state in `RwLock`-wrapped fields inside an `Arc<Session>`:
+
+```rust
+pub struct Session {
+    headers: RwLock<HashMap<String, String>>,
+    cookies: RwLock<HashMap<String, String>>,
+    proxy: RwLock<Option<String>>,
+    rate_limit_rps: RwLock<f64>,
+    auto_match: RwLock<bool>,
+    timeout_seconds: RwLock<u64>,
+    fingerprint_path: RwLock<String>,
+    fetcher_tier: RwLock<FetcherTier>,
+    browser_profile: RwLock<Option<String>>,
+    similarity_weights: RwLock<HashMap<String, f64>>,
+    proxy_pool: RwLock<Vec<String>>,
+    proxy_index: Arc<AtomicUsize>,
+    proxy_provider_url: RwLock<Option<String>>,
+    fingerprint_store: RwLock<Option<(String, Arc<FingerprintStore>)>>,
+}
+```
+
+When `Dataset.build()` or `Crawl.crawl()` execute, they read session config at call time, not construction time, so changes made after construction are picked up.
+
+### Proxy Pool Rotation
+
+```python
+session.proxy_pool([
+    "http://user1:pass1@proxy1:8080",
+    "http://user2:pass2@proxy2:8080",
+    "http://user3:pass3@proxy3:8080",
+])
+```
+
+Proxies are selected round-robin via `fetch_add` on an `AtomicUsize` index. Each call to `Session.get_next_proxy()` advances the index.
+
+### Fingerprint Store
+
+```python
+session.fingerprint_path("./my_fingerprints")
+```
+
+The fingerprint store is a sled database persisted at the configured path. It is lazily opened on first access and cached in the Session for the lifetime of the Session. The store uses bincode serialization for DomFingerprint structs keyed by `"{url}:{selector}"`.
+
+---
+
+## Fetchers
+
+The fetch layer executes HTTP requests against target servers with configurable strategies, retries, and rate limiting.
+
+### Fetcher Tiers
+
+#### Standard
+
+- Uses `wreq` HTTP client with connection pooling
+- HTTP/1.1 and HTTP/2 support
+- Automatic gzip/deflate/brotli decompression
+- Configurable timeout (default 30s)
+- Follows redirects (max 10)
+- Cookie store enabled for session consistency
+
+#### Stealthy
+
+- All Standard features plus TLS fingerprint emulation
+- Emulates Chrome 147 (default), Firefox 142, or Safari 26
+- Alters TLS handshake parameters to match target browser
+- Configures JA3 fingerprint via `wreq-util` crate
+
+### FetchRequest
+
+The internal `FetchRequest` struct:
+
+```rust
+pub struct FetchRequest {
+    pub url: String,
+    pub tier: FetcherTier,      // Standard or Stealthy
+    pub browser_profile: Option<String>,  // "chrome", "firefox", "safari"
+    pub headers: HashMap<String, String>,
+    pub cookies: HashMap<String, String>,
+    pub proxy: Option<String>,
+    pub timeout: Duration,
+    pub retries: usize,
+    pub rate_limit_rps: f64,
+}
+```
+
+### FetchManager
+
+The `FetchManager` orchestrates strategy selection, rate limiting, and retry with exponential backoff:
+
+```rust
+pub struct FetchManager {
+    rate_limiter: Arc<HostRateLimiter>,
+    http_strategy: Arc<HttpFetcher>,
+    browser_strategy: Arc<BrowserFetcher>,
+}
+```
+
+**Dispatch flow:**
+
+1. Parse URL to extract host
+2. Wait on rate limiter token bucket
+3. Select strategy (HttpsFetcher for Standard, BrowserFetcher for Stealthy)
+4. Execute fetch
+5. On failure: retry with exponential backoff (500ms base, doubled each attempt, up to configured retry count)
+6. Return `NormalizedResponse`
+
+### NormalizedResponse
+
+```rust
+pub struct NormalizedResponse {
+    pub url: String,
+    pub status: u16,
+    pub headers: HashMap<String, String>,
+    pub cookies: HashMap<String, String>,
+    pub body: Bytes,
+    pub content_type: String,
+    pub encoding: String,
+    pub timings: ResponseTimings,
+}
+```
+
+### ResponseTimings
+
+```rust
+pub struct ResponseTimings {
+    pub dns_lookup: Duration,
+    pub tcp_connect: Duration,
+    pub tls_handshake: Duration,
+    pub total_duration: Duration,
+}
+```
+
+### Retry Behavior
+
+Retries apply to transient failures (connection resets, DNS failures, timeouts). Exponential backoff:
+
+```
+Attempt 1: initial fetch
+Delay 1: 500ms
+Attempt 2: retry
+Delay 2: 1000ms
+Attempt 3: retry
+Delay 3: 2000ms
+...
+```
+
+Configured via `retries` in `FetchRequest`. Default for `Page`: 3. Default for `Dataset`/`Crawl`: 2.
+
+---
+
+## Browser Profiles
+
+Browser profiles control TLS fingerprint emulation for the stealth fetcher tier.
+
+| Profile | TLS Emulation | User-Agent |
+|---------|--------------|------------|
+| `"chrome"` | Chrome 147 | Chrome on Windows NT 10.0 |
+| `"firefox"` | Firefox 142 | Firefox on Windows NT 10.0 |
+| `"safari"` | Safari 26 | Safari on macOS |
+
+### How It Works
+
+The `wreq-util` crate configures TLS parameters (cipher suites, curves, signature algorithms, ALPN) to match the target browser's TLS fingerprint. This helps avoid TLS-based bot detection.
+
+### When to Use
+
+- Target sites block standard HTTP client fingerprints
+- You need to appear as a real browser
+- You are scraping at moderate scale and need reduced detection
+
+### When NOT to Use
+
+- The target site serves content without browser checks (most sites)
+- You need full JavaScript rendering (use Playwright/Puppeteer instead)
+- The slight overhead of stealth emulation matters at extreme scale
+
+---
+
+## Rate Limiting
+
+Per-host token bucket rate limiting to avoid overwhelming target servers.
+
+### Architecture
+
+```rust
+pub struct HostRateLimiter {
+    limiters: DashMap<String, Arc<DirectRateLimiter>>,
+}
+```
+
+Each host has an independent token bucket created on first access. The bucket rate is `requests_per_second` with a burst capacity of 1.
+
+### How It Works
+
+```
+HostRateLimiter.wait("example.com", 2.0)  // blocks until token available
+```
+
+- Creates a `governor::RateLimiter` per host
+- `RateLimiter::direct()` with 1 token per `(1.0 / rps)` period
+- `wait()` blocks asynchronously until a token is available
+- Uses `DashMap` for concurrent access without locks
+
+### Best Practices
+
+- Set `rate_limit(rps)` consistently below what the target server allows
+- Use values like 2.0–10.0 for most sites
+- For large-scale crawls, coordinate rate limits across processes via external state
+
+---
+
+## HTML Parsing
+
+Crawlingo uses `lol-html` (the Library of Love HTML rewriter) for fast streaming HTML parsing.
+
+### Pipeline
+
+```
+Raw bytes → lol-html streaming parser → Contiguous Vec<DomNode> → Arc<DomTree>
+```
+
+### DomTree
+
+The parsed DOM is stored as a contiguous flat vector for cache-friendly traversal:
+
+```rust
+pub struct DomTree {
+    pub nodes: Vec<DomNode>,
+}
+```
+
+### DomNode
+
+```rust
+pub struct DomNode {
+    pub index: usize,
+    pub parent: Option<usize>,
+    pub children: Vec<usize>,
+    pub tag: String,
+    pub text: String,
+    pub attrs: HashMap<String, String>,
+    pub depth: usize,
+    pub html_snippet: String,
+}
+```
+
+Relationships are `usize` index offsets into the flat vector — no pointers, no reference counting for traversal. This enables:
+
+- **Cache-friendly iteration**: Sequential memory access patterns
+- **Thread-safe sharing**: Clone `Arc<DomTree>` cheaply
+- **Zero-copy index passing**: FFI wrappers pass `(Arc<DomTree>, usize)` tuples
+
+### Performance
+
+- CSS and regex queries are cached globally in `DashMap` — repeated queries skip parsing
+- Text-anchor search uses `memchr` SIMD routines for near-constant-time pattern scanning
+- The flat vector structure avoids pointer chasing during traversal
+
+---
+
+## Selector Engine
+
+Unified query interface dispatching to five selector types.
+
+### SelectorQuery
+
+```rust
+pub enum SelectorQuery<'a> {
+    Css(&'a str),
+    XPath(&'a str),
+    Regex(&'a str),
+    TextAnchor(&'a str),
+    AfterText(&'a str),
+    BeforeText(&'a str),
+}
+```
+
+### How Selectors Are Evaluated
+
+1. The `SelectorEngine::query()` method matches the query type
+2. Dispatches to the appropriate engine (CSS, XPath, regex, text anchor)
+3. Each engine scans the flat `DomTree` vector and returns matching node indices
+4. Auto-match recovery triggers if enabled and CSS selector yields zero results
+
+### CSS Selectors
+
+Custom parser supporting: tag, class (`.`), id (`#`), whitespace-separated compound selectors (`div.product span.price`).
+
+**Cache**: Compiled selectors are cached in a global static `DashMap<String, CompiledSelector>`. Cache lives for the lifetime of the process.
+
+```rust
+pub enum SelectorPart {
+    Tag(String),
+    Class(String),
+    Id(String),
+}
+
+pub struct SelectorGroup {
+    pub parts: Vec<SelectorPart>,
+}
+```
+
+**Time complexity**: O(N · D) where N = DOM size, D = tree depth.
+
+### XPath
+
+Custom parser supporting basic XPath expressions:
+
+- `//tag` — descendant search
+- `/tag` — direct child
+- `[@attr='value']` — attribute filter
+
+**Time complexity**: O(N · S) where S = segment count.
+
+### Regex
+
+Uses the `regex` crate with global caching in `DashMap<String, Regex>`.
+
+**Time complexity**: O(N · M) where M = pattern complexity.
+
+### Text Anchors
+
+Uses `memchr` SIMD byte search for near-constant-time pattern scanning. Methods:
+
+- `.find_text(text)` — nodes containing exact text match
+- `.after_text(text)` — sibling following a matching text node
+- `.before_text(text)` — sibling preceding a matching text node
+
+**Time complexity**: O(N + K) where K = pattern size.
+
+### Performance Characteristics
+
+| Selector Type | Complexity | Cached | Memory |
+|:---|:---|:---|:---|
+| CSS | O(N·D) | Yes (global DashMap) | Low |
+| XPath | O(N·S) | No | Low |
+| Regex | O(N·M) | Yes (global DashMap) | Medium |
+| Text Anchor | O(N+K) | No | Extremely Low |
+
+---
+
+## Auto-Matcher
+
+Self-healing system that recovers from broken CSS selectors using DOM fingerprint comparison.
+
+### When It Activates
+
+1. A CSS selector query returns zero results
+2. Auto-match is enabled (`auto_match=True`)
+3. A fingerprint exists in the store for that `(url, selector)` pair
+4. A DOM element scores above the 0.5 similarity threshold
+
+### How It Works
+
+**Step 1 — Fingerprint Recording** (on successful match):
+
+When a CSS selector successfully matches an element, `DomFingerprint::generate()` creates a structured fingerprint:
+
+```rust
+pub struct DomFingerprint {
+    pub tag: String,
+    pub text: String,
+    pub html_snippet: String,
+    pub depth: usize,
+    pub sibling_index: usize,
+    pub parent_tag: String,
+    pub parent_class: String,
+    pub parent_id: String,
+    pub attributes: HashMap<String, String>,
+    pub class_list: Vec<String>,
+    pub id: Option<String>,
+    pub ancestor_path: Vec<AncestorNode>,
+    pub hash: u64,     // xxhash of identifying characteristics
+    pub captured_at: DateTime<Utc>,
+    pub url: String,
+    pub selector_used: String,
+    pub similarity_score: f64,
+}
+```
+
+The fingerprint is stored via `FingerprintStore::store(url, selector, fingerprint)` into the sled database.
+
+**Step 2 — Recovery** (on selector failure):
+
+1. Load stored fingerprint via `FingerprintStore::load(url, selector)`
+2. Scan ALL DOM nodes in parallel using Rayon
+3. For each node, compute `composite_score()`:
+
+```
+composite_score = weighted_average of:
+  - text_similarity (Jaro-Winkler distance)
+  - class_similarity (Jaccard index on class sets)
+  - ancestor_similarity (matched ancestor chain tags/classes/IDs)
+  - attribute_similarity (Jaccard index on attribute key-value pairs)
+  - depth_score (1/(1+|depth_a - depth_b|))
+  - tag_score (1.0 if same tag, 0.0 if different)
+```
+
+4. Select node with highest score above threshold (0.5)
+5. Store updated fingerprint for future recoveries
+
+### Default Weights
+
+| Component | Weight |
+|-----------|--------|
+| `text` | 2.0 |
+| `class` | 1.5 |
+| `ancestor` | 1.5 |
+| `attribute` | 1.0 |
+| `tag` | 1.0 |
+| `depth` | 0.5 |
+
+Customizable via `session.auto_match_weights(weights)`.
+
+### When Auto-Match Fails
+
+- If no element scores above 0.5, an `AutoMatchFailed` exception is raised
+- This happens when the page structure has changed significantly
+- Solution: update selectors to match the new layout
+
+---
+
+## Element and ElementCollection
+
+### Element
+
+Represents a single DOM node with navigation and content methods.
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+    ```python
+    el.text()          # Recursive text content
+    el.html()          # HTML snippet
+    el.attr("href")    # Attribute value
+    el.attrs()         # All attributes as dict
+    el.parent()        # Parent Element (or None)
+    el.children()      # ElementCollection of children
+    el.next()          # Next sibling (or None)
+    el.prev()          # Previous sibling (or None)
+    el.siblings()      # All other siblings
+    ```
+  </Tab>
+  <Tab value="Node.js">
+    ```typescript
+    el.text            // Getter: recursive text content
+    el.html            // Getter: HTML snippet
+    el.attr("href")    // Attribute value (or null)
+    ```
+    Navigation methods (`.parent()`, `.children()`, `.next()`, `.prev()`, `.siblings()`) are Python-only.
+  </Tab>
+</Tabs>
+
+Navigation methods (`parent`, `children`, `next`, `prev`, `siblings`) are only available in the Python SDK.
+
+### ElementCollection
+
+Represents multiple DOM elements with aggregate operations.
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+    ```python
+    col.first()          # First Element or None
+    col.last()           # Last Element or None
+    col.nth(n)           # Nth Element or None
+    col[0]               # Index-based access
+    col.text()           # Combined text
+    col.texts()          # List of texts
+    col.attr("href")     # Attribute of first element
+    col.attrs()          # Attributes dict of first element
+    col.filter(fn)       # Filter by callback
+    col.map(fn)          # Map by callback
+    len(col)             # Count
+    for el in col:       # Iteration
+    ```
+  </Tab>
+  <Tab value="Node.js">
+    ```typescript
+    col.length           // Number of elements
+    col.text             // Getter: array of texts
+    col.html             // Getter: array of HTML
+    col.attr("href")     // Array of attribute values
+    col.first()          // First Element or null
+    col.at(index)        // Element at index or null
+    for (const el of col) {}  // Iterable
+    ```
+  </Tab>
+</Tabs>
+
+### Performance Note
+
+Each selector query (`css`, `xpath`, etc.) scans the entire DOM tree. Results are returned as node indices (integers), not fully materialized Element objects. `Element` objects are lazily created when you call `.first()`, `.nth()`, etc.
+
+---
+
+## Dataset Extraction
+
+Structured data extraction from a single URL using defined fields.
+
+### Pipeline
+
+```
+Define fields → Build → Fetch URL → Parse HTML → Extract fields → Apply transforms → Return DatasetResult
+```
+
+### Field Types
+
+| Field Parameter | Type | Default | Description |
+|----------------|------|---------|-------------|
+| `name` | `str` | — | Output field name |
+| `selector` | `str` | — | Selector expression |
+| `selector_type` | `str` | `"css"` | One of: `"css"`, `"xpath"`, `"regex"`, `"text"`, `"after_text"`, `"before_text"` |
+| `transform` | `Callable` | `None` | Python callable to transform extracted value |
+| `default` | `str` | `None` | Fallback value if selector yields no results |
+
+### Extraction Algorithm
+
+For each field:
+
+1. Build `SelectorQuery` from `selector_type` + `selector`
+2. Query the DOM tree via `SelectorEngine::query()`
+3. If no results AND auto-match enabled AND CSS selector: run auto-matcher recovery
+4. Extract combined text from matched nodes
+5. Apply transform function (Python only)
+6. Fall back to default if empty
+
+### DatasetResult
+
+```python
+result = dataset.build()
+result.to_json("output.json")     # Pretty-printed JSON file
+result.to_csv("output.csv")       # Header + single row CSV
+result.to_parquet("output.parquet")  # Arrow/Parquet single-record file
+result.to_dict()                  # Python dict
+result["field_name"]              # Dict-like access
+result.df()                       # Pandas DataFrame (Python only)
+```
+
+### Structured Multi-Row Extraction (Node.js only)
+
+```typescript
+dataset.extractStructured(page);   // Zips selector results by index → array of records
+dataset.buildStructured();         // Fetch + extract structured rows
+Dataset.saveJson(records, path);   // Static: write records to JSON
+Dataset.saveCsv(records, path);    // Static: write records to CSV
+```
+
+This produces one row per element index across all selectors. If "title" matches 3 elements and "price" matches 3 elements, you get 3 records zipped by index.
+
+---
+
+## Crawling
+
+Multi-page concurrent crawler that discovers pages via link following, extracts fields from each page, and supports webhooks and scheduling.
+
+### Crawler Configuration
+
+| Method | Default | Description |
+|--------|---------|-------------|
+| `.follow(selector)` | `""` | CSS selector for links to enqueue |
+| `.limit(n)` | `10` | Maximum pages to crawl |
+| `.depth(n)` | `3` | Maximum link hop depth |
+| `.concurrency(n)` | `2` | Number of concurrent fetch workers |
+| `.delay(secs)` | `0.0` | Politeness delay between requests (seconds) |
+| `.field(name, sel, ...)` | — | Extraction field definition |
+| `.webhook(url)` | `None` | POST JSON results to URL per page |
+| `.schedule(interval_secs)` | — | Run crawl in background on interval |
+
+### Algorithm
+
+1. Start URL enqueued at depth 0
+2. Spawn `concurrency` workers as a `JoinSet`
+3. Each worker pops URL from shared queue, checks visited set, fetches, parses, extracts fields
+4. Links matching `follow` selector from depth d are enqueued at depth d+1
+5. Worker exits when queue is empty or limit is reached
+6. All workers share a single Session for rate limiting and proxy rotation
+
+### Webhook Delivery
+
+When configured, each `DatasetResult` is POSTed as JSON to the webhook URL:
+
+```json
+{
+  "url": "https://example.com/page1",
+  "fields": {"title": "...", "price": "..."},
+  "timestamp": "2025-01-15T10:30:00Z"
+}
+```
+
+### Scheduling
+
+```python
+crawl.schedule(3600)  # Run every hour in background thread
+```
+
+Uses `std::thread::spawn` with an infinite loop calling `crawl()` every `interval_seconds`.
+
+---
+
+## Change Detection (Watch)
+
+Periodic page monitoring that polls a URL at intervals, re-extracts fields, compares values, and fires callbacks on differences.
+
+### Architecture
+
+```
+Poll loop → Fetch & extract → Compare with previous → Fire callbacks → Sleep → Repeat
+```
+
+### Change Types
+
+| ChangeType | Detection Logic |
+|------------|----------------|
+| `ContentChange` | Text values differ (no price/stock pattern) |
+| `PriceChange` | Both old and new parse as valid numbers with price format |
+| `StockChange` | Values contain in-stock/out-of-stock patterns |
+| `ElementAdded` | Field existed in new but not old data |
+| `ElementRemoved` | Field existed in old but not new data |
+| `LayoutChange` | (reserved for future use) |
+
+### ChangeEvent
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `url` | `str` | The monitored page URL |
+| `field` | `str` | The field name that changed |
+| `change_type` | `str` | Python: `"content"`, `"price"`, `"stock"`, `"added"`, `"removed"`, `"layout"` |
+| | | Node.js: `"ContentChange"`, `"PriceChange"`, `"StockChange"`, `"ElementAdded"`, `"ElementRemoved"`, `"LayoutChange"` |
+| `old_value` | `str` | Previous value |
+| `new_value` | `str` | New value |
+| `diff` | `str` | Diff description (`"- old\n+ new"`) |
+| `detected_at` | `str` | ISO 8601 timestamp |
+| `similarity_score` | `float` | 1.0 for all detected changes |
+
+### Comparison Algorithm
+
+Uses Rayon parallel iterator over all field names:
+
+- **Field added** → `ElementAdded`
+- **Field removed** → `ElementRemoved`
+- **Both present, different values**:
+  - If both parse as `f64` numbers → `PriceChange` (with `old_price`, `new_price`, `diff_pct`)
+  - If either contains stock keywords → `StockChange`
+  - Otherwise → `ContentChange`
+
+### Callback Flow
+
+```python
+watch.on_change(lambda ev: print(ev.field, ev.change_type, ev.old_value, ev.new_value))
+```
+
+Callbacks receive a `ChangeEvent` object. Specialized callbacks exist for each change type:
+
+```python
+watch.on_change(lambda ev: ...)            # All changes
+watch.on_price_change(lambda ev: ...)      # Price changes only
+watch.on_stock_change(lambda ev: ...)       # Stock changes only
+watch.on_element_added(lambda ev: ...)      # New elements
+watch.on_element_removed(lambda ev: ...)    # Removed elements
+```
+
+### Thread Safety
+
+In Python, the watch loop runs in the background with the GIL released during fetch/sleep, re-acquiring it only to fire callbacks. This means callbacks can safely interact with Python objects.
+
+---
+
+## Error Handling
+
+### Error Hierarchy
+
+```
+CrawlingoError (base)
+├── FetchError            — Network failures, proxy errors, connection refused
+├── ParseError            — HTML parsing failures
+├── SelectorError         — Invalid selector syntax
+├── AutoMatchFailed       — Auto-matcher could not find matching element
+├── TimeoutError          — Request timeout
+├── RateLimitError        — Host rate limit reached
+├── ChangeDetectionError  — Change detection processing failure
+├── ExportError           — JSON/CSV/Parquet export failure
+├── DnsError              — DNS resolution failure
+├── FingerprintStoreError — Sled database read/write failure
+```
+
+### Error Mapping (Python SDK)
+
+The Python SDK maps Rust errors via string pattern matching in `handle_core_exception()`:
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+    ```python
+    try:
+        page = Page("https://example.com")
+    except FetchError as e:
+        print(f"Network error: {e}")
+    except TimeoutError as e:
+        print(f"Timeout: {e}")
+    ```
+  </Tab>
+  <Tab value="Node.js">
+    The Node.js SDK returns detailed JSON error objects:
+
+    ```json
+    {
+      "success": false,
+      "url": "https://example.com",
+      "stage": "network",
+      "error_code": "FETCH_FAILED",
+      "message": "Fetch failed: connection refused",
+      "recoverable": true,
+      "suggestion": "Check network connectivity, headers, proxy configuration, or target URL status."
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Recoverable vs Unrecoverable
+
+| Error | Recoverable |
+|-------|:-----------:|
+| ParseError | Yes |
+| TimeoutError | Yes |
+| RateLimitError | Yes |
+| FetchError | Yes |
+| AutoMatchFailed | No |
+| ExportError | No |
+| FingerprintStoreError | No |
+
+---
+
+## Data Export
+
+### JSON
+
+```python
+result.to_json("path.json")         # DatasetResult → single record
+CrawlResults.to_json("path.json")   # CrawlResults → array of records
+```
+
+Uses `serde_json::to_writer_pretty()` for formatting.
+
+### CSV
+
+```python
+result.to_csv("path.csv")           # Header + single record
+results.to_csv("path.csv")          # Header + multiple records
+```
+
+Writes header row first, then value rows. Values are escaped per RFC 4180.
+
+### Parquet
+
+```python
+result.to_parquet("path.parquet")   # Single-record Parquet file
+results.to_parquet("path.parquet")  # Multi-record Parquet file
+```
+
+Uses Apache Arrow `RecordBatch` → Parquet `ArrowWriter`. Each field becomes a `Utf8` Arrow column.

@@ -1,0 +1,225 @@
+---
+title: Your First Dataset
+description: Extract structured data from a single page using Dataset — define fields, build results, and export to JSON, CSV, or Parquet.
+---
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+
+# Your First Dataset
+
+A `Dataset` extracts structured fields from a single URL. It is the simplest way to get structured data out of a page.
+
+## What You Will Build
+
+Extract product name, price, description, and availability from a single product page and export to multiple formats.
+
+## Step 1: Create the Dataset
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Dataset
+
+    dataset = Dataset("https://shop.example.com/product/42")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Dataset } from 'crawlingo';
+
+    const dataset = new Dataset("https://shop.example.com/product/42");
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 2: Define Fields
+
+Each field maps a name to a selector:
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    dataset.field("name", "h1.product-title")
+    dataset.field("price", "span.price", default="N/A")
+    dataset.field("description", "meta[name='description']", selector_type="css")
+    dataset.field("availability", ".stock-status", selector_type="css")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    dataset.field("name", "h1.product-title");
+    dataset.field("price", "span.price", { defaultVal: "N/A" });
+    dataset.field("description", "meta[name='description']");
+    dataset.field("availability", ".stock-status");
+    ```
+
+  </Tab>
+</Tabs>
+
+### Field Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | `str` | — | Key in the result dictionary |
+| `selector` | `str` | — | CSS, XPath, regex, or text anchor expression |
+| `selector_type` | `str` | `"css"` | One of: `"css"`, `"xpath"`, `"regex"`, `"text"`, `"after_text"`, `"before_text"` |
+| `transform` | `callable` | `None` | Python-only: function applied to extracted value |
+| `default` | `str` | `None` | Fallback if selector matches nothing |
+
+## Step 3: Build the Result
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    result = dataset.build()
+    print(result.to_dict())
+    # {"name": "Wireless Mouse", "price": "$29.99", "description": "...", "availability": "In Stock"}
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    const result = await dataset.build();
+    console.log(result.toDict());
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 4: Export
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    result.to_json("product.json")
+    result.to_csv("product.csv")
+    result.to_parquet("product.parquet")
+    df = result.df()  # Pandas DataFrame
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    await result.toJson("product.json");
+    await result.toCsv("product.csv");
+    await result.toParquet("product.parquet");
+    ```
+
+  </Tab>
+</Tabs>
+
+## Using Selector Types
+
+Different selector types for different needs:
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    dataset = Dataset("https://example.com")
+
+    # CSS selector
+    dataset.field("title", "h1")
+
+    # XPath
+    dataset.field("price", "//span[@class='price']", selector_type="xpath")
+
+    # Regex — extract pattern from text
+    dataset.field("email", r"[\w.]+@[\w.]+", selector_type="regex")
+
+    # Text anchor — find node containing text
+    dataset.field("sku", "SKU:", selector_type="text")
+
+    # After text — sibling following anchor
+    dataset.field("sku_value", "SKU:", selector_type="after_text")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    const dataset = new Dataset("https://example.com");
+
+    dataset.field("title", "h1");
+    dataset.field("price", "//span[@class='price']", { selectorType: "xpath" });
+    ```
+
+  </Tab>
+</Tabs>
+
+## Using Transforms (Python Only)
+
+Apply transformations to extracted values:
+
+```python
+def clean_price(value: str) -> str:
+    return value.replace("$", "").replace(",", "")
+
+dataset.field("price", "span.price", transform=clean_price)
+
+# Or use lambda
+dataset.field("title", "h1", transform=lambda v: v.strip())
+```
+
+## Structured Multi-Row Extraction (Node.js Only)
+
+When selectors match multiple elements, you can zip results by index:
+
+```typescript
+const records = dataset.buildStructured();
+// Each record: { title: "...", price: "..." }
+// One record per matching element index
+Dataset.saveCsv(records, "products.csv");
+```
+
+## Full Example
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Dataset
+
+    dataset = Dataset("https://shop.example.com/product/42")
+    dataset.field("name", "h1.product-title")
+    dataset.field("price", "span.price", default="N/A")
+    dataset.field("rating", ".rating-stars", selector_type="xpath")
+
+    result = dataset.build()
+    result.to_json("product.json")
+    print(result["name"])
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Dataset } from 'crawlingo';
+
+    const dataset = new Dataset("https://shop.example.com/product/42");
+    dataset.field("name", "h1.product-title");
+    dataset.field("price", "span.price", { defaultVal: "N/A" });
+
+    const result = await dataset.build();
+    await result.toJson("product.json");
+    console.log(result.toDict().name);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+- [Your First Crawl](/first-crawl) — Extract fields across multiple pages
+- [Concepts: Dataset Extraction](/concepts#dataset-extraction) — How Dataset works internally
+- [API Reference: Dataset](/api-reference#dataset)

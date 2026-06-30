@@ -1,0 +1,291 @@
+---
+title: Build a Search Engine Crawler
+description: Step-by-step tutorial for building a miniature search engine — crawl a domain, index content, and implement full-text search.
+---
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+
+# Build a Search Engine Crawler
+
+Learn how to build a miniature search engine that crawls an entire domain, indexes page content, and supports keyword search.
+
+## What You Will Build
+
+A search engine that:
+- Crawls an entire domain respecting depth limits
+- Extracts and cleans page text content
+- Builds an inverted index mapping words to pages
+- Supports keyword search with ranking
+- Exports the index for external use
+
+## Step 1: Crawl the Domain
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Session, Crawl
+
+    session = Session()
+    session.rate_limit(5.0)
+
+    crawl = session.crawl("https://example.com")
+    crawl.follow("a[href^='https://example.com']")  # Same-domain links only
+    crawl.limit(1000)
+    crawl.depth(5)
+    crawl.concurrency(10)
+    crawl.field("title", "title")
+    crawl.field("h1", "h1")
+    crawl.field("url", "", default="")
+    # Note: For full body extraction, fetch each page separately
+
+    results = crawl.build()
+    print(f"Crawled {len(results)} pages")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Session, Crawl } from 'crawlingo';
+
+    const session = new Session();
+    session.rateLimit(5.0);
+
+    const crawl = new Crawl("https://example.com", session);
+    crawl.follow("a[href^='https://example.com']");
+    crawl.limit(1000);
+    crawl.depth(5);
+    crawl.concurrency(10);
+    crawl.field("title", "title");
+
+    const results = await crawl.run();
+    console.log(`Crawled ${results.length} pages`);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 2: Extract Full Page Content
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Page
+    import re
+
+    def extract_content(url: str, session) -> dict:
+        page = Page(url, session=session)
+        title = page.title()
+        body_text = page.css("body").first().text() if page.css("body").first() else ""
+        # Clean text
+        body_text = re.sub(r'\s+', ' ', body_text).strip()
+        return {"url": url, "title": title, "content": body_text}
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Page } from 'crawlingo';
+
+    async function extractContent(url: string, session: any) {
+      const page = await Page.create(url, { session });
+      const bodyText = page.css("body").first()?.text ?? "";
+      return {
+        url,
+        title: page.title(),
+        content: bodyText.replace(/\s+/g, ' ').trim(),
+      };
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 3: Build a Search Index
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from collections import defaultdict
+    import math
+    import re
+
+    class SearchIndex:
+        def __init__(self):
+            self.documents = {}
+            self.inverted_index = defaultdict(lambda: defaultdict(int))
+            self.doc_count = 0
+
+        def add_document(self, url: str, title: str, content: str):
+            self.documents[url] = {"title": title, "content": content}
+            words = re.findall(r'\w+', content.lower())
+            for word in words:
+                self.inverted_index[word][url] += 1
+            self.doc_count += 1
+
+        def search(self, query: str, top_k: int = 10) -> list:
+            query_words = re.findall(r'\w+', query.lower())
+            scores = defaultdict(float)
+
+            for word in query_words:
+                if word in self.inverted_index:
+                    df = len(self.inverted_index[word])
+                    idf = math.log(self.doc_count / (df + 1)) + 1
+                    for url, tf in self.inverted_index[word].items():
+                        scores[url] += tf * idf
+
+            ranked = sorted(scores.items(), key=lambda x: -x[1])
+            return [{"url": url, "score": score, **self.documents[url]}
+                    for url, score in ranked[:top_k]]
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    class SearchIndex {
+      private documents = new Map<string, { title: string; content: string }>();
+      private invertedIndex = new Map<string, Map<string, number>>();
+      private docCount = 0;
+
+      addDocument(url: string, title: string, content: string) {
+        this.documents.set(url, { title, content });
+        const words = content.toLowerCase().match(/\w+/g) || [];
+        for (const word of words) {
+          if (!this.invertedIndex.has(word)) {
+            this.invertedIndex.set(word, new Map());
+          }
+          const postings = this.invertedIndex.get(word)!;
+          postings.set(url, (postings.get(url) || 0) + 1);
+        }
+        this.docCount++;
+      }
+
+      search(query: string, topK = 10) {
+        const queryWords = query.toLowerCase().match(/\w+/g) || [];
+        const scores = new Map<string, number>();
+
+        for (const word of queryWords) {
+          const postings = this.invertedIndex.get(word);
+          if (!postings) continue;
+          const df = postings.size;
+          const idf = Math.log(this.docCount / (df + 1)) + 1;
+          for (const [url, tf] of postings) {
+            scores.set(url, (scores.get(url) || 0) + tf * idf);
+          }
+        }
+
+        return [...scores.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, topK)
+          .map(([url, score]) => ({ url, score, ...this.documents.get(url)! }));
+      }
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 4: Index Crawled Pages
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    index = SearchIndex()
+
+    # Use URLs from crawl results
+    for result in results:
+        try:
+            content = extract_content(result.data.get("url"), session)
+            index.add_document(content["url"], content["title"], content["content"])
+        except Exception as e:
+            print(f"Failed to index: {e}")
+
+    print(f"Indexed {index.doc_count} documents")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    const index = new SearchIndex();
+
+    for (const result of results) {
+      try {
+        const content = await extractContent(result.url, session);
+        index.addDocument(content.url, content.title, content.content);
+      } catch (e) {
+        console.log(`Failed to index: ${e}`);
+      }
+    }
+    console.log(`Indexed ${index.docCount} documents`);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 5: Search and Rank
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    query = "installation guide"
+    results_list = index.search(query)
+    print(f"Top results for '{query}':")
+    for r in results_list:
+        print(f"  {r['score']:.2f} — {r['title']} ({r['url']})")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    const searchResults = index.search("installation guide");
+    console.log(`Top results for 'installation guide':`);
+    for (const r of searchResults) {
+      console.log(`  ${r.score.toFixed(2)} — ${r.title} (${r.url})`);
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 6: Export Search Index
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    import json
+    with open("search_index.json", "w") as f:
+        json.dump({
+            "documents": index.documents,
+            # For production, serialize the inverted index too
+        }, f, indent=2)
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { writeFile } from 'fs/promises';
+    await writeFile("search_index.json", JSON.stringify({
+      documents: [...index.documents.entries()],
+    }, null, 2));
+    ```
+
+  </Tab>
+</Tabs>
+
+## Key Takeaways
+
+- Restrict `follow` to same-domain links with `a[href^='https://domain.com']`
+- Crawl first, then extract content in a second pass for control
+- Build search indexes incrementally to handle failures gracefully
+- TF-IDF scoring gives reasonable results for small to medium sites
+- Export the index for external search tools like Elasticsearch

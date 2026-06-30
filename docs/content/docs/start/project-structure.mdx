@@ -1,0 +1,116 @@
+---
+title: Project Structure
+description: Understand how Crawlingo is organized — Rust core, FFI bindings, Python SDK, Node.js SDK, and documentation layout.
+---
+
+# Project Structure
+
+Crawlingo is organized as a **Rust core library** with language-specific SDK bindings on top.
+
+```
+crawlingo/
+├── src/                    # Rust core library
+│   ├── lib.rs              # PyO3 + NAPI-RS entry points
+│   ├── error.rs            # CustomError enum (10 variants)
+│   ├── engine/
+│   │   ├── session.rs      # Session struct with RwLock fields
+│   │   ├── fetcher.rs      # FetchManager, FetchRequest, retry logic
+│   │   └── rate_limiter.rs # HostRateLimiter with governor token buckets
+│   ├── parser/
+│   │   └── document.rs     # DomTree, DomNode, lol-html parsing
+│   ├── selector/
+│   │   ├── engine.rs       # SelectorEngine, unified query dispatch
+│   │   ├── css.rs          # CSS parser with DashMap cache
+│   │   └── xpath.rs        # Basic XPath parser
+│   ├── matcher/
+│   │   ├── auto_matcher.rs # Auto-match recovery orchestrator
+│   │   └── scorer.rs       # Composite scoring (Jaro-Winkler, Jaccard)
+│   ├── fingerprint/
+│   │   ├── dom.rs          # DomFingerprint generation
+│   │   └── store.rs        # FingerprintStore (sled DB)
+│   ├── dataset/
+│   │   ├── builder.rs      # Dataset struct, field definitions, build()
+│   │   ├── extractor.rs    # Extraction engine
+│   │   └── export.rs       # JSON, CSV, Parquet writers
+│   ├── crawl/
+│   │   └── crawler.rs      # Crawler with JoinSet workers
+│   ├── watch/
+│   │   └── monitor.rs      # Watch polling loop
+│   └── change/
+│       └── detector.rs     # Change detection, ChangeType enum
+├── sdk/
+│   ├── python/             # Python SDK
+│   │   └── crawlingo/
+│   │       ├── __init__.py
+│   │       ├── session.py
+│   │       ├── page.py
+│   │       ├── dataset.py
+│   │       ├── crawl.py
+│   │       ├── watch.py
+│   │       ├── element.py
+│   │       ├── exceptions.py
+│   │       ├── hooks.py
+│   │       ├── cli.py
+│   │       └── mcp.py
+│   └── nodejs/             # Node.js SDK
+│       ├── native/         # NAPI-RS bindings (Rust)
+│       │   └── src/lib.rs
+│       └── src/
+│           ├── session.ts
+│           ├── page.ts
+│           ├── dataset.ts
+│           ├── crawl.ts
+│           ├── watch.ts
+│           └── native.d.ts
+└── docs/                   # Documentation site (Next.js + Fumadocs)
+    ├── content/docs/       # MDX documentation pages
+    ├── src/
+    │   ├── app/            # Next.js app router
+    │   ├── components/     # Custom documentation components
+    │   └── lib/            # Source loader, shared config
+    └── source.config.ts    # Fumadocs MDX configuration
+```
+
+## Key Modules
+
+| Module | Responsibility |
+|--------|---------------|
+| `src/engine/` | Session, HTTP fetching, rate limiting, proxy rotation |
+| `src/parser/` | HTML parsing with lol-html, flat DomTree construction |
+| `src/selector/` | CSS, XPath, regex, and text anchor query engines |
+| `src/matcher/` | DOM fingerprint fuzzy matching (self-healing) |
+| `src/dataset/` | Structured field extraction and multi-format export |
+| `src/crawl/` | Multi-page concurrent crawling with JoinSet |
+| `src/watch/` | Periodic polling with change detection callbacks |
+
+## SDK Architecture
+
+```
+Python code  →  PyO3 bindings (lib.rs)  →  Rust core
+Node.js code →  NAPI-RS bindings (lib.rs) → Rust core
+```
+
+Both SDKs share the same Rust core. The FFI layer exposes classes like `Page`, `Dataset`, `Crawl`, `Watch`, `Session`, `Element`, and `ElementCollection`.
+
+## Documentation Structure
+
+```
+docs/content/docs/
+├── index.mdx                 # Introduction
+├── getting-started.mdx       # Quick start guide
+├── why-crawlingo.mdx         # Motivation and comparisons
+├── first-crawl.mdx           # First multi-page crawl
+├── first-dataset.mdx         # First structured extraction
+├── concepts.mdx              # Deep-dive concepts
+├── api-reference.mdx         # Complete API reference
+├── python-sdk.mdx            # Python SDK guide
+├── nodejs-sdk.mdx            # Node.js SDK guide
+├── examples.mdx              # 100+ examples
+├── tutorials/                # Step-by-step tutorials
+├── recipes/                  # Reusable solutions
+├── best-practices.mdx        # Performance, reliability, ethics
+├── troubleshooting.mdx       # Common errors and solutions
+├── advanced.mdx              # Architecture and internals
+├── glossary.mdx              # Term definitions
+└── faq.mdx                   # Frequently asked questions
+```

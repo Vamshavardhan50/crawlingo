@@ -1,0 +1,256 @@
+---
+title: Build an AI Dataset Generator
+description: Step-by-step tutorial for generating training datasets from web content — scrape, clean, structure, and export for machine learning.
+---
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+
+# Build an AI Dataset Generator
+
+Learn how to generate high-quality training datasets from web content — scrape structured data, clean text, and export in ML-ready formats.
+
+## What You Will Build
+
+A dataset generator that:
+- Crawls a domain for relevant content
+- Extracts and cleans text for NLP training
+- Structures data into question-answer pairs
+- Exports in JSONL format (one JSON object per line)
+- Creates train/validation splits
+
+## Step 1: Crawl and Extract Clean Text
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Session, Page
+    import re
+
+    session = Session()
+    session.rate_limit(3.0)
+    session.auto_match(True)
+
+    def clean_text(text: str) -> str:
+        text = re.sub(r'<[^>]+>', '', text)
+        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r'[^\w\s.,!?;:\'\"()-]', '', text)
+        return text.strip()
+
+    def extract_page_content(url: str) -> dict:
+        page = Page(url, session=session)
+        body = page.css("article, main, .content, .post")
+        text = body.first().text() if body.first() else page.css("body").first().text()
+        return {
+            "url": url,
+            "title": page.title(),
+            "text": clean_text(text),
+        }
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Session, Page } from 'crawlingo';
+
+    const session = new Session();
+    session.rateLimit(3.0);
+    session.autoMatch(true);
+
+    function cleanText(text: string): string {
+      return text
+        .replace(/<[^>]+>/g, '')
+        .replace(/\s+/g, ' ')
+        .replace(/[^\w\s.,!?;:'"()-]/g, '')
+        .trim();
+    }
+
+    async function extractPageContent(url: string) {
+      const page = await Page.create(url, { session });
+      const body = page.css("article, main, .content, .post");
+      const text = body.first()?.text ?? page.css("body").first()?.text ?? "";
+      return { url, title: page.title(), text: cleanText(text) };
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 2: Generate Question-Answer Pairs
+
+Use heading-content patterns to create QA pairs:
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    def generate_qa_pairs(content: dict) -> list:
+        """Extract heading-content pairs as Q&A."""
+        pairs = []
+        page = Page(content["url"], session=session)
+
+        headings = page.css("h2, h3")
+        for heading in headings:
+            question = heading.text().strip()
+            if not question or len(question) < 10:
+                continue
+
+            # Get content after heading until next heading
+            answer = ""
+            sibling = heading.next()
+            while sibling and sibling.tag not in ("h2", "h3"):
+                answer += sibling.text() + " "
+                sibling = sibling.next()
+
+            answer = clean_text(answer)
+            if len(answer) > 50:  # Only pairs with substantial answers
+                pairs.append({
+                    "instruction": question,
+                    "output": answer,
+                    "source": content["url"],
+                })
+
+        return pairs
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    async function generateQAPairs(content: { url: string }) {
+      const page = await Page.create(content.url, { session });
+      const pairs: { instruction: string; output: string; source: string }[] = [];
+
+      for (const heading of page.css("h2, h3")) {
+        const question = heading.text.trim();
+        if (!question || question.length < 10) continue;
+
+        // Python-only navigation — use regex for Node.js
+        const html = page.html;
+        const hRegex = new RegExp(
+          `<h[23][^>]*>${escapeRegex(question)}</h[23]>(.*?)(?=<h[23]|$)`, 's'
+        );
+        const match = html.match(hRegex);
+        const answer = match ? cleanText(match[1]) : "";
+
+        if (answer.length > 50) {
+          pairs.push({ instruction: question, output: answer, source: content.url });
+        }
+      }
+      return pairs;
+    }
+
+    function escapeRegex(str: string) {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 3: Create Training Examples
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    import json
+
+    all_pairs = []
+    urls = [
+        "https://docs.example.com/getting-started",
+        "https://docs.example.com/installation",
+        "https://docs.example.com/configuration",
+    ]
+
+    for url in urls:
+        content = extract_page_content(url)
+        pairs = generate_qa_pairs(content)
+        all_pairs.extend(pairs)
+        print(f"{url}: {len(pairs)} QA pairs")
+
+    # Save as JSONL (each line is one JSON object)
+    with open("training_data.jsonl", "w") as f:
+        for pair in all_pairs:
+            f.write(json.dumps(pair) + "\n")
+
+    print(f"Generated {len(all_pairs)} QA pairs")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { writeFile } from 'fs/promises';
+
+    const allPairs: { instruction: string; output: string; source: string }[] = [];
+    const urls = [
+      "https://docs.example.com/getting-started",
+      "https://docs.example.com/installation",
+    ];
+
+    for (const url of urls) {
+      const content = await extractPageContent(url);
+      const pairs = await generateQAPairs(content);
+      allPairs.push(...pairs);
+      console.log(`${url}: ${pairs.length} QA pairs`);
+    }
+
+    const jsonl = allPairs.map(p => JSON.stringify(p)).join('\n');
+    await writeFile("training_data.jsonl", jsonl);
+    console.log(`Generated ${allPairs.length} QA pairs`);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 4: Train-Validation Split
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    import random
+    random.shuffle(all_pairs)
+
+    split = int(len(all_pairs) * 0.8)
+    train = all_pairs[:split]
+    valid = all_pairs[split:]
+
+    with open("train.jsonl", "w") as f:
+        for pair in train:
+            f.write(json.dumps(pair) + "\n")
+
+    with open("valid.jsonl", "w") as f:
+        for pair in valid:
+            f.write(json.dumps(pair) + "\n")
+
+    print(f"Train: {len(train)}, Validation: {len(valid)}")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { writeFile } from 'fs/promises';
+
+    const shuffled = [...allPairs].sort(() => Math.random() - 0.5);
+    const split = Math.floor(shuffled.length * 0.8);
+    const train = shuffled.slice(0, split);
+    const valid = shuffled.slice(split);
+
+    await writeFile("train.jsonl", train.map(p => JSON.stringify(p)).join('\n'));
+    await writeFile("valid.jsonl", valid.map(p => JSON.stringify(p)).join('\n'));
+    console.log(`Train: ${train.length}, Validation: ${valid.length}`);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Key Takeaways
+
+- Clean extracted text thoroughly — remove HTML, normalize whitespace
+- Heading-content patterns generate natural QA pairs
+- JSONL format is standard for LLM fine-tuning datasets
+- Always create train/validation splits
+- Auto-match helps when documentation sites restructure

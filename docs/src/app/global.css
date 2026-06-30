@@ -5,86 +5,107 @@
 @theme {
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --font-title: var(--font-title), var(--font-sans), sans-serif;
-  
-  --color-brand-cyan: #06b6d4;
-  --color-brand-violet: #a855f7;
-  --color-brand-emerald: #10b981;
-  --color-brand-rose: #f43f5e;
-  
-  --animate-border-beam: border-beam 6s linear infinite;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-200: #99f6e4;
+  --color-brand-300: #5eead4;
+  --color-brand-400: #2dd4bf;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+
+  --color-surface-0: #ffffff;
+  --color-surface-50: #f8fafc;
+  --color-surface-100: #f1f5f9;
+  --color-surface-200: #e2e8f0;
+  --color-surface-300: #cbd5e1;
+  --color-surface-400: #94a3b8;
+  --color-surface-500: #64748b;
+  --color-surface-600: #475569;
+  --color-surface-700: #334155;
+  --color-surface-800: #1e293b;
+  --color-surface-900: #0f172a;
+  --color-surface-950: #020617;
+
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.4s ease-out;
   --animate-pulse-slow: pulse-slow 3s ease-in-out infinite;
-  --animate-glow: glow 2s ease-in-out infinite alternate;
-  
-  @keyframes border-beam {
-    0%, 100% {
-      offset-distance: 0%;
-    }
-    50% {
-      offset-distance: 50%;
-    }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   @keyframes pulse-slow {
-    0%, 100% {
-      opacity: 0.2;
-    }
-    50% {
-      opacity: 0.6;
-    }
-  }
-  @keyframes glow {
-    from {
-      box-shadow: 0 0 10px -2px rgba(168, 85, 247, 0.2);
-    }
-    to {
-      box-shadow: 0 0 20px 2px rgba(168, 85, 247, 0.4);
-    }
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
   }
 }
 
+/* ============================================
+   LIGHT MODE
+   ============================================ */
 :root {
-  --background: 0 0% 99%;
-  --foreground: 240 10% 3.9%;
+  --background: 210 20% 98%;
+  --foreground: 222 47% 11%;
   --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
-  --popover: 0 0% 99%;
-  --popover-foreground: 240 10% 3.9%;
-  --primary: 270 91% 60%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
-  --accent: 270 91% 96%;
-  --accent-foreground: 270 91% 35%;
-  --border: 240 5.9% 89%;
-  --input: 240 5.9% 89%;
-  --ring: 270 91% 60%;
-  --radius: 0.75rem;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 174 72% 34%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 174 72% 96%;
+  --accent-foreground: 174 72% 25%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 174 72% 34%;
+  --radius: 0.625rem;
 }
 
+/* ============================================
+   DARK MODE
+   ============================================ */
 .dark {
-  --background: 240 10% 2.8%;
-  --foreground: 0 0% 98%;
-  --card: 240 10% 4.5%;
-  --card-foreground: 0 0% 98%;
-  --popover: 240 10% 2.8%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 270 91% 65%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 240 3.7% 12.9%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 240 3.7% 8.5%;
-  --muted-foreground: 240 5% 64.9%;
-  --accent: 270 91% 12%;
-  --accent-foreground: 270 91% 85%;
-  --border: 240 3.7% 12.9%;
-  --input: 240 3.7% 12.9%;
-  --ring: 270 91% 65%;
+  --background: 222 47% 4%;
+  --foreground: 210 40% 98%;
+  --card: 222 47% 6%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222 47% 6%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 174 60% 40%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 222 30% 12%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 222 30% 10%;
+  --muted-foreground: 217 20% 55%;
+  --accent: 174 50% 10%;
+  --accent-foreground: 174 60% 65%;
+  --destructive: 0 63% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 222 25% 14%;
+  --input: 222 25% 14%;
+  --ring: 174 60% 40%;
 }
 
+/* ============================================
+   BASE
+   ============================================ */
 html {
   scrollbar-gutter: stable;
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html > body[data-scroll-locked] {
@@ -92,39 +113,158 @@ html > body[data-scroll-locked] {
   --removed-body-scroll-bar-size: 0px !important;
 }
 
-/* Typography styles */
+/* Typography */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-title), var(--font-sans), sans-serif;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
   font-weight: 700;
+  color: var(--foreground);
 }
 
-/* Premium gradient overlays for dark mode background */
+/* Dark mode subtle gradient */
 .dark body {
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(168, 85, 247, 0.03) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.03) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.02) 0px, transparent 50%);
+  background-image:
+    radial-gradient(at 20% 0%, rgba(13, 148, 136, 0.04) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(20, 184, 166, 0.02) 0px, transparent 50%);
   background-attachment: fixed;
 }
 
-/* Code block customization */
+/* ============================================
+   CODE BLOCKS
+   ============================================ */
 pre {
-  border: 1px solid rgba(168, 85, 247, 0.08) !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
-  backdrop-filter: blur(5px) !important;
+  position: relative;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.6 !important;
 }
 
 .dark pre {
-  background-color: rgba(9, 9, 11, 0.8) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  background-color: hsl(222 47% 4%) !important;
+  border: 1px solid hsl(222 25% 12%) !important;
 }
 
-/* Custom Scrollbar */
+figure:has(pre) {
+  position: relative;
+  margin: 1.25rem 0 !important;
+}
+
+[class*="nd-codeblock"] button[aria-label*="Copy"],
+figure button[aria-label*="Copy"] {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+[class*="nd-codeblock"]:hover button[aria-label*="Copy"],
+figure:hover button[aria-label*="Copy"] {
+  opacity: 1;
+}
+
+/* Inline code */
+code:not(pre code) {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+  font-size: 0.85em;
+  font-weight: 500;
+  font-family: var(--font-mono);
+}
+
+/* ============================================
+   SEARCH DIALOG
+   ============================================ */
+[data-search-dialog] {
+  border-radius: calc(var(--radius) + 0.25rem) !important;
+  border: 1px solid var(--border) !important;
+}
+
+[data-search-dialog] input {
+  font-family: var(--font-sans);
+}
+
+/* ============================================
+   SIDEBAR
+   ============================================ */
+[data-sidebar] {
+  border-right: 1px solid var(--border);
+}
+
+[data-sidebar] [data-page-tree] [data-folder] > button {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+}
+
+/* ============================================
+   TABS (Python/Node.js switcher)
+   ============================================ */
+[data-tabs] {
+  margin: 1.25rem 0;
+}
+
+[data-tabs] [data-tab] {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* ============================================
+   TABLES
+   ============================================ */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.8125rem;
+}
+
+table thead {
+  background: var(--secondary);
+}
+
+table th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  padding: 0.625rem 0.875rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+table td {
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+}
+
+table tr:last-child td {
+  border-bottom: none;
+}
+
+table tr:hover td {
+  background: var(--secondary);
+}
+
+/* ============================================
+   CALLOUT
+   ============================================ */
+[data-callout] {
+  border-radius: var(--radius) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -132,44 +272,109 @@ pre {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(168, 85, 247, 0.1);
-  border-radius: 4px;
+  background: var(--muted-foreground);
+  border-radius: 99px;
+  opacity: 0.4;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(168, 85, 247, 0.3);
+  background: var(--foreground);
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-/* Neon subtle grid backgrounds */
+/* ============================================
+   UTILITIES
+   ============================================ */
 .cyber-grid {
   background-size: 40px 40px;
-  background-image: linear-gradient(to right, rgba(168, 85, 247, 0.02) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(168, 85, 247, 0.02) 1px, transparent 1px);
-}
-.dark .cyber-grid {
-  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-image:
+    linear-gradient(to right, rgba(13, 148, 136, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(13, 148, 136, 0.02) 1px, transparent 1px);
 }
 
-/* Custom heading decoration */
+.dark .cyber-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.01) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+}
+
 .heading-accent {
   position: relative;
 }
+
 .heading-accent::after {
   content: '';
   position: absolute;
   bottom: -4px;
   left: 0;
-  width: 40px;
+  width: 32px;
   height: 2px;
-  background: linear-gradient(to right, var(--color-brand-violet), var(--color-brand-cyan));
+  background: var(--primary);
   border-radius: 1px;
+}
+
+/* Markdown copy button */
+button:has([data-markdown-copy]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+button:has([data-markdown-copy]):hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  border-color: var(--primary);
+}
+
+/* ============================================
+   PROSE / MDX CONTENT
+   ============================================ */
+article > h1:first-child {
+  font-size: 1.875rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.5rem;
+}
+
+article > h2 {
+  font-size: 1.375rem;
+  font-weight: 700;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+article > h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+article > p {
+  line-height: 1.75;
+  color: var(--muted-foreground);
+}
+
+article > ul,
+article > ol {
+  line-height: 1.75;
+  color: var(--muted-foreground);
+}
+
+article > blockquote {
+  border-left: 3px solid var(--primary);
+  padding-left: 1rem;
+  color: var(--muted-foreground);
+  font-style: italic;
 }

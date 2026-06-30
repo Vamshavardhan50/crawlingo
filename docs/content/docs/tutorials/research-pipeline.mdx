@@ -1,0 +1,293 @@
+---
+title: Build a Research Pipeline
+description: Step-by-step tutorial for building an academic research pipeline — crawl papers, extract metadata, download PDFs, and build a searchable database.
+---
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+
+# Build a Research Pipeline
+
+Learn how to build a research paper pipeline — crawl academic repositories, extract paper metadata (title, authors, abstract), download PDFs, and build a searchable database.
+
+## What You Will Build
+
+A research pipeline that:
+- Crawls paper listing pages (e.g., arXiv, conference proceedings)
+- Extracts paper metadata (title, authors, abstract, keywords)
+- Downloads PDF files
+- Generates a searchable metadata index
+- Exports BibTeX citation data
+
+## Step 1: Crawl Paper Listings
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Session, Crawl
+
+    session = Session()
+    session.rate_limit(3.0)
+    session.timeout(30)
+
+    crawl = session.crawl("https://arxiv.org/list/cs.AI/recent")
+    crawl.follow("a[href*='arxiv.org/list']")
+    crawl.limit(200)
+    crawl.depth(2)
+    crawl.field("title", "list-title")
+    crawl.field("authors", ".list-authors")
+    crawl.field("abstract", ".mathjax")
+    crawl.field("pdf_link", "a[href$='.pdf']", selector_type="css")
+
+    listings = crawl.build()
+    print(f"Found {len(listings)} papers")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Session, Crawl } from 'crawlingo';
+
+    const session = new Session();
+    session.rateLimit(3.0);
+    session.timeout(30);
+
+    const crawl = new Crawl("https://arxiv.org/list/cs.AI/recent", session);
+    crawl.follow("a[href*='/list/']");
+    crawl.limit(200);
+    crawl.depth(2);
+    crawl.field("title", ".list-title");
+    crawl.field("authors", ".list-authors");
+    crawl.field("abstract", ".mathjax");
+
+    const listings = await crawl.run();
+    console.log(`Found ${listings.length} papers`);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 2: Extract Detailed Metadata
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Page
+    import re
+
+    def extract_paper_metadata(paper_url: str) -> dict:
+        page = Page(paper_url, session=session)
+
+        title = page.css("h1").first().text() if page.css("h1").first() else ""
+        abstract = page.css(".abstract").first().text() if page.css(".abstract").first() else ""
+        authors = [a.text() for a in page.css(".authors a")]
+
+        # Find PDF link
+        pdf_link = ""
+        for link in page.css("a[href$='.pdf']"):
+            pdf_link = link.attr("href") or ""
+
+        # Extract subjects
+        subjects = [s.text() for s in page.css(".primary-subject")]
+
+        # Parse abstract for keywords
+        keywords = re.findall(r'\b[A-Z][a-z]*(?:[A-Z][a-z]*)*\b', abstract[:500])
+
+        return {
+            "title": title,
+            "abstract": abstract,
+            "authors": ", ".join(authors),
+            "pdf_url": pdf_link,
+            "subjects": ", ".join(subjects),
+            "keywords": ", ".join(set(keywords))[:200],
+        }
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Page } from 'crawlingo';
+
+    async function extractPaperMetadata(paperUrl: string) {
+      const page = await Page.create(paperUrl, { session });
+      const title = page.css("h1").first()?.text ?? "";
+      const abstract = page.css(".abstract").first()?.text ?? "";
+
+      const authorElements = page.css(".authors a");
+      const authors: string[] = [];
+      for (const a of authorElements) authors.push(a.text);
+
+      const pdfLinks = page.css("a[href$='.pdf']");
+      const pdfUrl = pdfLinks.first()?.attr("href") ?? "";
+
+      return { title, abstract, authors: authors.join(", "), pdfUrl };
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 3: Download PDFs
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    import urllib.request
+    import os
+
+    os.makedirs("papers", exist_ok=True)
+
+    def download_pdf(url: str, filename: str):
+        if not url:
+            return False
+        if not url.startswith("http"):
+            url = "https://arxiv.org" + url
+        path = f"papers/{filename}.pdf"
+        if os.path.exists(path):
+            return True
+        try:
+            urllib.request.urlretrieve(url, path)
+            return True
+        except Exception as e:
+            print(f"Download failed: {url} — {e}")
+            return False
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { writeFile } from 'fs/promises';
+    import { existsSync, mkdirSync } from 'fs';
+    import { get } from 'https';
+
+    if (!existsSync("papers")) mkdirSync("papers");
+
+    function downloadPdf(url: string, filename: string): Promise<boolean> {
+      return new Promise((resolve) => {
+        if (!url) return resolve(false);
+        const filePath = `papers/${filename}.pdf`;
+        if (existsSync(filePath)) return resolve(true);
+        const dest = require('fs').createWriteStream(filePath);
+        get(url, (res) => {
+          res.pipe(dest);
+          dest.on('finish', () => resolve(true));
+        }).on('error', () => resolve(false));
+      });
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 4: Generate BibTeX
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    import hashlib
+
+    def generate_bibtex(papers: list[dict]) -> str:
+        entries = []
+        for paper in papers:
+            key = hashlib.md5(paper["url"].encode()).hexdigest()[:8]
+            entry = f"""@misc{{{key},
+  title = {{{paper["title"]}}},
+  author = {{{paper["authors"]}}},
+  url = {{{paper["url"]}}},
+  year = {{{paper.get("year", "2025")}}}
+}}"""
+            entries.append(entry)
+        return "\n\n".join(entries)
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { createHash } from 'crypto';
+
+    function generateBibtex(papers: { title: string; authors: string; url: string }[]) {
+      return papers.map(p => {
+        const key = createHash('md5').update(p.url).digest('hex').slice(0, 8);
+        return `@misc{${key},
+  title = {${p.title}},
+  author = {${p.authors}},
+  url = {${p.url}},
+  year = {2025}
+}`;
+      }).join('\n\n');
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 5: Export Pipeline Output
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    import csv
+    import json
+
+    papers_metadata = []
+    for i, listing in enumerate(listings):
+        paper_url = listing.data.get("url")
+        if not paper_url:
+            continue
+        meta = extract_paper_metadata(paper_url)
+        meta["url"] = paper_url
+        meta["downloaded"] = download_pdf(meta["pdf_url"], f"paper_{i}")
+        papers_metadata.append(meta)
+
+    # Export CSV
+    with open("papers.csv", "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["title", "authors", "abstract", "url", "pdf_url"])
+        w.writeheader()
+        w.writerows(papers_metadata)
+
+    # Export BibTeX
+    with open("papers.bib", "w") as f:
+        f.write(generate_bibtex(papers_metadata))
+
+    print(f"Processed {len(papers_metadata)} papers")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Dataset } from 'crawlingo';
+    import { writeFile } from 'fs/promises';
+
+    const papersMetadata: Record<string, string>[] = [];
+    for (let i = 0; i < listings.length; i++) {
+      const paperUrl = listings[i].url;
+      if (!paperUrl) continue;
+      const meta = await extractPaperMetadata(paperUrl);
+      meta.url = paperUrl;
+      meta.downloaded = String(await downloadPdf(meta.pdfUrl, `paper_${i}`));
+      papersMetadata.push(meta);
+    }
+
+    await Dataset.saveCsv(papersMetadata, "papers.csv");
+    await writeFile("papers.bib", generateBibtex(papersMetadata));
+    console.log(`Processed ${papersMetadata.length} papers`);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Key Takeaways
+
+- Academic sites have consistent HTML structures — leverage CSS selectors effectively
+- Download PDFs in a separate step after metadata extraction
+- Generate BibTeX for citation management tools
+- Use longer timeouts for PDF downloads (large files)
+- Build the pipeline in stages: crawl → extract → download → export

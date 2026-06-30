@@ -1,0 +1,320 @@
+---
+title: Build an E-commerce Crawler
+description: Step-by-step tutorial for scraping product data from e-commerce sites with pagination, category discovery, and structured export.
+---
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+
+# Build an E-commerce Crawler
+
+Learn how to scrape product data from an e-commerce store — discover categories, paginate through product listings, and extract structured product information.
+
+## What You Will Build
+
+A crawler that:
+- Discovers all product categories from the homepage
+- Crawls each category with pagination
+- Extracts product name, price, rating, and URL
+- Handles out-of-stock items gracefully
+- Exports to CSV for analysis
+
+## Prerequisites
+
+- Crawlingo installed
+- Basic Python or TypeScript
+
+## Step 1: Discover Categories
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Page, Session
+
+    session = Session()
+    session.rate_limit(2.0)
+
+    page = Page("https://shop.example.com", session=session)
+    category_links = page.css(".category-menu a")
+    categories = []
+    for link in category_links:
+        href = link.attr("href")
+        text = link.text()
+        if href and text:
+            categories.append((href.strip(), text.strip()))
+    print(f"Found {len(categories)} categories")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Session, Page } from 'crawlingo';
+
+    const session = new Session();
+    session.rateLimit(2.0);
+
+    const page = await Page.create("https://shop.example.com", { session });
+    const categoryLinks = page.css(".category-menu a");
+    const categories: [string, string][] = [];
+    for (const link of categoryLinks) {
+      const href = link.attr("href");
+      if (href) categories.push([href, link.text]);
+    }
+    console.log(`Found ${categories.length} categories`);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 2: Crawl Products from Each Category
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Crawl
+
+    def crawl_category(url: str, name: str):
+        crawl = session.crawl(url)
+        crawl.follow("a.next")
+        crawl.limit(200)
+        crawl.depth(2)
+        crawl.field("name", "h2.product-name a")
+        crawl.field("price", "span.price")
+        crawl.field("rating", ".star-rating", selector_type="xpath")
+        crawl.field("url", "h2.product-name a", selector_type="css")
+        crawl.field("stock", ".availability", default="Unknown")
+        results = crawl.build()
+        return results
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Crawl } from 'crawlingo';
+
+    async function crawlCategory(url: string) {
+      const crawl = new Crawl(url, session);
+      crawl.follow("a.next");
+      crawl.limit(200);
+      crawl.depth(2);
+      crawl.field("name", "h2.product-name a");
+      crawl.field("price", "span.price");
+      crawl.field("rating", ".star-rating");
+      crawl.field("stock", ".availability", { defaultVal: "Unknown" });
+      const results = await crawl.run();
+      return results;
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 3: Clean Price Data
+
+Extract numeric price values for analysis:
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    import re
+
+    def clean_price(price_str: str) -> float:
+        if not price_str:
+            return 0.0
+        cleaned = re.sub(r'[^\d.]', '', price_str)
+        try:
+            return float(cleaned)
+        except ValueError:
+            return 0.0
+
+    # Usage
+    products = []
+    for cat_url, cat_name in categories:
+        results = crawl_category(cat_url, cat_name)
+        for r in results:
+            row = r.to_dict()
+            row["price_numeric"] = clean_price(row.get("price", ""))
+            row["category"] = cat_name
+            products.append(row)
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    function cleanPrice(priceStr: string): number {
+      if (!priceStr) return 0;
+      const cleaned = priceStr.replace(/[^\d.]/g, "");
+      return parseFloat(cleaned) || 0;
+    }
+
+    const products: Record<string, string | number>[] = [];
+    for (const [catUrl, catName] of categories) {
+      const results = await crawlCategory(catUrl);
+      for (const r of results) {
+        const dict = r.toDict();
+        dict.price_numeric = cleanPrice(dict.price ?? "");
+        dict.category = catName;
+        products.push(dict);
+      }
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 4: Filter and Export
+
+Export only in-stock products:
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    in_stock = [p for p in products if "in stock" in p.get("stock", "").lower()]
+    print(f"{len(in_stock)} in-stock products out of {len(products)}")
+
+    import csv
+    with open("products.csv", "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["name", "price", "price_numeric", "rating", "category"])
+        writer.writeheader()
+        writer.writerows(in_stock)
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Dataset } from 'crawlingo';
+
+    const inStock = products.filter(p =>
+      String(p.stock).toLowerCase().includes("in stock")
+    );
+    console.log(`${inStock.length} in-stock out of ${products.length}`);
+
+    await Dataset.saveCsv(inStock, "products.csv");
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 5: Handle Anti-Bot Measures
+
+If the e-commerce site blocks requests:
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    session.fetcher_tier("stealthy")
+    session.browser_profile("chrome")
+    session.proxy_pool([
+        "http://proxy1:8080",
+        "http://proxy2:8080",
+    ])
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    session.fetcherTier("stealthy");
+    session.browserProfile("chrome");
+    session.proxyPool([
+      "http://proxy1:8080",
+      "http://proxy2:8080",
+    ]);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Complete Script
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Session, Page, Crawl
+    import csv
+    import re
+
+    session = Session()
+    session.rate_limit(2.0)
+    session.auto_match(True)
+
+    page = Page("https://shop.example.com", session=session)
+    cats = [(link.attr("href"), link.text()) for link in page.css(".category-menu a") if link.attr("href")]
+
+    products = []
+    for url, name in cats:
+        crawl = session.crawl(url)
+        crawl.follow("a.next")
+        crawl.limit(100)
+        crawl.depth(2)
+        crawl.field("name", "h2.product-name a")
+        crawl.field("price", "span.price")
+        crawl.field("rating", ".star-rating")
+        results = crawl.build()
+        for r in results:
+            d = r.to_dict()
+            d["category"] = name
+            products.append(d)
+
+    with open("products.csv", "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["name", "price", "rating", "category"])
+        w.writeheader()
+        w.writerows(products)
+    print(f"Saved {len(products)} products")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Session, Page, Crawl, Dataset } from 'crawlingo';
+
+    const session = new Session();
+    session.rateLimit(2.0);
+    session.autoMatch(true);
+
+    const page = await Page.create("https://shop.example.com", { session });
+    const cats: [string, string][] = [];
+    for (const link of page.css(".category-menu a")) {
+      const href = link.attr("href");
+      if (href) cats.push([href, link.text]);
+    }
+
+    const products: Record<string, string>[] = [];
+    for (const [url, name] of cats) {
+      const crawl = new Crawl(url, session);
+      crawl.follow("a.next");
+      crawl.limit(100);
+      crawl.depth(2);
+      crawl.field("name", "h2.product-name a");
+      crawl.field("price", "span.price");
+      crawl.field("rating", ".star-rating");
+      const results = await crawl.run();
+      for (const r of results) {
+        const d = r.toDict();
+        d.category = name;
+        products.push(d);
+      }
+    }
+
+    await Dataset.saveCsv(products, "products.csv");
+    console.log(`Saved ${products.length} products`);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Key Takeaways
+
+- Always set `rate_limit` to avoid being blocked
+- Auto-match helps when e-commerce sites redesign
+- Default values prevent missing data from breaking pipelines
+- Use stealth mode and proxy rotation for protected sites

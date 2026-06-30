@@ -1,0 +1,15 @@
+{
+  "title": "Tutorials",
+  "pages": [
+    "news-crawler",
+    "ecommerce-crawler",
+    "jobs-scraper",
+    "price-tracker",
+    "sitemap-crawler",
+    "search-engine-crawler",
+    "ai-dataset-generator",
+    "documentation-crawler",
+    "blog-crawler",
+    "research-pipeline"
+  ]
+}

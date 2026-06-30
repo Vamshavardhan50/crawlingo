@@ -1,0 +1,19 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "start",
+    "guides",
+    "api-reference",
+    "architecture",
+    "advanced",
+    "troubleshooting",
+    "tutorials",
+    "recipes",
+    "best-practices",
+    "glossary",
+    "migration-guides",
+    "changelog",
+    "roadmap"
+  ]
+}

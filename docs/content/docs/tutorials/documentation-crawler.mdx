@@ -1,0 +1,217 @@
+---
+title: Build a Documentation Crawler
+description: Step-by-step tutorial for crawling and indexing documentation sites — discover pages, extract content, build a search index, and export for offline reading.
+---
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+
+# Build a Documentation Crawler
+
+Learn how to crawl a documentation site, extract content from every page, build a search index, and generate an offline-readable format.
+
+## What You Will Build
+
+A docs crawler that:
+- Discovers all documentation pages via sidebar links
+- Extracts title, headings, and body content
+- Builds a searchable JSON index
+- Generates a single Markdown file for offline reading
+- Tracks crawling progress with statistics
+
+## Step 1: Discover Documentation Pages
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Session, Page
+
+    session = Session()
+    session.rate_limit(5.0)
+
+    page = Page("https://docs.example.com", session=session)
+    sidebar_links = page.css("nav a, .sidebar a, [data-sidebar] a")
+    urls = set()
+    for link in sidebar_links:
+        href = link.attr("href")
+        if href and href.startswith("/"):
+            href = "https://docs.example.com" + href
+        if href and "docs.example.com" in href:
+            urls.add(href)
+
+    print(f"Found {len(urls)} documentation pages")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Session, Page } from 'crawlingo';
+
+    const session = new Session();
+    session.rateLimit(5.0);
+
+    const page = await Page.create("https://docs.example.com", { session });
+    const sidebarLinks = page.css("nav a, .sidebar a, [data-sidebar] a");
+    const urls = new Set<string>();
+    for (const link of sidebarLinks) {
+      let href = link.attr("href");
+      if (href?.startsWith("/")) href = "https://docs.example.com" + href;
+      if (href?.includes("docs.example.com")) urls.add(href);
+    }
+    console.log(`Found ${urls.size} documentation pages`);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 2: Extract Page Content
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    import time
+
+    def extract_doc_page(url: str) -> dict:
+        page = Page(url, session=session)
+        content = page.css("article, main, .content, .doc-content")
+        text = content.first().text() if content.first() else page.css("body").first().text()
+
+        headings = []
+        for h in page.css("h1, h2, h3"):
+            headings.append(h.text())
+
+        return {
+            "url": url,
+            "title": page.title(),
+            "headings": headings,
+            "content": text[:10000],  # Limit size
+        }
+
+    docs = []
+    for i, url in enumerate(urls):
+        try:
+            doc = extract_doc_page(url)
+            docs.append(doc)
+        except Exception as e:
+            print(f"Failed: {url} — {e}")
+        if (i + 1) % 20 == 0:
+            print(f"Progress: {i + 1}/{len(urls)}")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    async function extractDocPage(url: string) {
+      const page = await Page.create(url, { session });
+      const content = page.css("article, main, .content, .doc-content");
+      const text = content.first()?.text ?? page.css("body").first()?.text ?? "";
+
+      const headings: string[] = [];
+      for (const h of page.css("h1, h2, h3")) {
+        headings.push(h.text);
+      }
+
+      return { url, title: page.title(), headings, content: text.slice(0, 10000) };
+    }
+
+    const docs: Awaited<ReturnType<typeof extractDocPage>>[] = [];
+    let i = 0;
+    for (const url of urls) {
+      try {
+        const doc = await extractDocPage(url);
+        docs.push(doc);
+      } catch (e) {
+        console.log(`Failed: ${url} — ${e}`);
+      }
+      i++;
+      if (i % 20 === 0) console.log(`Progress: ${i}/${urls.size}`);
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 3: Build a Search Index
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    import json
+
+    search_index = []
+    for doc in docs:
+        search_index.append({
+            "title": doc["title"],
+            "url": doc["url"],
+            "headings": doc["headings"],
+            "snippet": doc["content"][:200],
+        })
+
+    with open("docs_index.json", "w") as f:
+        json.dump(search_index, f, indent=2)
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { writeFile } from 'fs/promises';
+
+    const searchIndex = docs.map(doc => ({
+      title: doc.title,
+      url: doc.url,
+      headings: doc.headings,
+      snippet: doc.content.slice(0, 200),
+    }));
+
+    await writeFile("docs_index.json", JSON.stringify(searchIndex, null, 2));
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 4: Generate Offline Markdown
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    with open("documentation.md", "w") as f:
+        f.write("# Documentation Offline Backup\n\n")
+        for doc in docs:
+            f.write(f"## {doc['title']}\n\n")
+            f.write(f"Source: {doc['url']}\n\n")
+            f.write(doc["content"])
+            f.write("\n\n---\n\n")
+
+    print(f"Generated documentation.md ({len(docs)} pages)")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    let md = "# Documentation Offline Backup\n\n";
+    for (const doc of docs) {
+      md += `## ${doc.title}\n\n`;
+      md += `Source: ${doc.url}\n\n`;
+      md += doc.content;
+      md += "\n\n---\n\n";
+    }
+    await writeFile("documentation.md", md);
+    console.log(`Generated documentation.md (${docs.length} pages)`);
+    ```
+
+  </Tab>
+</Tabs>
+
+## Key Takeaways
+
+- Documentation sites have consistent sidebar structures — use broad CSS selectors
+- Limit content size per page when building large indexes
+- Generate both searchable JSON and offline Markdown formats
+- Handle failures gracefully — some pages may 404 or redirect
+- Rate limiting is extra important for documentation servers

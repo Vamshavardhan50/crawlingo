@@ -1,0 +1,10 @@
+{
+  "title": "Recipes",
+  "pages": [
+    "login-crawl",
+    "rotate-proxies",
+    "resume-crawl",
+    "extract-tables",
+    "retry-failed"
+  ]
+}

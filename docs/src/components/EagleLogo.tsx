@@ -7,26 +7,34 @@ interface EagleLogoProps {
 }
 
 const sizes = {
-  sm: 24,
-  md: 32,
-  lg: 40,
-  xl: 56,
+  sm: 22,
+  md: 28,
+  lg: 36,
+  xl: 48,
 };
 
 export default function EagleLogo({ size = 'md', variant = 'icon', className }: EagleLogoProps) {
   const iconSize = sizes[size];
 
   return (
-    <div className={cn('flex items-center gap-2.5', className)}>
+    <div className={cn('flex items-center gap-2', className)}>
       <img
         src="/logo.svg"
-        alt="Crawlingo Logo"
+        alt="Crawlingo"
         width={iconSize}
         height={iconSize}
-        className="rounded-lg object-contain shrink-0"
+        className="rounded-md object-contain shrink-0"
       />
       {variant === 'full' && (
-        <span className={cn('font-bold tracking-tight text-black dark:text-white', size === 'sm' ? 'text-sm' : size === 'md' ? 'text-base' : size === 'lg' ? 'text-lg' : 'text-2xl')}>
+        <span
+          className={cn(
+            'font-bold tracking-tight text-foreground',
+            size === 'sm' && 'text-sm',
+            size === 'md' && 'text-base',
+            size === 'lg' && 'text-lg',
+            size === 'xl' && 'text-2xl'
+          )}
+        >
           Crawlingo
         </span>
       )}

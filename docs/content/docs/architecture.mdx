@@ -4,6 +4,7 @@ description: Deep dive into Crawlingo's Rust-powered core, FFI boundaries, and A
 ---
 
 import { Server, Network, Database, Cpu } from 'lucide-react';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 # Architecture & Internals
 
@@ -118,13 +119,26 @@ Crawlingo leverages modern bindings to run Rust-level speed while exposing nativ
 
 ## Memory Optimization
 
-To maintain a minimal footprint, datasets stream results as Apache Arrow record batches, bypassing Javascript or Python object allocation until explicitly requested by the SDK client.
+To maintain a minimal footprint, datasets stream results as Apache Arrow record batches, bypassing JavaScript or Python object allocation until explicitly requested by the SDK client.
 
-```python
-# Streams batches directly from Rust heap to local file systems
-# without allocating a full Python array.
-dataset.build().to_parquet("output_stream.parquet")
-```
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    # Streams batches directly from Rust heap to local file systems
+    dataset.build().to_parquet("output_stream.parquet")
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    // Streams batches directly from Rust heap to local file systems
+    await dataset.build().then(r => r.toParquet("output_stream.parquet"));
+    ```
+
+  </Tab>
+</Tabs>
 
 <Callout type="info" title="Need help with the classes?">
   Review the complete method definitions in the [API Reference](/api-reference).

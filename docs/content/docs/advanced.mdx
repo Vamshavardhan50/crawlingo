@@ -1,94 +1,147 @@
 ---
-title: Advanced Core Internals
-description: Deep dive into DOM fingerprint weights, sled key-value storage layouts, error recovery policies, and concurrency governors.
+title: Advanced Topics
+description: Architecture, execution engine, caching, memory management, concurrency model, scaling, observability, security, and ethical scraping.
 ---
 
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+# Advanced Topics
 
-# Advanced Core Internals
+## Architecture
 
-Deep dive into DOM fingerprint weights, sled key-value storage layouts, error recovery policies, and concurrency governors.
+Crawlingo is built in three layers:
 
----
-
-## Auto-Match Similarity Weights
-
-When a selector drifts, candidate nodes are scored against the cached profile. By default, Crawlingo uses pre-tuned weights. However, you can customize these weights dynamically on your `Session` configuration to optimize recovery for specific site structures.
-
-```python
-session = Session()
-session.auto_match(True)
-
-# Customize similarity scoring weights
-session.auto_match_weights({
-    "text": 3.0,       # Increase focus on literal text content matches
-    "class": 1.0,      # De-emphasize mutated classes
-    "ancestor": 2.0,   # Prioritize stable hierarchy tags
-    "attribute": 1.0,  # Standard attribute matches (id, role, etc)
-    "tag": 1.0,        # Match tag types (e.g. span, div)
-    "depth": 0.5       # Tree depth hierarchy offsets
-})
+```
+┌─────────────────────────────────────────────────────┐
+│                   Python SDK                         │
+│  (page.py, dataset.py, crawl.py, watch.py, ...)      │
+│  PyO3 FFI bindings → idiomatic Python API            │
+├─────────────────────────────────────────────────────┤
+│                  Node.js SDK                         │
+│  (page.ts, dataset.ts, crawl.ts, watch.ts, ...)      │
+│  NAPI-RS bindings → TypeScript API                   │
+├─────────────────────────────────────────────────────┤
+│                  Rust Core                           │
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌────────┐   │
+│  │Fetch │ │Parse │ │Select│ │Match │ │Change   │   │
+│  │Engine│ │(lol- │ │(CSS, │ │(Auto-│ │Detector│   │
+│  │(wreq)│ │ html)│ │XPath)│ │Match)│ │(Rayon) │   │
+│  └──────┘ └──────┘ └──────┘ └──────┘ └────────┘   │
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────────────────┐   │
+│  │Rate  │ │Proxy │ │Finger│ │Dataset/Crawl/Watch│   │
+│  │Limiter│ │Pool  │ │print │ │Engine             │   │
+│  └──────┘ └──────┘ └──────┘ └──────────────────┘   │
+└─────────────────────────────────────────────────────┘
 ```
 
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-  <HoverBorderCard className="p-5">
-    <span className="text-[10px] font-mono text-gray-400 uppercase font-semibold">Weight 2.0</span>
-    <h4 className="text-sm font-semibold text-black dark:text-white mt-1 mb-2">Jaro-Winkler Text</h4>
-    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Compares node inner text values, allowing characters edits/typos without failure.</p>
-  </HoverBorderCard>
-  <HoverBorderCard className="p-5">
-    <span className="text-[10px] font-mono text-gray-400 uppercase font-semibold">Weight 1.5</span>
-    <h4 className="text-sm font-semibold text-black dark:text-white mt-1 mb-2">Jaccard Class Similarity</h4>
-    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Evaluates class intersection sets to check layout styling consistency.</p>
-  </HoverBorderCard>
-  <HoverBorderCard className="p-5">
-    <span className="text-[10px] font-mono text-gray-400 uppercase font-semibold">Weight 1.5</span>
-    <h4 className="text-sm font-semibold text-black dark:text-white mt-1 mb-2">Ancestor Tag Path</h4>
-    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Verifies path hierarchies (tags and structural parents) up to 5 levels high.</p>
-  </HoverBorderCard>
-  <HoverBorderCard className="p-5">
-    <span className="text-[10px] font-mono text-gray-400 uppercase font-semibold">Weight 1.0</span>
-    <h4 className="text-sm font-semibold text-black dark:text-white mt-1 mb-2">Attributes Mapping</h4>
-    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Scores matching custom metadata attributes like item prices or stock status.</p>
-  </HoverBorderCard>
-</div>
+### Execution Engine
 
----
+The execution engine follows this flow for every fetch request:
 
-## Database Storage (sled)
-
-DOM fingerprints are stored in an embedded, lock-free key-value database powered by `sled`.
-
-```python
-# Default database path: "./.crawlingo"
-session.fingerprint_path("./.crawlingo")
-
-# Keys match schema format: "{url_xxh64_hash}:{selector_hash}"
-# Values hold bincode serialized DOM profiles.
+```
+1. URL Parsing (url::Url)
+2. Host extraction for rate limiting
+3. Rate limiter wait (governor token bucket)
+4. Strategy selection (Standard vs Stealthy)
+5. HTTP request via wreq client
+6. Response body collection
+7. HTML parsing (lol-html streaming)
+8. DomTree construction (flat Vec<DomNode>)
 ```
 
----
+### Fetcher Engine
 
-## Error Definitions
+Two strategies implement `FetchStrategy` trait:
 
-<Tabs items={['Python']}>
-  <Tab value="Python">
-    ```python
-    from crawlingo.exceptions import (
-        FetchError,       # Network timeouts, proxy issues, status >= 400
-        ParseError,       # Lol-html failure
-        AutoMatchFailed,  # Drift detected but score below threshold
-        RateLimitError,   # Governor pool rate limits triggered
-    )
+- `HttpFetcher`: Standard HTTP/HTTPS client with connection pooling
+- `BrowserFetcher`: TLS-fingerprinted stealth fetcher (currently delegates to HttpFetcher for Phase 3)
 
-    try:
-        page = session.page("https://example.com")
-    except AutoMatchFailed:
-        print("Could not restore selector.")
-    ```
-  </Tab>
-</Tabs>
+Strategy selection is based on `FetcherTier`:
 
-<Callout type="warning">
-  The sled database does not automatically clean stale URLs. Periodically purge files under the configured storage directory if crawling massive sites.
-</Callout>
+```rust
+pub enum FetcherTier {
+    Standard,
+    Stealthy,
+}
+```
+
+### Session Management
+
+The `Session` struct stores thread-safe configuration:
+
+```rust
+pub struct Session {
+    headers: RwLock<HashMap<String, String>>,
+    cookies: RwLock<HashMap<String, String>>,
+    proxy: RwLock<Option<String>>,
+    rate_limit_rps: RwLock<f64>,
+    auto_match: RwLock<bool>,
+    timeout_seconds: RwLock<u64>,
+    fingerprint_path: RwLock<String>,
+    fetcher_tier: RwLock<FetcherTier>,
+    browser_profile: RwLock<Option<String>>,
+    similarity_weights: RwLock<HashMap<String, f64>>,
+    proxy_pool: RwLock<Vec<String>>,
+    proxy_index: Arc<AtomicUsize>,
+    proxy_provider_url: RwLock<Option<String>>,
+    fingerprint_store: RwLock<Option<(String, Arc<FingerprintStore>)>>,
+}
+```
+
+All fields are `RwLock`-protected inside an `Arc<Session>`, enabling shared concurrent access.
+
+### Caching
+
+| Cache | Location | Lifetime | Purpose |
+|-------|----------|----------|---------|
+| CSS Selectors | Global `DashMap<String, CompiledSelector>` | Process lifetime | Avoid re-parsing CSS queries |
+| Regex Patterns | Global `DashMap<String, Regex>` | Process lifetime | Avoid re-compiling regex |
+| DNS | `moka::Cache<String, IpAddr>` | Configurable TTL (default 60s) | Avoid repeated DNS lookups |
+| Fingerprints | Sled database on disk | Persistent across runs | Store DOM fingerprints for auto-match |
+
+### Memory Management
+
+- **DOM Tree:** Flat `Vec<DomNode>` with `usize` index references — no pointers, no reference counting
+- **Page struct:** Stores `Arc<DomTree>` — cheap cloning for FFI sharing
+- **Text extraction:** Lazily computed via `OnceCell<String>`
+- **Element objects:** Lazily created from index on access
+
+### Concurrency Model
+
+- **Tokio** async runtime for all I/O (fetching, rate limiting)
+- **Rayon** parallel iterators for CPU-bound work (auto-match scoring, change detection)
+- **JoinSet** for concurrent crawl workers
+- **Mutex** for shared state (visited set, pending queue)
+- **DashMap** for lock-free concurrent hash maps (rate limiters, caches)
+
+### Scaling
+
+For large-scale crawling:
+
+1. **Per-host rate limiting** via `HostRateLimiter` (token bucket per host)
+2. **Connection pooling** via wreq (max 100 idle connections, 90s idle timeout)
+3. **Concurrent workers** via `Crawl::concurrency(n)` (JoinSet of n tasks)
+4. **Scheduling** via `Crawl::schedule(interval)` (dedicated thread with infinite loop)
+5. **Webhooks** for real-time streaming of results
+
+### Observability
+
+- Internal `tracing` crate for structured logging
+- WARN-level logs for auto-match recovery events
+- ERROR-level logs for crawl failures
+- INFO-level logs for scheduled crawl execution
+
+### Security
+
+- Proxy authentication supported (user:pass in proxy URL)
+- Cookie jar isolation per Session
+- TLS fingerprint emulation for stealth fetcher
+- Rate limiting prevents accidental DoS
+
+### Ethical Scraping
+
+Always follow these guidelines:
+
+1. **Respect robots.txt** — Crawlingo does not automatically enforce robots.txt; you must configure `follow` selectors responsibly
+2. **Rate limit** — Always set `session.rate_limit(n)` to avoid overwhelming servers
+3. **Set a descriptive User-Agent** — Identify your bot so site owners can contact you
+4. **Cache when possible** — Avoid repeated fetches of the same URL
+5. **Respect copyright** — Only scrape data you have permission to use

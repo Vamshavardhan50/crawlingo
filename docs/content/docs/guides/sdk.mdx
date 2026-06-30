@@ -61,7 +61,7 @@ Crawlingo SDKs provide idiomatic, high-level developer bindings for **Python** a
         </li>
         <li className="text-xs text-neutral-600 dark:text-neutral-400 flex items-start gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0 mt-1.5" />
-          <span>**Asynchronous Tokyo Runtime**: Non-blocking asynchronous promise methods powered by native Node.js event-loop integrations.</span>
+          <span>**Asynchronous Tokio Runtime**: Non-blocking asynchronous promise methods powered by native Node.js event-loop integrations.</span>
         </li>
         <li className="text-xs text-neutral-600 dark:text-neutral-400 flex items-start gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0 mt-1.5" />
@@ -121,17 +121,17 @@ Below is a detailed, real-world scenario scraping product info from an online st
         
         # 5. Loop through elements and extract fields
         for product in products:
-            title = product.css("h2.title").first().text()
-            price = product.css("span.price").first().text()
-            link = product.css("a.product-link").first().attr("href")
+            title = product.text()
+            price = product.attr("data-price") or "N/A"
+            link = product.attr("href") or "N/A"
             
             print(f"Product: {title} | Price: {price} | URL: {link}")
     ```
   </Tab>
   <Tab value="Node.js">
     ```typescript
-    // Import Session class from the Node.js SDK
-    import { Session } from 'crawlingo';
+    // Import Session and Page from the Node.js SDK
+    import { Session, Page } from 'crawlingo';
 
     async function main() {
       // 1. Initialize a custom session
@@ -144,31 +144,26 @@ Below is a detailed, real-world scenario scraping product info from an online st
       session.fetcher_tier("stealthy");
       session.browser_profile("chrome");
       
-      // 2. Open a lazy page reference
-      const page = await session.page("https://example-shop.com/products");
+      // 2. Fetch a page using Page.create()
+      const page = await Page.create("https://example-shop.com/products", { session });
       
       // 3. Retrieve page metadata (this triggers the network fetch)
-      console.log(`Page Title: ${await page.title()}`);
-      console.log(`HTTP Status: ${await page.status}`);
+      console.log(`Page Title: ${page.title()}`);
+      console.log(`HTTP Status: ${page.status}`);
       
       // 4. Extract product cards using CSS selectors
-      const products = await page.css("div.product-card");
+      const products = page.css("div.product-card");
       console.log(`Found ${products.length} products on page.`);
       
       // 5. Loop through elements and extract fields
       for (let i = 0; i < products.length; i++) {
-        const product = products.nth(i);
+        const product = products.at(i);
         if (!product) continue;
         
-        const titleEl = (await product.css("h2.title")).first();
-        const priceEl = (await product.css("span.price")).first();
-        const linkEl = (await product.css("a.product-link")).first();
+        const title = product.text();
+        const link = product.attr("href");
         
-        const title = titleEl ? titleEl.text() : "N/A";
-        const price = priceEl ? priceEl.text() : "N/A";
-        const link = linkEl ? linkEl.attr("href") : "#";
-        
-        console.log(`Product: ${title} | Price: ${price} | URL: ${link}`);
+        console.log(`Product: ${title} | URL: ${link}`);
       }
     }
 
@@ -188,7 +183,7 @@ Below is a detailed, real-world scenario scraping product info from an online st
 | `.page(url)` | Creates a lazy object. Network requests are deferred until access properties are queried, saving resources. |
 | `.title()` / `.status` | Invokes the actual HTTP request on demand. Parses HTML into a shared memory DOM tree inside Rust. |
 | `.css("div.product-card")` | Performs high-speed CSS selector querying. Returns an `ElementCollection` which acts as a window to a vector of pointers of matching nodes. |
-| `.first().text()` / `.attr("href")` | Traverses down the selected sub-node and extracts text/attributes, instantly applying any defined extraction post-processing hooks. |
+| `product.text()` / `product.attr("href")` | Extracts text or attribute values from the element, applying post-processing hooks if defined. |
 
 ---
 
@@ -254,7 +249,7 @@ Below is an advanced multi-page crawling recipe. It configures proxy rotation, r
         "http://username:password@proxy-eu.com:10002",
         "http://username:password@proxy-as.com:10003"
       ]);
-      session.rate_limit(2.0); // max 2 requests per second
+      session.rateLimit(2.0); // max 2 requests per second
       session.timeout(15);     // 15s timeout limit
 
       // 2. Initialize Crawl spider
@@ -267,8 +262,8 @@ Below is an advanced multi-page crawling recipe. It configures proxy rotation, r
 
       // 4. Map structured extraction fields (schema)
       crawl.field("title", "h1.entry-title");
-      crawl.field("author", "span.author-name", "css", "Anonymous");
-      crawl.field("published", "time.published-date", "css");
+      crawl.field("author", "span.author-name", { selectorType: "css", defaultVal: "Anonymous" });
+      crawl.field("published", "time.published-date", { selectorType: "css" });
 
       // 5. Configure real-time webhooks
       crawl.webhook("https://my-api-receiver.com/crawls");
@@ -327,25 +322,20 @@ The SDK supports intercepting data at various points in the request/extract life
   </Tab>
   <Tab value="Node.js">
     ```typescript
-    import { Session } from 'crawlingo';
+    import { Session, Page } from 'crawlingo';
 
     async function main() {
       const session = new Session();
-      const page = await session.page("https://example.com/prices");
+      const page = await Page.create("https://example.com/prices", { session });
       
-      // Register hooks
-      page.before_fetch((reqCtx) => {
-        reqCtx.headers["Authorization"] = "Bearer token123";
-      });
+      // Register hooks are Python-only in the current SDK
+      // For Node.js, configure headers via session:
+      session.headers({ "Authorization": "Bearer token123" });
       
-      page.after_extract((textVal) => {
-        return textVal.trim().replace("$", "");
-      });
-      
-      // Query (hooks are automatically applied)
-      const priceEl = (await page.css("span.price-val")).first();
+      // Query
+      const priceEl = page.css("span.price-val").first();
       const price = priceEl ? priceEl.text() : "";
-      console.log(`Cleaned Price: ${price}`);
+      console.log(`Price: ${price}`);
     }
 
     main().catch(console.error);

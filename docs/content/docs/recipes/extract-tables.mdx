@@ -1,0 +1,88 @@
+---
+title: Extract HTML Tables
+description: Recipe for extracting data from HTML tables — handle header rows, merged cells, and nested tables.
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+
+# Extract HTML Tables
+
+## Problem
+
+You need to extract structured data from HTML `<table>` elements on a page.
+
+## Solution
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Page
+    import csv
+
+    page = Page("https://example.com/data-table")
+
+    # Find all tables
+    tables = page.css("table")
+
+    for table_index, table in enumerate(tables):
+        rows = table.css("tr")
+        headers = []
+        data = []
+
+        for row in rows:
+            cells = row.css("th, td")
+            cell_texts = [c.text() for c in cells]
+
+            if row.css("th").first():
+                headers = cell_texts
+            else:
+                data.append(cell_texts)
+
+        # Export table
+        with open(f"table_{table_index}.csv", "w", newline="") as f:
+            writer = csv.writer(f)
+            if headers:
+                writer.writerow(headers)
+            writer.writerows(data)
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Page } from 'crawlingo';
+    import { writeFile } from 'fs/promises';
+
+    const page = await Page.create("https://example.com/data-table");
+    const tables = page.css("table");
+
+    for (let i = 0; i < tables.length; i++) {
+      const rows = tables.at(i)!.css("tr");
+      const headers: string[] = [];
+      const data: string[][] = [];
+
+      for (const row of rows) {
+        const cells = row.css("th, td");
+        const cellTexts: string[] = [];
+        for (const cell of cells) cellTexts.push(cell.text);
+        if (row.css("th").first()) {
+          headers.push(...cellTexts);
+        } else {
+          data.push(cellTexts);
+        }
+      }
+
+      let csv = "";
+      if (headers.length) csv += headers.join(",") + "\n";
+      csv += data.map(r => r.join(",")).join("\n");
+      await writeFile(`table_${i}.csv`, csv);
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Handling Merged Cells
+
+Tables with `rowspan` or `colspan` require position tracking. Use `css()` to get raw cell attributes and compute the grid positions.

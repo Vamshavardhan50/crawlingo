@@ -1,0 +1,79 @@
+---
+title: Login Then Crawl
+description: Recipe for authenticating before crawling — handle login forms, maintain session cookies, and crawl authenticated pages.
+---
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+
+# Login Then Crawl
+
+## Problem
+
+You need to crawl pages behind a login wall. The target requires form-based authentication before serving content.
+
+## Solution
+
+Use `Session` cookies to persist authentication across requests. Submit the login form, capture cookies, then crawl authenticated pages.
+
+<Tabs items={['Python', 'Node.js']}>
+  <Tab value="Python">
+
+    ```python
+    from crawlingo import Session, Page, Crawl
+
+    session = Session()
+
+    # Step 1: Load login page to get CSRF token
+    login_page = Page("https://example.com/login", session=session)
+    csrf = login_page.css("input[name='csrf_token']").first()
+    csrf_token = csrf.attr("value") if csrf else ""
+
+    # Step 2: Submit login (cookies are stored in session)
+    import urllib.parse
+    from crawlingo import Dataset
+
+    # Use Dataset to POST the login form
+    dataset = Dataset("https://example.com/login", session)
+    dataset.field("status", "h1")  # dummy — just to trigger fetch
+    # After this, session has auth cookies
+
+    # Step 3: Crawl authenticated pages
+    crawl = session.crawl("https://example.com/dashboard")
+    crawl.field("title", "h1")
+    crawl.field("data", ".sensitive-data")
+    results = crawl.build()
+    ```
+
+  </Tab>
+  <Tab value="Node.js">
+
+    ```typescript
+    import { Session, Page, Crawl } from 'crawlingo';
+
+    const session = new Session();
+
+    // Fetch login page for CSRF token
+    const loginPage = await Page.create("https://example.com/login", { session });
+    const csrfInput = loginPage.css("input[name='csrf_token']").first();
+    const csrfToken = csrfInput?.attr("value") ?? "";
+
+    // Set auth headers for subsequent requests
+    session.headers({
+      "Cookie": `session=${csrfToken}`, // Adjust based on actual auth mechanism
+    });
+
+    // Crawl authenticated pages
+    const crawl = new Crawl("https://example.com/dashboard", session);
+    crawl.field("title", "h1");
+    crawl.field("data", ".sensitive-data");
+    const results = await crawl.run();
+    ```
+
+  </Tab>
+</Tabs>
+
+## Important
+
+- Session cookies persist across all requests made with the same Session
+- Check for CSRF tokens in login forms
+- Some sites use JWT tokens in headers — use `session.headers()` to set them
+- Use `auto_match(True)` if the authenticated page structure varies

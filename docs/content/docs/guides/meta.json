@@ -1,0 +1,11 @@
+{
+  "title": "Guides",
+  "pages": [
+    "concepts",
+    "sdk",
+    "python-sdk",
+    "nodejs-sdk",
+    "examples",
+    "integrations"
+  ]
+}

@@ -1,0 +1,203 @@
+---
+title: Node.js SDK Guide
+description: TypeScript-first bindings with async/await, complete type declarations, structured multi-row extraction, and detailed API examples.
+---
+
+# Node.js SDK Guide
+
+TypeScript-first bindings for Crawlingo's Rust core with async/await support, complete type declarations, and structured multi-row extraction.
+
+## Installation
+
+```bash
+npm install crawlingo
+```
+
+Requires Node.js 16+. Pre-built `.node` binaries for Windows, macOS, Linux (x86_64, aarch64).
+
+## Key Differences from Python
+
+| Feature | Node.js | Python |
+|---------|---------|--------|
+| Page creation | `await Page.create(url, opts)` | `Page(url, session=s)` |
+| Element access | `.first()`, `.at(n)`, `.text` (getter), `.html` (getter) | `.first()`, `.nth(n)`, `.text()`, `.html()` |
+| No navigation | No `.parent()` / `.children()` / `.next()` / `.prev()` | Full tree navigation |
+| No hooks | No lifecycle hooks API | `before_fetch`, `after_fetch`, etc. |
+| Structured extraction | `.extractStructured()`, `.buildStructured()`, static `saveJson`/`saveCsv` | Not available |
+| Session factories | Pass Session to constructors | `.page()`, `.dataset()`, `.crawl()`, `.watch()` |
+| Crawl return | `.run()` returns `DatasetResult[]` | `.build()` returns `CrawlResults` wrapper |
+| CLI | N/A | `crawlingo shell`, `extract`, `mcp` |
+
+## Session
+
+```typescript
+import { Session } from 'crawlingo';
+
+const session = new Session();
+session.autoMatch(true);
+session.headers({ "User-Agent": "MyBot/1.0" });
+session.rateLimit(3.0);
+session.fetcherTier("stealthy");
+session.browserProfile("chrome");
+session.proxy("http://user:pass@proxy:8080");
+session.proxyPool(["http://proxy1:8080", "http://proxy2:8080"]);
+session.proxyProvider("https://proxy-api.com/list");
+session.fingerprintPath("./fingerprints");
+session.timeout(30);
+session.autoMatchWeights({ text: 2.0, class: 1.5 });
+```
+
+## Page
+
+```typescript
+import { Page } from 'crawlingo';
+
+// Create (static async method)
+const page = await Page.create("https://example.com");
+
+// With options
+const page = await Page.create("https://example.com", {
+  autoMatch: true,
+  timeout: 15,
+  headers: { "Accept": "text/html" },
+  session: session,
+});
+
+// Properties (getters)
+console.log(page.url);     // string
+console.log(page.status);  // number
+console.log(page.html);    // string
+
+// Methods
+console.log(page.title());
+const col = page.css("div.product");
+const col2 = page.xpath("//div[@class='price']");
+const col3 = page.findText("Add to cart");
+const col4 = page.afterText("Price:");
+const col5 = page.beforeText("Description:");
+const col6 = page.regex(r"\$\d+\.\d{2}");
+```
+
+## Element
+
+```typescript
+import { Element } from 'crawlingo';
+
+// Access via ElementCollection
+const el = page.css("div.product").first();
+
+console.log(el.text);  // getter
+console.log(el.html);  // getter
+const href = el.attr("href");  // string | null
+```
+
+Note: Node.js Element has NO navigation methods (no `.parent()`, `.children()`, etc.).
+
+## ElementCollection
+
+```typescript
+import { ElementCollection } from 'crawlingo';
+
+const col = page.css("div.product");
+
+console.log(col.length);        // number
+console.log(col.text);          // string[]  (getter)
+console.log(col.html);          // string[]  (getter)
+console.log(col.attr("href"));  // (string | null)[] 
+
+const first = col.first();      // Element | null
+const second = col.at(1);       // Element | null
+
+for (const el of col) {
+  console.log(el.text);
+}
+```
+
+## Dataset
+
+```typescript
+import { Dataset } from 'crawlingo';
+
+const dataset = new Dataset("https://shop.example.com/item/42");
+dataset.field("name", "h1.title");
+dataset.field("price", "span.price", { defaultVal: "$0.00" });
+dataset.field("sku", ".sku-code", { selectorType: "xpath" });
+dataset.autoMatch(true);
+dataset.timeout(15);
+
+const result = await dataset.build();
+console.log(result.toDict());
+await result.toJson("output.json");
+await result.toCsv("output.csv");
+await result.toParquet("output.parquet");
+```
+
+### Structured Multi-Row Extraction (Node.js Only)
+
+```typescript
+// Extract from an already-fetched Page
+const page = await Page.create("https://table.example.com");
+const dataset = new Dataset("https://table.example.com");
+dataset.field("name", "td.name");
+dataset.field("age", "td.age");
+
+const records = dataset.extractStructured(page);  // sync
+console.log(records);
+// [{name: "Alice", age: "30"}, {name: "Bob", age: "25"}]
+
+// Fetch + extract in one call
+const records2 = await dataset.buildStructured();
+
+// Save to files
+Dataset.saveJson(records, "output.json");
+Dataset.saveCsv(records, "output.csv");
+```
+
+## Crawl
+
+```typescript
+import { Crawl } from 'crawlingo';
+
+const crawl = new Crawl("https://blog.example.com", session);
+crawl.follow("a.next-page");
+crawl.limit(50);
+crawl.depth(3);
+crawl.concurrency(5);
+crawl.delay(0.5);
+crawl.field("title", "h1.entry-title");
+crawl.field("author", "span.author-name", { defaultVal: "Anonymous" });
+crawl.webhook("https://my-api.com/webhook");
+
+const results = await crawl.run();
+console.log(`Crawled ${results.length} pages`);
+for (const result of results) {
+  console.log(result.toDict());
+}
+
+// Schedule recurring crawl
+crawl.schedule(3600);
+```
+
+## Watch
+
+```typescript
+import { Watch } from 'crawlingo';
+
+const watch = new Watch("https://example.com/product/1");
+
+watch.field("price", "span.price");
+watch.field("stock", ".stock-badge");
+watch.interval(300); // every 5 minutes
+
+watch.run((err, event) => {
+  if (err) {
+    console.error("Watch error:", err);
+    return;
+  }
+  console.log(`Change on ${event.url}: ${event.field}`);
+  console.log(`  ${event.changeType}: ${event.oldValue} -> ${event.newValue}`);
+});
+
+// Later...
+watch.stop();
+```

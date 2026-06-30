@@ -1,0 +1,162 @@
+---
+title: Best Practices
+description: Performance optimization, reliability patterns, security guidelines, ethical scraping, and production deployment recommendations.
+---
+
+# Best Practices
+
+## Performance
+
+### Use Sessions for Shared Configuration
+
+Always create a `Session` and reuse it across multiple requests. Sessions share connection pools, rate limiters, and cookie stores.
+
+### Set Appropriate Concurrency
+
+Start with `concurrency(2)` and increase gradually. Monitor target server response times. If response times increase, reduce concurrency.
+
+### Use Auto-Match Selectively
+
+Auto-match has a performance cost (DOM scanning). Enable it only on pages known to change frequently.
+
+### Cache Selectors
+
+CSS and regex selectors are cached globally. Reuse selector strings across calls to avoid re-parsing.
+
+```python
+# Bad — parses twice
+for el in page.css("div.product h2.title"):
+    process(el)
+for el in page.css("div.product h2.title"):
+    process(el)
+
+# Good — cached after first parse
+selectors = "div.product h2.title"
+for el in page.css(selectors):
+    process(el)
+```
+
+### Stream Results
+
+Use file-based export methods (`to_json()`, `to_csv()`) instead of building large in-memory lists.
+
+### Limit Page Content
+
+Use `Dataset` with specific fields instead of fetching full page HTML for every URL.
+
+## Reliability
+
+### Always Set Rate Limits
+
+```python
+session.rate_limit(3.0)  # 3 requests per second per host
+```
+
+Without rate limits, you risk being blocked by target servers.
+
+### Implement Retry Logic
+
+The built-in retry (3 attempts with exponential backoff) handles transient failures. For production, add error monitoring.
+
+### Save Progress Incrementally
+
+For large crawls, save results every 50–100 pages. See [Resume Interrupted Crawl](/recipes/resume-crawl).
+
+### Monitor, Don't Assume
+
+Use logging and webhooks to track crawl progress. Unexpected empty results may indicate selector breakage.
+
+## Security
+
+### Never Hardcode Credentials
+
+Use environment variables or secret management:
+
+```python
+import os
+session.proxy(os.environ["PROXY_URL"])
+```
+
+### Validate URLs
+
+Sanitize input URLs to prevent SSRF attacks:
+
+```python
+from urllib.parse import urlparse
+
+def is_allowed_url(url: str) -> bool:
+    parsed = urlparse(url)
+    return parsed.netloc in ALLOWED_DOMAINS
+```
+
+### Handle Sensitive Data
+
+Avoid exporting pages that contain PII. Use `after_extract` hooks to sanitize data.
+
+## Ethical Scraping
+
+### Respect robots.txt
+
+Before scraping, check the target's `robots.txt`:
+
+```python
+page = Page("https://example.com/robots.txt")
+print(page.html())
+```
+
+### Rate Limit Conservatively
+
+Be a good citizen:
+- 1–3 requests/second for small sites
+- 5–10 requests/second for large sites with permission
+- Respect `Retry-After` headers
+
+### Identify Yourself
+
+Set a descriptive User-Agent with contact information:
+
+```python
+session.headers({
+    "User-Agent": "MyCompanyScraper/1.0 (contact@mycompany.com)"
+})
+```
+
+### Follow Content License Terms
+
+Check the website's terms of service. Some content may be copyrighted or require attribution.
+
+### Crawl During Off-Peak Hours
+
+Schedule large crawls during low-traffic periods for the target server.
+
+## Production Deployment
+
+### Use Environment-Specific Config
+
+```python
+import os
+
+env = os.getenv("ENV", "development")
+if env == "production":
+    session.rate_limit(5.0)
+    session.proxy_pool(os.environ["PROXY_POOL"].split(","))
+```
+
+### Add Structured Logging
+
+```python
+import logging
+logging.basicConfig(level=logging.INFO)
+```
+
+### Set Up Alerts
+
+Use webhooks to get notified of crawl failures:
+
+```python
+crawl.webhook("https://hooks.slack.com/services/YOUR/WEBHOOK/URL")
+```
+
+### Monitor Memory Usage
+
+For very large crawls (millions of pages), use streaming exports and monitor RSS memory.

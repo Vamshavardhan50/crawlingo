@@ -1,0 +1,1143 @@
+---
+title: Examples
+description: 103 real-world examples from beginner one-liners to advanced production patterns — sessions, crawling, watch, auto-match, proxies, stealth mode, MCP, and more.
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Examples
+
+100+ real-world examples from beginner to advanced.
+
+---
+
+## Beginner
+
+### 1. Fetch and Print Page Title
+<Tabs items={['Python', 'Node.js']}>
+<Tab value="Python">
+
+```python
+from crawlingo import Page
+
+page = Page("https://example.com")
+print(page.title())
+```
+
+</Tab>
+<Tab value="Node.js">
+
+```typescript
+import { Page } from 'crawlingo';
+const page = await Page.create("https://example.com");
+console.log(page.title());
+```
+
+</Tab>
+</Tabs>
+
+### 2. Get Page Status and HTML
+
+```python
+page = Page("https://httpbin.org/status/200")
+print(page.status)   # 200
+print(len(page.html()))  # HTML length
+```
+
+### 3. CSS Selector Query
+
+```python
+page = Page("https://example.com")
+links = page.css("a")
+for link in links:
+    print(link.text(), "->", link.attr("href"))
+```
+
+### 4. Extract All Image Sources
+
+```python
+page = Page("https://example.com")
+images = page.css("img")
+for img in images:
+    print(img.attr("src"))
+```
+
+### 5. Find Text on Page
+
+```python
+page = Page("https://example.com")
+matches = page.find_text("More")
+print(matches.text())  # Combined text of matching nodes
+```
+
+### 6. Regex Search
+
+```python
+page = Page("https://example.com")
+emails = page.regex(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
+for el in emails:
+    print(el.text())
+```
+
+### 7. XPath Query
+
+```python
+page = Page("https://example.com")
+divs = page.xpath("//div")
+print(f"Found {len(divs)} divs")
+```
+
+### 8. After Text Anchor
+
+```python
+page = Page("https://example.com")
+prices = page.after_text("Price:")
+print(prices.text())  # Element after "Price:" text
+```
+
+### 9. Before Text Anchor
+
+```python
+page = Page("https://example.com")
+labels = page.before_text(":")
+for label in labels:
+    print(label.text())
+```
+
+### 10. Export Dataset to JSON
+
+```python
+from crawlingo import Dataset
+
+d = Dataset("https://example.com")
+d.field("title", "h1")
+r = d.build()
+r.to_json("output.json")
+```
+
+---
+
+## Intermediate
+
+### 11. Session with Custom Headers
+
+```python
+from crawlingo import Session
+
+session = Session()
+session.headers({"User-Agent": "Mozilla/5.0"})
+page = session.page("https://httpbin.org/headers")
+print(page.text())
+```
+
+### 12. Session with Cookies
+
+```python
+session = Session()
+session.cookies({"session_id": "abc123"})
+page = session.page("https://httpbin.org/cookies")
+print(page.text())
+```
+
+### 13. Using a Proxy
+
+```python
+page = Page("https://httpbin.org/ip", proxy="http://user:pass@proxy:8080")
+print(page.text())
+```
+
+### 14. Multiple Field Extraction
+
+```python
+dataset = Dataset("https://shop.example.com/item")
+dataset.field("name", "h1.product-title")
+dataset.field("price", "span.price")
+dataset.field("rating", ".star-rating")
+dataset.field("availability", ".stock-status")
+result = dataset.build()
+print(result.to_dict())
+```
+
+### 15. Dataset with Default Values
+
+```python
+dataset = Dataset("https://shop.example.com/item")
+dataset.field("name", "h1.title")
+dataset.field("price", "span.price", default="N/A")
+dataset.field("description", "meta[name='description']", default="")
+result = dataset.build()
+print(result["name"])        # Direct access
+print(result.get("price"))   # Via to_dict()
+```
+
+### 16. Dataset with Transform
+
+```python
+def clean_price(val):
+    return float(val.replace("$", "").strip())
+
+dataset = Dataset("https://shop.example.com/item")
+dataset.field("name", "h1.title")
+dataset.field("price", "span.price", transform=clean_price)
+result = dataset.build()
+# price is now a float
+```
+
+### 17. Crawl with Link Following
+
+```python
+crawl = Crawl("https://blog.example.com")
+crawl.follow("a[href*='/post/']")
+crawl.limit(10)
+crawl.depth(2)
+crawl.field("title", "h1")
+results = crawl.build()
+results.to_csv("posts.csv")
+```
+
+### 18. Crawl with Multiple Fields
+
+```python
+crawl = Crawl("https://news.example.com")
+crawl.follow("a.story-link")
+crawl.limit(50)
+crawl.depth(3)
+crawl.field("headline", "h2.story-title")
+crawl.field("author", ".author-name", default="Staff")
+crawl.field("date", "time.publish-date")
+results = crawl.build()
+for r in results:
+    print(r["headline"], "-", r["author"])
+```
+
+### 19. Crawl with Concurrency and Delay
+
+```python
+crawl = Crawl("https://example.com")
+crawl.concurrency(10)
+crawl.delay(0.2)  # 200ms between requests
+crawl.limit(100)
+crawl.field("title", "h1")
+results = crawl.build()
+```
+
+### 20. Webhook Delivery
+
+```python
+crawl = Crawl("https://example.com")
+crawl.follow("a.next")
+crawl.field("title", "h1")
+crawl.webhook("https://my-api.com/crawl-results")
+results = crawl.build()  # Each page result is POSTed to webhook
+```
+
+### 21. Schedule Recurring Crawl
+
+```python
+crawl = Crawl("https://example.com")
+crawl.field("price", ".price")
+crawl.schedule(3600)  # Every hour
+# Runs in background thread
+```
+
+### 22. Watch Price Changes
+
+```python
+watch = Watch("https://shop.example.com/item/42")
+watch.field("price", "span.price")
+watch.interval(60)  # Check every minute
+watch.on_price_change(lambda ev: print(
+    f"Price alert: ${ev.old_value} -> ${ev.new_value}"
+))
+watch.run()  # Blocks
+```
+
+### 23. Watch Multiple Fields
+
+```python
+watch = Watch("https://example.com/product")
+watch.field("price", ".price")
+watch.field("stock", ".stock-status")
+watch.field("title", "h1")
+watch.interval(300)
+watch.on_change(lambda ev: print(f"{ev.field}: {ev.change_type}"))
+watch.run()
+```
+
+### 24. Watch with Stock Alert
+
+```python
+watch = Watch("https://example.com/product")
+watch.field("stock", ".stock-badge")
+watch.interval(60)
+watch.on_stock_change(lambda ev: 
+    print(f"Back in stock!" if "in stock" in ev.new_value.lower() else "Out of stock!")
+)
+watch.run()
+```
+
+### 25. Stop Watch from Callback
+
+```python
+watch = Watch("https://example.com")
+watch.field("status", ".status")
+watch.interval(10)
+counter = 0
+def on_change(ev):
+    global counter
+    counter += 1
+    if counter >= 5:
+        watch.stop()
+watch.on_change(on_change)
+watch.run()
+```
+
+### 26. XPath with Attribute Filter
+
+```python
+results = page.xpath("//div[@class='product']/span[@class='price']")
+print(results.text())
+```
+
+### 27. After Text for Field Extraction
+
+```python
+# Extract value after label "SKU:"
+sku = page.after_text("SKU:").text()
+print(sku)
+```
+
+### 28. Regex Price Extraction
+
+```python
+prices = page.regex(r"\$\d+\.\d{2}")
+for p in prices:
+    print(p.text())
+```
+
+### 29. Element Navigation
+
+```python
+el = page.css("div.product").first()
+print(el.text())       # Content
+print(el.html())       # HTML
+print(el.attrs())      # All attributes
+parent = el.parent()   # Navigate up
+children = el.children()  # Navigate down
+next_el = el.next()    # Next sibling
+prev_el = el.prev()    # Previous sibling
+siblings = el.siblings()  # All siblings
+```
+
+### 30. ElementCollection Filter
+
+```python
+products = page.css("div.product")
+expensive = products.filter(lambda e: "$" in e.text())
+for el in expensive:
+    print(el.text())
+```
+
+### 31. ElementCollection Map
+
+```python
+links = page.css("a[href]")
+urls = links.map(lambda e: e.attr("href"))
+for url in urls:
+    print(url)
+```
+
+### 32. Auto-Match Enabled
+
+```python
+page = Page("https://example.com", auto_match=True)
+# If .price changes to .price-tag, auto-matcher recovers
+result = page.css("span.price")
+print(result.text())
+```
+
+### 33. Auto-Match via Session
+
+```python
+session = Session()
+session.auto_match(True)
+session.auto_match_weights({"text": 3.0, "class": 0.5})
+page = session.page("https://example.com")
+```
+
+### 34. Custom Fingerprint Path
+
+```python
+session = Session()
+session.fingerprint_path("./my_fingerprints")
+session.auto_match(True)
+```
+
+### 35. Rate Limited Crawl
+
+```python
+session = Session()
+session.rate_limit(5.0)  # 5 requests/second max
+crawl = session.crawl("https://example.com")
+crawl.follow("a")
+crawl.limit(100)
+results = crawl.build()
+```
+
+---
+
+## Advanced
+
+### 36. Proxy Pool Rotation
+
+```python
+session = Session()
+session.proxy_pool([
+    "http://user1:pass1@us-proxy:8080",
+    "http://user2:pass2@eu-proxy:8080",
+    "http://user3:pass3@asia-proxy:8080",
+])
+page = session.page("https://httpbin.org/ip")
+page2 = session.page("https://httpbin.org/ip")
+# Each request uses next proxy in round-robin
+```
+
+### 37. Dynamic Proxy Provider
+
+```python
+session = Session()
+session.proxy_provider("https://proxy-api.com/list.txt")
+# Proxies fetched, parsed (one per line), and loaded into pool
+```
+
+### 38. Stealth Mode with Browser Profile
+
+```python
+session = Session()
+session.fetcher_tier("stealthy")
+session.browser_profile("firefox")
+page = session.page("https://example.com")
+```
+
+### 39. Custom Similarity Weights
+
+```python
+session = Session()
+session.auto_match(True)
+session.auto_match_weights({
+    "text": 3.0,
+    "class": 0.5,
+    "id": 2.0,
+    "attribute": 0.5,
+    "tag": 1.0,
+    "depth": 0.3,
+    "ancestor": 1.0,
+})
+```
+
+### 40. Async Dataset Build
+
+```python
+import asyncio
+
+async def extract():
+    d = Dataset("https://example.com")
+    d.field("title", "h1")
+    result = await d.build_async()
+    return result.to_dict()
+
+data = asyncio.run(extract())
+```
+
+### 41. Async Watch
+
+```python
+import asyncio
+
+async def monitor():
+    watch = Watch("https://example.com")
+    watch.field("price", ".price")
+    watch.interval(60)
+    watch.on_price_change(lambda ev: print(f"Change: {ev.new_value}"))
+    await watch.run_async()
+
+asyncio.run(monitor())
+```
+
+### 42. Bulk Export All Formats
+
+```python
+dataset = Dataset("https://example.com")
+dataset.field("title", "h1")
+result = dataset.build()
+result.to_json("data.json")
+result.to_csv("data.csv")
+result.to_parquet("data.parquet")
+print(result.df())  # Pandas DataFrame
+```
+
+### 43. CrawlResults Export
+
+```python
+crawl = Crawl("https://example.com")
+crawl.field("title", "h1")
+results = crawl.build()
+results.to_json("all.json")
+results.to_csv("all.csv")
+results.to_parquet("all.parquet")
+df = results.df()
+```
+
+### 44. Use Hooks for Logging
+
+```python
+from crawlingo.hooks import log_request, log_response
+
+page = Page("https://example.com")
+page.before_fetch(log_request)
+page.after_fetch(log_response)
+page.title()  # Logs: "Fetching: https://example.com" then "Received Status: 200"
+```
+
+### 45. Use Hooks for HTML Modification
+
+```python
+page = Page("https://example.com")
+page.before_parse(lambda html: html.replace(
+    '<script>', '<!-- script removed -->'
+))
+page.after_extract(lambda val: val.strip())
+```
+
+### 46. Before Fetch Hook to Modify Headers
+
+```python
+def add_token(req):
+    req.headers["Authorization"] = "Bearer token123"
+
+page = Page("https://api.example.com/data")
+page.before_fetch(add_token)
+```
+
+### 47. Stealth Crawling
+
+```python
+session = Session()
+session.fetcher_tier("stealthy")
+session.browser_profile("chrome")
+session.rate_limit(2.0)
+
+crawl = session.crawl("https://example.com")
+crawl.follow("a")
+crawl.limit(50)
+crawl.field("title", "h1")
+crawl.concurrency(3)
+results = crawl.build()
+```
+
+### 48. Deep Crawl (5 Levels)
+
+```python
+crawl = Crawl("https://example.com")
+crawl.follow("a")
+crawl.depth(5)
+crawl.limit(500)
+crawl.concurrency(8)
+crawl.field("url", "a", selector_type="xpath")
+results = crawl.build()
+```
+
+### 49. Crawl with No Link Following (Single Page)
+
+```python
+crawl = Crawl("https://example.com")
+# No .follow() set — only the start URL is fetched
+crawl.field("title", "h1")
+result = crawl.build()
+```
+
+### 50. Extract Tables with Structured Mode (Node.js)
+
+```typescript
+const page = await Page.create("https://table.example.com");
+const dataset = new Dataset("https://table.example.com");
+
+dataset.field("name", "td:nth-child(1)");
+dataset.field("age", "td:nth-child(2)");
+dataset.field("city", "td:nth-child(3)");
+
+const records = dataset.extractStructured(page);
+console.log(records);
+// [{name: "Alice", age: "30", city: "NYC"}, ...]
+```
+
+### 51. Save Structured Records (Node.js)
+
+```typescript
+const dataset = new Dataset("https://table.example.com");
+dataset.field("name", "td.name");
+dataset.field("score", "td.score");
+
+const records = await dataset.buildStructured();
+Dataset.saveJson(records, "results.json");
+Dataset.saveCsv(records, "results.csv");
+```
+
+### 52. Watch with Synchronous Stop
+
+```python
+import threading
+
+watch = Watch("https://example.com")
+watch.field("title", "h1")
+watch.interval(5)
+
+# Run in background thread
+t = threading.Thread(target=watch.run, daemon=True)
+t.start()
+
+# Do other work...
+import time
+time.sleep(20)
+watch.stop()  # Stops the polling loop
+```
+
+### 53. Element After Text Pattern
+
+```python
+# Common pattern: label: value
+labels = ["Price:", "Rating:", "SKU:", "Brand:"]
+for label in labels:
+    value = page.after_text(label).text()
+    print(f"{label} {value}")
+```
+
+### 54. Element Before Text for Headers
+
+```python
+# Find section headers followed by content
+headers = page.find_text("h2")
+for h in headers:
+    content = h.next()
+    if content:
+        print(f"Section: {h.text()} -> {content.text()}")
+```
+
+### 55. Regex for Multiple Patterns
+
+```python
+# Extract all prices and dates
+data = page.regex(r"\$\d+\.\d{2}|\d{4}-\d{2}-\d{2}")
+for item in data:
+    print(item.text())
+```
+
+### 56. Session Reuse Across Pages
+
+```python
+session = Session()
+session.auto_match(True)
+session.headers({"Accept": "application/json"})
+
+urls = ["https://api.example.com/item/1", "https://api.example.com/item/2"]
+for url in urls:
+    page = Page(url, session=session)
+    print(page.title())
+    # Session cookies are shared across requests
+```
+
+### 57. Context Manager with Page
+
+```python
+with Session() as session:
+    session.auto_match(True)
+    session.timeout(10)
+    page = session.page("https://example.com")
+    print(page.title())
+```
+
+### 58. Extract Meta Tags
+
+```python
+page = Page("https://example.com")
+description = page.css("meta[name='description']").attr("content")
+keywords = page.css("meta[name='keywords']").attr("content")
+print(f"Desc: {description}")
+print(f"Keywords: {keywords}")
+```
+
+### 59. Extract Structured Data (JSON-LD)
+
+```python
+# JSON-LD is in <script type="application/ld+json">
+scripts = page.css("script[type='application/ld+json']")
+for script in scripts:
+    import json
+    data = json.loads(script.text())
+    print(data)
+```
+
+### 60. Extract All Links
+
+```python
+page = Page("https://example.com")
+links = page.css("a[href]")
+for link in links:
+    href = link.attr("href")
+    text = link.text()
+    if href and href.startswith("http"):
+        print(f"{text}: {href}")
+```
+
+---
+
+## Real-World Scenarios
+
+### 61. Monitor Product Price Drop
+
+```python
+watch = Watch("https://shop.example.com/product/123")
+watch.field("name", "h1.product-title")
+watch.field("price", "span.price-final")
+watch.interval(3600)  # Check every hour
+
+def price_alert(ev):
+    try:
+        old = float(ev.old_value.replace("$", ""))
+        new = float(ev.new_value.replace("$", ""))
+        if new < old:
+            print(f"🔥 PRICE DROP! {ev.new_value} (was {ev.old_value})")
+    except ValueError:
+        pass
+
+watch.on_price_change(price_alert)
+watch.run()
+```
+
+### 62. Crawl Blog and Export to CSV
+
+```python
+crawl = Crawl("https://blog.example.com")
+crawl.follow("a.post-link")
+crawl.limit(100)
+crawl.depth(3)
+crawl.field("title", "h1.post-title")
+crawl.field("author", ".author-name")
+crawl.field("date", "time.published")
+crawl.field("content", ".post-body p", selector_type="text")
+crawl.concurrency(5)
+results = crawl.build()
+results.to_csv("blog_posts.csv")
+print(f"Exported {len(results)} posts")
+```
+
+### 63. Scrape E-Commerce Product Catalog
+
+```python
+session = Session()
+session.rate_limit(3.0)
+session.auto_match(True)
+
+crawl = session.crawl("https://shop.example.com/category/electronics")
+crawl.follow("a.product-link, a.next-page")
+crawl.limit(200)
+crawl.depth(4)
+crawl.field("name", "h2.product-name")
+crawl.field("price", "span.price")
+crawl.field("old_price", "span.old-price", default="")
+crawl.field("rating", ".rating-stars", selector_type="xpath")
+crawl.field("reviews", "span.review-count")
+crawl.field("sku", ".sku-value", default="N/A")
+crawl.concurrency(8)
+crawl.delay(0.3)
+
+results = crawl.build()
+results.to_parquet("products.parquet")
+```
+
+### 64. Scrape Job Listings
+
+```python
+crawl = Crawl("https://jobs.example.com/search?q=engineer")
+crawl.follow("a.job-title, a.next")
+crawl.limit(50)
+crawl.field("title", "h1.job-title")
+crawl.field("company", ".company-name")
+crawl.field("location", ".job-location")
+crawl.field("salary", ".salary-range", default="Not listed")
+crawl.field("description", ".job-description p")
+results = crawl.build()
+```
+
+### 65. Scrape News Articles
+
+```python
+crawl = Crawl("https://news.example.com")
+crawl.follow("a.article-link")
+crawl.limit(30)
+crawl.field("headline", "h1.article-title")
+crawl.field("author", ".byline")
+crawl.field("date", "time.article-date")
+crawl.field("body", ".article-content p")
+results = crawl.build()
+```
+
+### 66. Scrape Documentation Pages
+
+```python
+crawl = Crawl("https://docs.example.com/getting-started")
+crawl.follow("a[href*='/docs/']")
+crawl.limit(100)
+crawl.depth(5)
+crawl.field("title", "h1")
+crawl.field("content", "main article", selector_type="css")
+results = crawl.build()
+```
+
+### 67. Scrape Social Media Profile
+
+```python
+page = Page("https://social.example.com/user/alice")
+name = page.css("h1.profile-name").text()
+bio = page.css(".profile-bio").text()
+followers = page.css("span.follower-count").text()
+posts = page.css("div.post").texts()
+print(f"{name}: {followers} followers")
+```
+
+### 68. Extract API Documentation Endpoints
+
+```python
+page = Page("https://api.example.com/docs")
+endpoints = page.css("div.endpoint")
+for ep in endpoints:
+    method = ep.css("span.method").text()
+    path = ep.css("span.path").text()
+    desc = ep.css("p.description").text()
+    print(f"{method} {path}: {desc}")
+```
+
+### 69. Monitor Stock Availability
+
+```python
+watch = Watch("https://shop.example.com/product/456")
+watch.field("stock", ".stock-status")
+watch.interval(60)
+
+def stock_alert(ev):
+    if "in stock" in ev.new_value.lower():
+        print(f"✅ BACK IN STOCK!")
+        # Could send email, SMS, etc.
+
+watch.on_stock_change(stock_alert)
+watch.run()
+```
+
+### 70. Extract Academic Paper Metadata
+
+```python
+page = Page("https://scholar.example.com/paper/123")
+title = page.css("h1.paper-title").text()
+authors = page.css("span.author").texts()
+abstract = page.css("div.abstract").text()
+citations = page.after_text("Cited by:").text()
+pdf_link = page.css("a.download-pdf").attr("href")
+```
+
+---
+
+## CLI
+
+### 71. Interactive Shell
+
+```bash
+crawlingo shell
+```
+
+### 72. Interactive Shell with URL
+
+```bash
+crawlingo shell https://example.com
+# page variable is pre-loaded
+# Try: page.title() or page.css("h1").text()
+```
+
+### 73. Extract with CSS
+
+```bash
+crawlingo extract https://example.com --css "h1"
+```
+
+### 74. Extract with XPath
+
+```bash
+crawlingo extract https://example.com --xpath "//title"
+```
+
+### 75. Extract with Regex
+
+```bash
+crawlingo extract https://example.com --regex "\$\d+\.\d{2}"
+```
+
+### 76. Extract with Multiple Selectors
+
+```bash
+crawlingo extract https://example.com --css "h1" --xpath "//title" --json
+```
+
+### 77. Extract with Auto-Match
+
+```bash
+crawlingo extract https://example.com --css "span.old-class" --auto-match
+```
+
+### 78. Start MCP Server
+
+```bash
+crawlingo mcp --host 0.0.0.0 --port 8000
+```
+
+### 79. MCP Server (Default)
+
+```bash
+crawlingo mcp
+# Binds to 127.0.0.1:8000
+```
+
+---
+
+## MCP
+
+### 80. MCP Initialize
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {}
+}
+```
+
+### 81. MCP List Tools
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/list"
+}
+```
+
+### 82. MCP Fetch Page
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "tools/call",
+  "params": {
+    "name": "fetch_page",
+    "arguments": {
+      "url": "https://example.com",
+      "auto_match": true
+    }
+  }
+}
+```
+
+### 83. MCP Extract Data
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "method": "tools/call",
+  "params": {
+    "name": "extract_data",
+    "arguments": {
+      "url": "https://shop.example.com/item",
+      "fields": [
+        {"name": "title", "selector": "h1"},
+        {"name": "price", "selector": ".price"}
+      ]
+    }
+  }
+}
+```
+
+### 84. MCP Crawl Site
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "method": "tools/call",
+  "params": {
+    "name": "crawl_site",
+    "arguments": {
+      "start_url": "https://blog.example.com",
+      "follow_selector": "a.next",
+      "fields": [
+        {"name": "title", "selector": "h1"}
+      ]
+    }
+  }
+}
+```
+
+---
+
+## Best Practices
+
+### 85. Always Use Rate Limiting
+
+```python
+session = Session()
+session.rate_limit(3.0)  # Be polite
+```
+
+### 86. Enable Auto-Match for Production
+
+```python
+session = Session()
+session.auto_match(True)  # Survive site changes
+```
+
+### 87. Use Sessions for Multiple Requests
+
+```python
+session = Session()  # Reuse connection pool
+for url in urls:
+    page = Page(url, session=session)
+    # Connections are reused
+```
+
+### 88. Set Timeouts
+
+```python
+page = Page("https://slow.example.com", timeout=10)
+```
+
+### 89. Handle Errors
+
+```python
+from crawlingo import FetchError, TimeoutError
+
+try:
+    page = Page("https://example.com")
+except FetchError as e:
+    print(f"Network issue: {e}")
+except TimeoutError as e:
+    print(f"Timeout: {e}")
+```
+
+### 90. Use Proxy for Blocked Sites
+
+```python
+page = Page("https://blocked.example.com", proxy="http://proxy:8080")
+```
+
+### 91. Limit Crawl Depth
+
+```python
+crawl.depth(2)  # Don't crawl entire internet
+```
+
+### 92. Use Default Values
+
+```python
+crawl.field("price", ".price", default="N/A")
+crawl.field("rating", ".rating", default="0")
+```
+
+### 93. Prefer CSS Selectors
+
+CSS selectors are cached globally and faster than XPath for simple queries.
+
+### 94. Batch Export with CrawlResults
+
+```python
+results = crawl.build()
+results.to_csv("all.csv")  # Single file, all pages
+```
+
+### 95. Use Dataset for Single-Page Extraction
+
+Don't use Crawl for one page — Dataset is simpler and faster.
+
+---
+
+## Edge Cases
+
+### 96. Empty Page
+
+```python
+page = Page("https://example.com/empty")
+result = page.css("h1")
+print(result.text())  # "" (empty string)
+print(len(result))    # 0
+```
+
+### 97. Page with No Title
+
+```python
+page = Page("https://example.com/notitle")
+print(page.title())  # "" (empty string, no error)
+```
+
+### 98. Invalid Regex Pattern
+
+```python
+try:
+    page.regex(r"[invalid")  # Unclosed bracket
+except SelectorError as e:
+    print(f"Bad regex: {e}")
+```
+
+### 99. Auto-Match with No Fingerprint
+
+```python
+page = Page("https://example.com", auto_match=True)
+# First query succeeds, creates fingerprint
+result = page.css("span.price")
+print(result.text())
+
+# If selector still works, auto-match not triggered
+# If it fails, auto-match tries to recover
+```
+
+### 100. Watch with Rapid Polling
+
+```python
+watch = Watch("https://example.com")
+watch.field("price", ".price")
+watch.interval(1)  # Every second — aggressive!
+watch.on_change(lambda ev: print(f"Change: {ev.new_value}"))
+# watch.run() — runs forever
+```
+
+### 101. Very Large Page
+
+```python
+page = Page("https://large.example.com")
+print(len(page.html()))  # Full HTML string
+# DOM tree is parsed streaming, memory efficient
+```
+
+### 102. Page Behind Login
+
+```python
+session = Session()
+session.cookies({"session": "valid-token"})
+page = session.page("https://dashboard.example.com")
+```
+
+### 103. Page with Redirect
+
+```python
+page = Page("https://httpbin.org/redirect-to?url=https://example.com")
+print(page.url)    # Final URL after redirects
+print(page.status)  # 200
+```
