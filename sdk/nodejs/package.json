@@ -22,7 +22,8 @@
     "prepack": "npm run build:ts && node scripts/copy-native-assets.cjs",
     "build:ts": "tsc",
     "lint": "tsc --noEmit",
-    "test": "node tests/smoke.cjs"
+    "test": "node tests/smoke.cjs",
+    "test:amazon": "node tests/amazon-scrape.cjs"
   },
   "devDependencies": {
     "@napi-rs/cli": "^2.18.4",
