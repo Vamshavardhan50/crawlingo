@@ -52,7 +52,8 @@ import tempfile
 import threading
 import traceback
 from datetime import datetime
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
 
 import crawlingo
 from crawlingo import (
@@ -120,13 +121,13 @@ class _TestRequestHandler(BaseHTTPRequestHandler):
         hdrs["Connection"] = "close"
         if status == 200:
             hdrs.setdefault("Set-Cookie", "test_session=abc123; Path=/")
-        self.send_response(status)
-        for k, v in hdrs.items():
-            self.send_header(k, v)
-        self.end_headers()
         try:
+            self.send_response(status)
+            for k, v in hdrs.items():
+                self.send_header(k, v)
+            self.end_headers()
             self.wfile.write(body)
-        except BrokenPipeError:
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
             pass
 
     def do_GET(self):
@@ -137,7 +138,10 @@ class _TestRequestHandler(BaseHTTPRequestHandler):
             return self._send(int(p[1:]), {"Content-Type": "text/plain"}, b"error")
         if p == "/auth":
             auth = self.headers.get("Authorization", "")
-            if "test_token" in auth or "dGVzdDpwYXNz" in auth:
+            cookie = self.headers.get("Cookie", "")
+            api_key = self.headers.get("X-API-Key", "")
+            if ("test_token" in auth or "dGVzdDpwYXNz" in auth or
+                "session" in cookie or api_key):
                 return self._send(200, {"Content-Type": "application/json"},
                                   b'{"authenticated":true}')
             return self._send(401, {"WWW-Authenticate": 'Bearer realm="test"',
@@ -184,7 +188,7 @@ class TestServer:
     """Local HTTP server for integration tests. Usage: with TestServer() as s: ..."""
 
     def __init__(self):
-        self.server = HTTPServer(("127.0.0.1", 0), _TestRequestHandler)
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), _TestRequestHandler)
         self.port = self.server.server_address[1]
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
 
