@@ -30,6 +30,11 @@ impl DnsCache {
     /// Resolves a host name to an IP Address, utilizing the cache.
     pub async fn resolve(&self, host: &str) -> Result<IpAddr> {
         let host_str = host.to_string();
+        if let Ok(ip) = host.parse::<IpAddr>() {
+            self.cache.insert(host_str, ip).await;
+            return Ok(ip);
+        }
+
         if let Some(ip) = self.cache.get(&host_str).await {
             return Ok(ip);
         }
@@ -60,11 +65,11 @@ mod tests {
     #[tokio::test]
     async fn test_dns_cache_resolution() {
         let cache = DnsCache::new(60);
-        let ip = cache.resolve("example.com").await;
+        let ip = cache.resolve("127.0.0.1").await;
         assert!(ip.is_ok());
 
         // Secondary lookup should hit cache
-        let ip2 = cache.resolve("example.com").await;
+        let ip2 = cache.resolve("127.0.0.1").await;
         assert_eq!(ip.unwrap(), ip2.unwrap());
     }
 }

@@ -16,10 +16,13 @@
     }
   },
   "scripts": {
-    "build": "napi build --platform --release --js src/native.js --dts src/native.d.ts --cargo-cwd native .",
+    "build": "npm run build:native && npm run build:ts && node scripts/copy-native-assets.cjs",
+    "build:native": "napi build --platform --release --js src/native.js --dts src/native.d.ts --cargo-cwd native .",
     "build:debug": "napi build --platform --js src/native.js --dts src/native.d.ts --cargo-cwd native .",
-    "prepack": "tsc && node -e \"const fs = require('fs'); fs.copyFileSync('src/native.js', 'dist/native.js'); fs.copyFileSync('src/native.d.ts', 'dist/native.d.ts'); fs.readdirSync('.').filter(f => f.endsWith('.node')).forEach(f => fs.copyFileSync(f, 'dist/' + f)); fs.readdirSync('src').filter(f => f.endsWith('.node')).forEach(f => fs.copyFileSync('src/' + f, 'dist/' + f));\"",
-    "build:ts": "tsc"
+    "prepack": "npm run build:ts && node scripts/copy-native-assets.cjs",
+    "build:ts": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "node tests/smoke.cjs"
   },
   "devDependencies": {
     "@napi-rs/cli": "^2.18.4",

@@ -322,13 +322,37 @@ impl Fetcher {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+
+    async fn spawn_test_server() -> String {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind local test server");
+        let addr = listener.local_addr().expect("read local test server addr");
+
+        tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.expect("accept request");
+            let mut buf = [0_u8; 1024];
+            let _ = socket.read(&mut buf).await.expect("read request");
+            socket
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\ncontent-type: text/html; charset=utf-8\r\nset-cookie: session=test\r\ncontent-length: 31\r\n\r\n<html><title>OK</title></html>",
+                )
+                .await
+                .expect("write response");
+        });
+
+        format!("http://{}", addr)
+    }
 
     #[tokio::test]
     async fn test_fetcher_standard() {
+        let url = spawn_test_server().await;
         let rl = Arc::new(HostRateLimiter::new());
         let manager = FetchManager::new(rl, ConnectionPoolConfig::default());
         let req = FetchRequest {
-            url: "https://httpbin.org/get".to_string(),
+            url,
             tier: FetcherTier::Standard,
             browser_profile: None,
             headers: HashMap::new(),
@@ -342,15 +366,12 @@ mod tests {
         let res = manager.dispatch(req).await;
         assert!(res.is_ok());
         let resp = res.unwrap();
-        assert!(
-            resp.status == 200
-                || resp.status == 503
-                || resp.status == 403
-                || resp.status == 429
-                || resp.status == 301
-                || resp.status == 302,
-            "Unexpected status code: {}",
-            resp.status
+        assert_eq!(resp.status, 200);
+        assert_eq!(resp.content_type, "text/html; charset=utf-8");
+        assert_eq!(
+            resp.cookies.get("session").map(String::as_str),
+            Some("test")
         );
+        assert_eq!(&resp.body[..], b"<html><title>OK</title></html>");
     }
 }
