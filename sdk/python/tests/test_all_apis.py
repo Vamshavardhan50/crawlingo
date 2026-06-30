@@ -76,6 +76,8 @@ except ImportError:
 
 SAVE_LOG = "--save" in sys.argv
 
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Local Test HTTP Server
@@ -683,9 +685,8 @@ def test_dataset(runner, server):
         return
 
     runner.subsection("21.3 Export")
-    tmp = tempfile.gettempdir()
     try:
-        csv_path = os.path.join(tmp, "_crawlingo_test.csv")
+        csv_path = os.path.join(TEST_DIR, "_crawlingo_test.csv")
         result.to_csv(csv_path)
         with open(csv_path) as f:
             header = next(csv.reader(f))
@@ -694,7 +695,7 @@ def test_dataset(runner, server):
         runner.check("CSV export", False, str(e)[:80])
 
     try:
-        json_path = os.path.join(tmp, "_crawlingo_test.json")
+        json_path = os.path.join(TEST_DIR, "_crawlingo_test.json")
         result.to_json(json_path)
         with open(json_path) as f:
             data = json.load(f)
@@ -703,7 +704,7 @@ def test_dataset(runner, server):
         runner.check("JSON export", False, str(e)[:80])
 
     try:
-        pq_path = os.path.join(tmp, "_crawlingo_test.parquet")
+        pq_path = os.path.join(TEST_DIR, "_crawlingo_test.parquet")
         result.to_parquet(pq_path)
         runner.check("Parquet export — file written",
                      os.path.exists(pq_path) and os.path.getsize(pq_path) > 0)
@@ -917,7 +918,7 @@ def main():
     # Capture output to log file
     if SAVE_LOG:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_path = os.path.join(os.getcwd(), f"crawlingo_test_output_{timestamp}.log")
+        log_path = os.path.join(TEST_DIR, f"crawlingo_test_output_{timestamp}.log")
         log_file = open(log_path, "w", encoding="utf-8")
         sys.stdout = Tee(sys.stdout, log_file)
         print(f"Output also saved to: {log_path}")

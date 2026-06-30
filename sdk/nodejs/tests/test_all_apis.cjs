@@ -19,6 +19,8 @@ const path = require('path');
 const os = require('os');
 const { Page, Session, Dataset, Crawl, Watch, ElementCollection, Element } = require('../dist');
 
+const TEST_DIR = __dirname;
+
 const TIMEOUT_S = 10;
 const SAVE_LOG = process.argv.includes('--save');
 
@@ -27,7 +29,7 @@ const SAVE_LOG = process.argv.includes('--save');
 const LOG_STREAMS = [process.stdout];
 if (SAVE_LOG) {
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
-  const logPath = path.join(process.cwd(), `crawlingo_test_output_${ts}.log`);
+  const logPath = path.join(TEST_DIR, `crawlingo_test_output_${ts}.log`);
   const logFd = fs.createWriteStream(logPath, 'utf-8');
   LOG_STREAMS.push(logFd);
   console.log = (...args) => {
@@ -371,11 +373,10 @@ async function testExtraction(runner, base) {
   catch (e) { runner.check('buildStructured', false, (e.message||'').slice(0,60)); }
 
   runner.subsection('15.5 Static saveJson/saveCsv');
-  const tmp = os.tmpdir();
-  Dataset.saveJson([{h:'T',p:'H'}], path.join(tmp, '_crawlingo_js_test.json'));
-  runner.check('saveJson file exists', fs.existsSync(path.join(tmp, '_crawlingo_js_test.json')));
-  Dataset.saveCsv([{h:'T',p:'H'}], path.join(tmp, '_crawlingo_js_test.csv'));
-  runner.check('saveCsv file exists', fs.existsSync(path.join(tmp, '_crawlingo_js_test.csv')));
+  Dataset.saveJson([{h:'T',p:'H'}], path.join(TEST_DIR, '_crawlingo_js_test.json'));
+  runner.check('saveJson file exists', fs.existsSync(path.join(TEST_DIR, '_crawlingo_js_test.json')));
+  Dataset.saveCsv([{h:'T',p:'H'}], path.join(TEST_DIR, '_crawlingo_js_test.csv'));
+  runner.check('saveCsv file exists', fs.existsSync(path.join(TEST_DIR, '_crawlingo_js_test.csv')));
 
   runner.subsection('15.6 Dataset.build()');
   const ds3 = new Dataset(base, new Session());
@@ -432,15 +433,14 @@ async function testDataset(runner, base) {
   } catch (e) { runner.check('Dataset.build()', false, (e.message||'').slice(0,80)); return; }
 
   runner.subsection('21.3 Export');
-  const tmp = os.tmpdir();
   try {
     const r = await ds.build();
-    await r.toCsv(path.join(tmp, '_crawlingo_n_test.csv'));
-    runner.check('CSV export', fs.existsSync(path.join(tmp, '_crawlingo_n_test.csv')));
-    await r.toJson(path.join(tmp, '_crawlingo_n_test.json'));
-    runner.check('JSON export', fs.existsSync(path.join(tmp, '_crawlingo_n_test.json')));
-    await r.toParquet(path.join(tmp, '_crawlingo_n_test.parquet'));
-    runner.check('Parquet export', fs.existsSync(path.join(tmp, '_crawlingo_n_test.parquet')));
+    await r.toCsv(path.join(TEST_DIR, '_crawlingo_n_test.csv'));
+    runner.check('CSV export', fs.existsSync(path.join(TEST_DIR, '_crawlingo_n_test.csv')));
+    await r.toJson(path.join(TEST_DIR, '_crawlingo_n_test.json'));
+    runner.check('JSON export', fs.existsSync(path.join(TEST_DIR, '_crawlingo_n_test.json')));
+    await r.toParquet(path.join(TEST_DIR, '_crawlingo_n_test.parquet'));
+    runner.check('Parquet export', fs.existsSync(path.join(TEST_DIR, '_crawlingo_n_test.parquet')));
   } catch (e) { runner.check('Export', false, (e.message||'').slice(0,80)); }
 
   runner.skip('Update/Delete', 'Read-only');
