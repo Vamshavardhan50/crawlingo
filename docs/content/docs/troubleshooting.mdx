@@ -1,369 +1,53 @@
 ---
-title: Troubleshooting
-description: Common errors, root causes, solutions, debugging guide, logging guide, and common mistakes for Crawlingo.
+title: Troubleshooting FAQ
+description: Quickly resolve common setup failures, selector issues, and rate limits problems.
 ---
 
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 
-# Troubleshooting
+# Troubleshooting FAQ
 
-Common errors, root causes, and solutions.
-
----
-
-## Installation Issues
-
-### `pip install crawlingo` fails
-
-**Cause:** Missing Rust toolchain or platform not supported.
-
-**Solutions:**
-- Verify Python 3.9+ is installed
-- Check for pre-built wheel for your platform (`pip install --only-binary crawlingo`)
-- Or build from source: `pip install crawlingo --no-binary crawlingo` (requires Rust toolchain)
-
-### `npm install crawlingo` fails
-
-**Cause:** Missing pre-built `.node` binary for your platform.
-
-**Solution:** Ensure Node.js 16+ and the target platform matches (x86_64 or aarch64, Windows/macOS/Linux).
+Quickly resolve common setup failures, selector issues, and rate limits problems.
 
 ---
 
-## Fetch Errors
-
-### `FetchError: connection refused`
-
-**Cause:** Target server is down or blocking the request.
-
-**Solutions:**
-- Verify the URL is correct
-- Check if the server is accessible from your network
-- Add a proxy: `Page(url, proxy="http://proxy:8080")`
-- Check if the site blocks your IP (rotate proxies)
-
-### `FetchError: DNS resolution failed`
-
-**Cause:** Domain name could not be resolved.
-
-**Solutions:**
-- Check network connectivity
-- Try using a different DNS resolver
-- Use an IP address directly if possible
-
-### `FetchError: SSL error`
-
-**Cause:** TLS handshake failure.
-
-**Solutions:**
-- Try `fetcher_tier("standard")` instead of `"stealthy"`
-- Use a proxy if the server is geographically restricted
-
-### `FetchError: timeout`
-
-**Cause:** Server response exceeded the configured timeout.
-
-**Solutions:**
-- Increase timeout: `Page(url, timeout=60)`
-- Check server responsiveness
-- Reduce concurrency to avoid overwhelming the server
-
-### `FetchError: Too many requests (429)`
-
-**Cause:** Server rate limiting.
-
-**Solutions:**
-- Reduce rate limit: `session.rate_limit(1.0)`
-- Add delay between requests: `crawl.delay(1.0)`
-- Rotate proxies
-
----
-
-## Selector Errors
-
-### `SelectorError: Invalid CSS selector`
-
-**Cause:** The CSS selector syntax is incorrect.
-
-**Solutions:**
-- Check for typos
-- Avoid unsupported pseudo-classes (`:nth-child`, `:hover`)
-- Use simpler class/ID selectors
-
-### `SelectorError: Invalid regex pattern`
-
-**Cause:** The regex pattern has syntax errors.
-
-**Solutions:**
-- Test the pattern with Python's `re` module first
-- Escape special characters
-
-### Empty results (no error)
-
-**Cause:** The selector is valid but matches nothing.
-
-**Solutions:**
-- Check if the element exists in the page HTML
-- Enable auto-match: `Page(url, auto_match=True)`
-- Try multiple selector types (CSS, XPath, text)
-- Use `page.html()` to inspect actual HTML content
-
----
-
-## Auto-Match Errors
-
-### `AutoMatchFailed: no element found above threshold`
-
-**Cause:** The page structure changed significantly and no DOM element is similar enough to the stored fingerprint.
-
-**Solutions:**
-- Update your selectors to match the new layout
-- Clear old fingerprints (delete the fingerprint store directory)
-- Lower the similarity threshold (custom weights not currently supported for threshold)
-- Check if the page content actually still exists
-
-### Auto-match returns wrong element
-
-**Cause:** The fingerprint matches a structurally similar but semantically different element.
-
-**Solutions:**
-- Make selectors more specific (add ID or class constraints)
-- Adjust similarity weights: `session.auto_match_weights({"text": 3.0, "class": 2.0})`
-- Use multiple fields to cross-validate
-
----
-
-## Crawl Errors
-
-### Crawl returns few or no pages
-
-**Cause:** The `follow` selector doesn't match any links, or the depth/limit is too restrictive.
-
-**Solutions:**
-- Verify the follow selector works: `page.css("your-follow-selector")`
-- Increase depth: `crawl.depth(5)`
-- Increase limit: `crawl.limit(500)`
-- Check the `follow` selector is present on the start page
-
-### Crawl is very slow
-
-**Cause:** Low concurrency, high delay, or rate limiting.
-
-**Solutions:**
-- Increase concurrency: `crawl.concurrency(10)`
-- Reduce delay: `crawl.delay(0.1)`
-- Increase rate limit: `session.rate_limit(10.0)`
-- Check if the target server is slow
-
-### Crawl gets blocked
-
-**Cause:** Server detects automated requests.
-
-**Solutions:**
-- Use stealth fetcher: `session.fetcher_tier("stealthy")`
-- Set a browser profile: `session.browser_profile("chrome")`
-- Use rotating proxies: `session.proxy_pool([...])`
-- Add delay: `crawl.delay(1.0)`
-- Reduce concurrency: `crawl.concurrency(2)`
-
----
-
-## Dataset Errors
-
-### Dataset returns empty field values
-
-**Cause:** Selectors don't match any elements, or the page structure is different from expected.
-
-**Solutions:**
-- Set a default value: `dataset.field("price", ".price", default="N/A")`
-- Enable auto-match
-- Check the actual HTML: fetch with Page first, inspect with `.html()`
-- Try different selector types
-
-### Export fails
-
-**Cause:** File path is invalid or permissions issue.
-
-**Solutions:**
-- Ensure the output directory exists
-- Check file write permissions
-- Use absolute paths
-
----
-
-## Watch Errors
-
-### Watch callbacks not firing
-
-**Cause:** No field values changed between polls, or the callback was not registered.
-
-**Solutions:**
-- Verify field selectors match actual page elements
-- Check interval is not too large
-- Manually change a value on the target page to test
-
-### Watch blocking main thread
-
-**Solution:** Use `run_async()` for non-blocking operation, or run in a background thread.
-
----
-
-## Performance Issues
-
-### Pages load slowly
-
-- Increase timeout? No — set a reasonable timeout to fail fast
-- Use connection pooling via `Session`
-- Reduce the number of selectors per page
-
-### Memory usage is high
-
-- The HTML string and DOM tree are kept in memory for each Page
-- Process pages one at a time instead of batching
-- Use `Crawl` with streaming instead of loading all pages at once
-
----
-
-## Debugging Guide
-
-### Print raw HTML
-
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
-    ```python
-    page = Page("https://example.com")
-    print(page.html())
+## Installation Failures
+
+<Accordions>
+  <Accordion title="Fails with 'No matching distribution found'">
+    Crawlingo requires Python 3.8+ or Node.js 16+. Check your version and ensure you have a compatible platform (Linux, macOS, or Windows x86_64).
+
+    ```bash
+    python --version # Check Python
+    node --version   # Check Node.js
     ```
-  </Tab>
-  <Tab value="Node.js">
-    ```typescript
-    const page = await Page.create("https://example.com");
-    console.log(page.html);
-    ```
-  </Tab>
-</Tabs>
+  </Accordion>
+  <Accordion title="Rust compiler tools requested during installation">
+    You do NOT need Rust compiler chains. Pre-compiled binaries are shipped directly on PyPI/npm. Force a binary clean install:
 
-### Check selector results
+    ```bash
+    # Re-install Python SDK
+    pip install --force-reinstall crawlingo
 
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
-    ```python
-    page = Page("https://example.com")
-    els = page.css("h1")
-    print(f"Found {len(els)} elements")
-    for el in els:
-        print(f"  text='{el.text()}' html='{el.html()}'")
+    # Re-install Node.js SDK
+    npm install crawlingo --force
     ```
-  </Tab>
-  <Tab value="Node.js">
-    ```typescript
-    const page = await Page.create("https://example.com");
-    const els = page.css("h1");
-    console.log(`Found ${els.length} elements`);
-    for (const el of els) {
-      console.log(`  text='${el.text}' html='${el.html}'`);
-    }
-    ```
-  </Tab>
-</Tabs>
-
-### Enable logging
-
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
-    ```python
-    from crawlingo.hooks import log_request, log_response
-
-    page = Page("https://example.com")
-    page.before_fetch(log_request)
-    page.after_fetch(log_response)
-    ```
-  </Tab>
-  <Tab value="Node.js">
-    ```typescript
-    const page = await Page.create("https://example.com", {
-      headers: { "X-Debug": "true" }
-    });
-    // Node.js: no hook API — use session headers for logging
-    ```
-  </Tab>
-</Tabs>
-
-### Check crawl progress
-
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
-    ```python
-    crawl = Crawl("https://example.com")
-    crawl.limit(5)
-    results = crawl.build()
-    print(f"Crawled {len(results)} pages")
-    ```
-  </Tab>
-  <Tab value="Node.js">
-    ```typescript
-    const crawl = new Crawl("https://example.com");
-    crawl.limit(5);
-    const results = await crawl.run();
-    console.log(`Crawled ${results.length} pages`);
-    ```
-  </Tab>
-</Tabs>
-
-### Verify fingerprint store
-
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
-    ```python
-    session = Session()
-    session.fingerprint_path("./fingerprints")
-    session.auto_match(True)
-    page = session.page("https://example.com")
-    page.css("span.price")
-    ```
-  </Tab>
-  <Tab value="Node.js">
-    ```typescript
-    const session = new Session();
-    session.fingerprintPath("./fingerprints");
-    session.autoMatch(true);
-    const page = await Page.create("https://example.com", { session });
-    page.css("span.price");
-    ```
-  </Tab>
-</Tabs>
+  </Accordion>
+</Accordions>
 
 ---
 
-## Common Mistakes
+## Selector Extraction Issues
 
-| Mistake | Correct |
-|---------|---------|
-| `Page.create()` instead of `Page()` in Python | `Page(url)` in Python, `await Page.create(url)` in Node.js |
-| `session.page()` in Node.js | `new Page.create(url, {session})` in Node.js |
-| Forgetting `await` in Node.js | All async methods need `await` |
-| Using `crawl.run()` in Python | Python uses `crawl.build()`, Node.js uses `crawl.run()` |
-| Not setting rate limits | Always set `session.rate_limit(n)` for production |
-| Expecting auto-match to work without first run | Auto-match needs at least one successful run to record fingerprints |
-| Using `.parent()` in Node.js | Navigation is Python-only |
+<Accordions>
+  <Accordion title="CSS selectors return empty arrays">
+    Verify selectors inside browser inspection tools. Crawlingo parses static elements list, so client-side dynamic frame tags (like canvas templates) might require wait conditions.
+  </Accordion>
+  <Accordion title="XPath selectors fail to resolve">
+    Standard child/sibling paths are fully supported. For dynamic index checks, use `find_text`/`after_text` instead.
+  </Accordion>
+</Accordions>
 
----
-
-## Logging Guide
-
-Crawlingo uses the `tracing` crate for internal Rust logging. To see detailed logs:
-
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
-
-For Node.js, unhandled crawl errors are logged via `tracing::error!` internally.
-
----
-
-## Getting Help
-
-- Check the [API Reference](api-reference) for method signatures
-- Review the [Examples](examples) for usage patterns
-- File issues at the project repository
+<Callout type="info">
+  Still having problems? Join the Discord channel or open an issue on the GitHub repository.
+</Callout>

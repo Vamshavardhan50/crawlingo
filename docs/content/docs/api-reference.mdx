@@ -1,893 +1,887 @@
 ---
-title: API Reference
-description: Complete API documentation for every class, method, function, and enum — Session, Page, Element, Dataset, Crawl, Watch, CLI, MCP, and Exceptions.
+title: API References
+description: Detailed schemas, function signatures, types, default values, and usage specifications for Crawlingo classes.
 ---
 
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+# API References
 
-# API Reference
-
-Complete API documentation for every class, method, function, and enum in Crawlingo.
-
----
-
-## Table of Contents
-
-- [Session](#session)
-- [Page](#page)
-- [Element](#element)
-- [ElementCollection](#elementcollection)
-- [Dataset](#dataset)
-- [DatasetResult](#datasetresult)
-- [Crawl](#crawl)
-- [CrawlResults](#crawlresults)
-- [Watch](#watch)
-- [ChangeEvent](#changeevent)
-- [CLI](#cli)
-- [MCP Server](#mcp-server)
-- [Exceptions](#exceptions)
+Detailed schemas, function signatures, types, default values, and usage specifications for Crawlingo classes.
 
 ---
 
 ## Session
 
-Shared configuration container for cookies, headers, proxy, rate limits, and auto-match settings. All configuration methods return `self` for fluent chaining.
+Central configuration for all scraping operations.
 
-### Parameters
+### Methods
 
-| Method | Type | Default | Description |
-|--------|------|---------|-------------|
-| `.headers(dict)` | `dict[str,str]` | `{}` | HTTP headers applied to every request |
-| `.cookies(dict)` | `dict[str,str]` | `{}` | Cookie jar shared across requests |
-| `.proxy(url)` | `str` | `None` | Proxy URL (http, https, socks5) |
-| `.rate_limit(rps)` | `float` | `0.0` | Max requests per second per host |
-| `.auto_match(bool)` | `bool` | `False` | Enable self-healing selector recovery globally |
-| `.timeout(secs)` | `int` | `30` | Request timeout in seconds |
-| `.fingerprint_path(path)` | `str` | `".crawlingo"` | Directory for fingerprint store database (sled) |
-| `.fetcher_tier(tier)` | `str` | `"standard"` | `"standard"` or `"stealthy"` |
-| `.browser_profile(profile)` | `str` | `None` | `"chrome"`, `"firefox"`, or `"safari"` |
-| `.auto_match_weights(dict)` | `dict[str,float]` | `{}` | Custom similarity weights for auto-match |
-| `.proxy_pool(list)` | `list[str]` | `[]` | Rotating proxy list (round-robin) |
-| `.proxy_provider(url)` | `str` | `None` | API endpoint that returns a proxy list |
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">Session()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Create a new session with defaults.</p>
+      </div>
+    </div>
+    <div className="mt-3">
+      ```python
+      session = Session()
+      ```
+    </div>
+  </HoverBorderCard>
 
-### Factory Methods
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.headers(dict)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set custom HTTP headers.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.headers({"Accept-Language": "en-US"})
+      ```
+    </div>
+  </HoverBorderCard>
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `.page(url)` | `Page` | Create Page inheriting session config |
-| `.dataset(url)` | `Dataset` | Create Dataset inheriting session config |
-| `.crawl(url)` | `Crawl` | Create Crawl inheriting session config |
-| `.watch(url)` | `Watch` | Create Watch inheriting session config |
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.cookies(dict)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set cookies for requests.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.cookies({"sid": "abc"})
+      ```
+    </div>
+  </HoverBorderCard>
 
-### API
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.proxy(str)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set proxy URL.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.proxy("http://proxy:8080")
+      ```
+    </div>
+  </HoverBorderCard>
 
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.rate_limit(float)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Requests per second per host.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.rate_limit(5.0)
+      ```
+    </div>
+  </HoverBorderCard>
 
-    ```python
-    class Session:
-        def __init__(self) -> None
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.timeout(int)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Request timeout in seconds.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.timeout(30)
+      ```
+    </div>
+  </HoverBorderCard>
 
-    ```python
-    session.headers({"User-Agent": "MyBot/1.0"})
-    session.rate_limit(5.0)
-    session.auto_match(True)
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.auto_match(bool)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Enable self-healing selectors.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.auto_match(True)
+      ```
+    </div>
+  </HoverBorderCard>
 
-    with Session() as session:
-        page = session.page("https://example.com")
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.fetcher_tier(str)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">"standard" or "stealthy" (browser impersonation).</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.fetcher_tier("stealthy")
+      ```
+    </div>
+  </HoverBorderCard>
 
-  </Tab>
-  <Tab value="Node.js">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.browser_profile(str)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">"chrome", "firefox", or "safari".</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.browser_profile("chrome")
+      ```
+    </div>
+  </HoverBorderCard>
 
-    ```typescript
-    class Session {
-      constructor();
-      headers(headers: Record<string, string>): this;
-      cookies(cookies: Record<string, string>): this;
-      proxy(proxyUrl: string): this;
-      rateLimit(requestsPerSecond: number): this;
-      autoMatch(enabled: boolean): this;
-      timeout(seconds: number): this;
-      fingerprintPath(path: string): this;
-      fetcherTier(tier: 'standard' | 'stealthy'): this;
-      browserProfile(profile: 'chrome' | 'firefox' | 'safari'): this;
-      autoMatchWeights(weights: Record<string, number>): this;
-      proxyPool(proxies: string[]): this;
-      proxyProvider(url: string | null): this;
-    }
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.fingerprint_path(str)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Path for auto-match fingerprint store.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.fingerprint_path(".crawlingo")
+      ```
+    </div>
+  </HoverBorderCard>
 
-    ```typescript
-    const session = new Session();
-    session.headers({ "User-Agent": "MyBot/1.0" });
-    session.rateLimit(5.0);
-    session.autoMatch(true);
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.auto_match_weights(dict)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set custom similarity scoring weights for healing.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.auto_match_weights({"text": 2.0, "class": 1.0})
+      ```
+    </div>
+  </HoverBorderCard>
 
-    **Note:** Node.js Session does NOT have `.page()`, `.dataset()`, `.crawl()`, `.watch()` factory methods. Pass the Session directly to the class constructors.
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.proxy_pool(list)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Rotate requests through a pool of proxies round-robin.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.proxy_pool(["http://p1:80", "http://p2:80"])
+      ```
+    </div>
+  </HoverBorderCard>
 
-  </Tab>
-</Tabs>
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.proxy_provider(str)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Pull rotating proxies dynamically from a provider API URL.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Session</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      session.proxy_provider("https://provider.api/proxies")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.page(url)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Fetch a single page.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Page</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page = session.page("https://example.com")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.dataset(url)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Create a dataset builder.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Dataset</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      ds = session.dataset("https://example.com")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.crawl(url)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Create a multi-page crawler.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      cr = session.crawl("https://example.com")
+      ```
+    </div>
+  </HoverBorderCard>
+
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.watch(url)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Create a change monitor.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Watch</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      w = session.watch("https://example.com")
+      ```
+    </div>
+  </HoverBorderCard>
+</div>
 
 ---
 
 ## Page
 
-Fetched web page with a parsed immutable DOM tree and selector query methods.
-
-### Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `url` | `str` | — | Target URL to fetch |
-| `auto_match` | `bool` | `False` | Enable self-healing selector fallback |
-| `timeout` | `int` | `30` | Request timeout in seconds |
-| `retries` | `int` | `3` | Retry count on transient failures |
-| `headers` | `dict[str,str]` | `None` | Custom HTTP headers |
-| `cookies` | `dict[str,str]` | `None` | Custom cookies |
-| `proxy` | `str` | `None` | Proxy URL |
-| `session` | `Session` | `None` | Session to inherit settings from |
-
-**Session merge order:** Session values act as defaults. Explicit Page constructor parameters override session values.
-
-### Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `.url` | `str` | The resolved target URL |
-| `.status` | `int` | HTTP response status code |
+Lazy-loaded page with selector methods. Fetches on first access.
 
 ### Methods
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `.html()` | `str` | Raw HTML source (O(1) access) |
-| `.title()` | `str` | `<title>` tag text content |
-| `.css(sel)` | `ElementCollection` | CSS selector query (cached) |
-| `.xpath(query)` | `ElementCollection` | XPath expression query |
-| `.find_text(text)` | `ElementCollection` | SIMD text anchor search |
-| `.after_text(text)` | `ElementCollection` | Sibling after text anchor |
-| `.before_text(text)` | `ElementCollection` | Sibling before text anchor |
-| `.regex(pattern)` | `ElementCollection` | Regex pattern match on text |
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.url</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Final URL after redirects.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
 
-### Hooks
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.status</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">HTTP status code.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">int</span>
+    </div>
+  </HoverBorderCard>
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `.before_fetch(fn)` | `Page` | Hook before HTTP fetch |
-| `.after_fetch(fn)` | `Page` | Hook after HTTP fetch |
-| `.before_parse(fn)` | `Page` | Hook before HTML parsing |
-| `.after_extract(fn)` | `Page` | Hook after value extraction |
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.html()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Raw HTML content.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
 
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.title()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Content of &lt;title&gt; tag.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
 
-    ```python
-    class Page:
-        def __init__(
-            self,
-            url: str,
-            auto_match: bool = False,
-            timeout: int = 30,
-            retries: int = 3,
-            headers: dict[str, str] | None = None,
-            cookies: dict[str, str] | None = None,
-            proxy: str | None = None,
-            session: Session | None = None,
-        ) -> None
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.css(selector)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Query by CSS selector.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page.css("h1")
+      ```
+    </div>
+  </HoverBorderCard>
 
-    ```python
-    page = Page("https://example.com")
-    print(page.title())  # "Example Domain"
-    print(page.status)   # 200
-    print(page.html())   # Raw HTML
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.xpath(query)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Query by XPath expression.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page.xpath("//div[@class='x']")
+      ```
+    </div>
+  </HoverBorderCard>
 
-    links = page.css("a[href]")
-    prices = page.xpath("//span[@class='price']")
-    heading = page.find_text("Shipping Info")
-    next_el = page.after_text("Total:")
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.find_text(text)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Find nodes containing text.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page.find_text("Price:")
+      ```
+    </div>
+  </HoverBorderCard>
 
-    **Hook signatures:**
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.after_text(text)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Element after text anchor.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page.after_text("Price:")
+      ```
+    </div>
+  </HoverBorderCard>
 
-    ```python
-    def log_request(req):
-        print(f"Fetching: {req.url}")
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.before_text(text)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Element before text anchor.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page.before_text("Footer")
+      ```
+    </div>
+  </HoverBorderCard>
 
-    def log_response(res):
-        print(f"Status: {res.status}")
-
-    def strip_banners(html):
-        return html.replace("<div class='banner'>", "")
-
-    page.before_fetch(log_request)
-    page.after_fetch(log_response)
-    page.before_parse(strip_banners)
-    ```
-
-  </Tab>
-  <Tab value="Node.js">
-
-    ```typescript
-    class Page {
-      static create(url: string, options?: {
-        autoMatch?: boolean;
-        timeout?: number;
-        headers?: Record<string, string>;
-        cookies?: Record<string, string>;
-        proxy?: string;
-        browserProfile?: string;
-        session?: Session;
-      }): Promise<Page>;
-
-      readonly url: string;
-      readonly status: number;
-      readonly html: string;
-
-      title(): string;
-      css(selector: string): ElementCollection;
-      xpath(query: string): ElementCollection;
-      findText(text: string): ElementCollection;
-      afterText(text: string): ElementCollection;
-      beforeText(text: string): ElementCollection;
-      regex(pattern: string): ElementCollection;
-    }
-    ```
-
-    ```typescript
-    const page = await Page.create("https://example.com");
-    console.log(page.title);  // "Example Domain"
-    console.log(page.status); // 200
-    console.log(page.html);   // Raw HTML
-
-    const links = page.css("a[href]");
-    const prices = page.xpath("//span[@class='price']");
-    ```
-
-    **Note:** `Page.create()` is a **static async method** — must `await`. Use getters (`.url`, `.status`, `.html`) instead of methods. No hook API in Node.js.
-
-  </Tab>
-</Tabs>
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.regex(pattern)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Match text against regex.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      page.regex(r"\d+\.\d{2}")
+      ```
+    </div>
+  </HoverBorderCard>
+</div>
 
 ---
 
 ## Element
 
+Single DOM element with navigation and attribute access.
+
 ### Methods
 
-| Method | Returns | Python | Node.js |
-|--------|---------|--------|---------|
-| `.text()` | `str` | ✅ | ✅ (getter) |
-| `.html()` | `str` | ✅ | ✅ (getter) |
-| `.attr(name)` | `str` or `None` | ✅ | ✅ |
-| `.attrs()` | `dict[str,str]` | ✅ | ❌ |
-| `.parent()` | `Element` or `None` | ✅ | ❌ |
-| `.children()` | `ElementCollection` | ✅ | ❌ |
-| `.next()` | `Element` or `None` | ✅ | ❌ |
-| `.prev()` | `Element` or `None` | ✅ | ❌ |
-| `.siblings()` | `ElementCollection` | ✅ | ❌ |
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.text()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Text content of element.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
 
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.html()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Inner HTML.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
 
-    ```python
-    class Element:
-        def text(self) -> str
-        def html(self) -> str
-        def attr(self, name: str) -> str | None
-        def attrs(self) -> dict[str, str]
-        def parent(self) -> Element | None
-        def children(self) -> ElementCollection
-        def next(self) -> Element | None
-        def prev(self) -> Element | None
-        def siblings(self) -> ElementCollection
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.attr(name)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Get attribute value.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      el.attr("href")
+      ```
+    </div>
+  </HoverBorderCard>
 
-    ```python
-    el = page.css("a")[0]
-    print(el.text())        # "Click here"
-    print(el.html())        # '<a href="/">Click here</a>'
-    print(el.attr("href"))  # "/"
-    parent = el.parent()
-    for child in el.children():
-        print(child.text())
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.attrs()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">All attributes as dict.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">dict</span>
+    </div>
+  </HoverBorderCard>
 
-  </Tab>
-  <Tab value="Node.js">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.parent()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Parent element.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Element | None</span>
+    </div>
+  </HoverBorderCard>
 
-    ```typescript
-    class Element {
-      readonly text: string;
-      readonly html: string;
-      attr(name: string): string | null;
-    }
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.children()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Child elements.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+  </HoverBorderCard>
 
-    ```typescript
-    const el = page.css("a").first();
-    console.log(el.text);        // "Click here"
-    console.log(el.html);        // '<a href="/">Click here</a>'
-    console.log(el.attr("href")); // "/"
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.next()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Next sibling.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Element | None</span>
+    </div>
+  </HoverBorderCard>
 
-    **Note:** Navigation methods (`.parent()`, `.children()`, etc.) are Python-only.
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.prev()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Previous sibling.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Element | None</span>
+    </div>
+  </HoverBorderCard>
 
-  </Tab>
-</Tabs>
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.siblings()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">All siblings.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+  </HoverBorderCard>
+</div>
 
 ---
 
 ## ElementCollection
 
+Collection of elements with chainable methods.
+
 ### Methods
 
-| Method | Returns | Python | Node.js |
-|--------|---------|--------|---------|
-| `.first()` | `Element` or `None` | ✅ | ✅ |
-| `.last()` | `Element` or `None` | ✅ | ❌ |
-| `.nth(n)` / `.at(n)` | `Element` or `None` | ✅ (`.nth()`) | ✅ (`.at()`) |
-| `[index]` | `Element` or `None` | ✅ (`__getitem__`) | ❌ |
-| `.text()` | `str` / `string[]` | ✅ (combined) | ✅ (getter, array) |
-| `.texts()` | `list[str]` | ✅ | ❌ |
-| `.attr(name)` | varies | ✅ (single) | ✅ (array) |
-| `.attrs()` | `dict` | ✅ | ❌ |
-| `.filter(fn)` | `ElementCollection` | ✅ | ❌ |
-| `.map(fn)` | `list` | ✅ | ❌ |
-| `len()` / `.length` | `int` | ✅ (`len()`) | ✅ (getter) |
-| iteration | — | ✅ (`for el in col`) | ✅ (`for of`) |
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.text()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Concatenated text of all elements.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
 
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.texts()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">List of text values.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">List[str]</span>
+    </div>
+  </HoverBorderCard>
 
-    ```python
-    class ElementCollection:
-        def first(self) -> Element | None
-        def last(self) -> Element | None
-        def nth(self, n: int) -> Element | None
-        def __getitem__(self, index: int) -> Element | None
-        def text(self) -> str
-        def texts(self) -> list[str]
-        def attr(self, name: str) -> str | None
-        def attrs(self) -> dict[str, str]
-        def __len__(self) -> int
-        def __iter__(self) -> Iterator[Element]
-        def filter(self, fn: Callable[[Element], bool]) -> ElementCollection
-        def map(self, fn: Callable[[Element], Any]) -> list
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.attr(name)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Attribute from first element.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+  </HoverBorderCard>
 
-    ```python
-    links = page.css("a")
-    print(links.first().text())  # First link text
-    print(links.last().text())   # Last link text
-    print(links[2].text())       # Third link text
-    for link in links:
-        print(link.attr("href"))
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.first()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">First element.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Element | None</span>
+    </div>
+  </HoverBorderCard>
 
-  </Tab>
-  <Tab value="Node.js">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.last()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Last element.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Element | None</span>
+    </div>
+  </HoverBorderCard>
 
-    ```typescript
-    class ElementCollection implements Iterable<Element> {
-      readonly length: number;
-      readonly text: string[];
-      readonly html: string[];
-      attr(name: string): (string | null)[];
-      first(): Element | null;
-      at(index: number): Element | null;
-    }
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.nth(n)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Element at index n.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Element | None</span>
+    </div>
+  </HoverBorderCard>
 
-    ```typescript
-    const links = page.css("a");
-    console.log(links.first()?.text);  // First link text
-    console.log(links.at(2)?.text);    // Third link text
-    console.log(links.text);           // Array of all link texts
-    for (const link of links) {
-      console.log(link.attr("href"));
-    }
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.filter(fn)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Filter elements.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">ElementCollection</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      coll.filter(lambda e: "sale" in e.text())
+      ```
+    </div>
+  </HoverBorderCard>
 
-    **Note:** `.text` and `.html` are getters returning arrays. `.at(index)` replaces `.nth()`. No `.filter()`/`.map()`.
-
-  </Tab>
-</Tabs>
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.map(fn)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Map elements to values.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">list</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      coll.map(lambda e: e.text())
+      ```
+    </div>
+  </HoverBorderCard>
+</div>
 
 ---
 
 ## Dataset
 
-### Parameters
-
-| Constructor Parameter | Type | Default | Description |
-|----------------------|------|---------|-------------|
-| `url` | `str` | — | Target URL to fetch and extract from |
-| `session` | `Session` | `None` | Optional session (creates default if omitted) |
-
-### `.field()` Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `name` | `str` | — | Output field name (used as key in result dict) |
-| `selector` | `str` | — | Selector expression |
-| `selector_type` | `str` | `"css"` | `"css"`, `"xpath"`, `"regex"`, `"text"`, `"after_text"`, `"before_text"` |
-| `transform` | `Callable` | `None` | Python callable `fn(str) -> str` applied to extracted value |
-| `default` | `str` | `None` | Fallback value if selector yields nothing |
+Structured data extraction from a single URL.
 
 ### Methods
 
-| Method | Returns | Python | Node.js |
-|--------|---------|--------|---------|
-| `.field(name, sel, ...)` | `Dataset` | ✅ | ✅ |
-| `.auto_match(bool)` | `Dataset` | ✅ | ✅ |
-| `.timeout(secs)` | `Dataset` | ✅ | ✅ |
-| `.headers(dict)` | `Dataset` | ✅ | ✅ |
-| `.build()` | `DatasetResult` | ✅ (sync) | ✅ (async) |
-| `.build_async()` | `DatasetResult` | ✅ | ❌ |
-| `.extractStructured(page)` | `Record[]` | ❌ | ✅ |
-| `.buildStructured()` | `Promise<Record[]>` | ❌ | ✅ |
-| `static saveJson(records, path)` | `void` | ❌ | ✅ |
-| `static saveCsv(records, path)` | `void` | ❌ | ✅ |
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.field(name, selector, selector_type, default)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Add extraction field.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Dataset</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      ds.field("title", "h1", selector_type="css")
+      ```
+    </div>
+  </HoverBorderCard>
 
-### `.build()` Algorithm
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.auto_match(bool)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Enable auto-match for this dataset.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Dataset</span>
+    </div>
+  </HoverBorderCard>
 
-1. Read session config (headers, cookies, proxy, rate limit, timeout, fetcher tier) at call time
-2. Build `FetchRequest` with session settings
-3. Dispatch via `FetchManager` with rate limiting and retries
-4. Parse HTML response via `HtmlParser::parse()` into `Page`
-5. For each field:
-   a. Build `SelectorQuery` from `selector_type` + `selector`
-   b. Run against DOM tree
-   c. If empty AND auto-match enabled AND CSS: run auto-matcher recovery
-   d. Extract combined text from matched nodes
-   e. Apply transform (Python only)
-6. Return `DatasetResult`
-
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
-
-    ```python
-    class Dataset:
-        def __init__(self, url: str, session: Session | None = None)
-        def field(
-            self,
-            name: str,
-            selector: str,
-            selector_type: str = "css",
-            transform: Callable[[str], str] | None = None,
-            default: str | None = None,
-        ) -> Dataset
-        def auto_match(self, enabled: bool) -> Dataset
-        def timeout(self, seconds: int) -> Dataset
-        def headers(self, headers: dict) -> Dataset
-        def build(self) -> DatasetResult
-        async def build_async(self) -> DatasetResult
-    ```
-
-    ```python
-    dataset = Dataset("https://shop.example.com/item/42")
-    dataset.field("name", "h1.product-title")
-    dataset.field("price", "span.price", default="N/A")
-    result = dataset.build()
-    print(result.to_dict())
-    ```
-
-  </Tab>
-  <Tab value="Node.js">
-
-    ```typescript
-    class Dataset {
-      constructor(url: string, session?: Session);
-
-      field(name: string, selector: string, options?: {
-        selectorType?: 'css' | 'xpath';
-        defaultVal?: string;
-      }): this;
-
-      autoMatch(enabled: boolean): this;
-      timeout(seconds: number): this;
-      headers(headers: Record<string, string>): this;
-      build(): Promise<DatasetResult>;
-
-      // Structured multi-row extraction (Node.js only)
-      extractStructured(page: Page | JsPage): Record<string, string>[];
-      buildStructured(): Promise<Record<string, string>[]>;
-      static saveJson(records: Record<string, string>[], path: string): void;
-      static saveCsv(records: Record<string, string>[], path: string): void;
-    }
-    ```
-
-    ```typescript
-    const dataset = new Dataset("https://shop.example.com/item/42");
-    dataset.field("name", "h1.product-title");
-    dataset.field("price", "span.price", { defaultVal: "N/A" });
-    const result = await dataset.build();
-    console.log(result.toDict());
-    ```
-
-  </Tab>
-</Tabs>
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.build()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Execute extraction (sync).</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">DatasetResult</span>
+    </div>
+  </HoverBorderCard>
+</div>
 
 ---
 
 ## DatasetResult
 
-| Method | Returns | Python | Node.js |
-|--------|---------|--------|---------|
-| `.to_json(path)` / `.toJson(path)` | `None` / `Promise` | ✅ (sync) | ✅ (async) |
-| `.to_csv(path)` / `.toCsv(path)` | `None` / `Promise` | ✅ (sync) | ✅ (async) |
-| `.to_parquet(path)` / `.toParquet(path)` | `None` / `Promise` | ✅ (sync) | ✅ (async) |
-| `.to_dict()` / `.toDict()` | `dict` / `Record` | ✅ | ✅ |
-| `.df()` | `DataFrame` | ✅ | ❌ |
-| `result["field"]` | `str` | ✅ (`__getitem__`) | ❌ |
+Result of a dataset build with export methods.
 
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
+### Methods
 
-    ```python
-    class DatasetResult:
-        def to_json(self, path: str) -> None
-        def to_csv(self, path: str) -> None
-        def to_parquet(self, path: str) -> None
-        def to_dict(self) -> dict[str, str]
-        def df(self) -> pandas.DataFrame
-        def __getitem__(self, key: str) -> str
-    ```
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">[key]</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Access field by name.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">str</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      result["title"]
+      ```
+    </div>
+  </HoverBorderCard>
 
-    ```python
-    result = dataset.build()
-    result.to_json("data.json")
-    result.to_csv("data.csv")
-    df = result.df()
-    print(result["price"])
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.to_json(path)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Export to JSON file.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">None</span>
+    </div>
+  </HoverBorderCard>
 
-  </Tab>
-  <Tab value="Node.js">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.to_csv(path)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Export to CSV file.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">None</span>
+    </div>
+  </HoverBorderCard>
 
-    ```typescript
-    class DatasetResult {
-      toDict(): Record<string, string>;
-      toJson(path: string): Promise<void>;
-      toCsv(path: string): Promise<void>;
-      toParquet(path: string): Promise<void>;
-    }
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.to_parquet(path)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Export to Parquet file.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">None</span>
+    </div>
+  </HoverBorderCard>
 
-    ```typescript
-    const result = await dataset.build();
-    await result.toJson("data.json");
-    await result.toCsv("data.csv");
-    console.log(result.toDict());
-    ```
-
-  </Tab>
-</Tabs>
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.df()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Convert to Pandas DataFrame.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">DataFrame</span>
+    </div>
+  </HoverBorderCard>
+</div>
 
 ---
 
 ## Crawl
 
-### Parameters
-
-| Constructor Parameter | Type | Default | Description |
-|----------------------|------|---------|-------------|
-| `start_url` | `str` | — | Starting URL |
-| `session` | `Session` | `None` | Optional session |
-
-### Configuration Methods
-
-| Method | Default | Description | Python | Node.js |
-|--------|---------|-------------|--------|---------|
-| `.follow(sel)` | `""` | CSS selector for links to follow | ✅ | ✅ |
-| `.limit(n)` | `10` | Maximum pages to crawl | ✅ | ✅ |
-| `.depth(n)` | `3` | Maximum link hop depth | ✅ | ✅ |
-| `.field(...)` | — | Field definition | ✅ | ✅ |
-| `.concurrency(n)` | `2` | Concurrent fetch workers | ✅ | ✅ |
-| `.delay(secs)` | `0.0` | Politeness delay between fetches | ✅ | ✅ |
-| `.webhook(url)` | `None` | Webhook URL for real-time JSON delivery | ✅ | ✅ |
-| `.schedule(secs)` | — | Recurring crawl in background thread | ✅ | ✅ |
-| `.build()` / `.run()` | — | Execute crawl | ✅ (`.build()`) | ✅ (`.run()`) |
-
-### Algorithm
-
-1. Start URL enqueued at depth 0
-2. Spawn `concurrency` workers as a `JoinSet`
-3. Each worker pops URL from shared queue, checks visited set, fetches, parses, extracts fields
-4. Links matching `follow` selector from depth d are enqueued at depth d+1
-5. Worker exits when queue is empty or limit is reached
-6. Returns `CrawlResults` (Python) or `DatasetResult[]` (Node.js)
-
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
-
-    ```python
-    class Crawl:
-        def __init__(self, start_url: str, session: Session | None = None)
-        def follow(self, selector: str) -> Crawl
-        def limit(self, pages: int) -> Crawl
-        def depth(self, max_depth: int) -> Crawl
-        def field(self, name: str, selector: str, selector_type: str = "css", default: str | None = None) -> Crawl
-        def auto_match(self, enabled: bool) -> Crawl
-        def concurrency(self, n: int) -> Crawl
-        def delay(self, seconds: float) -> Crawl
-        def webhook(self, url: str) -> Crawl
-        def schedule(self, interval_seconds: int) -> None
-        def build(self) -> CrawlResults
-    ```
-
-    ```python
-    crawl = Crawl("https://blog.example.com")
-    crawl.follow("a.next-page")
-    crawl.limit(50)
-    crawl.depth(3)
-    crawl.concurrency(5)
-    crawl.field("title", "h1.entry-title")
-    crawl.field("date", "time.published")
-    results = crawl.build()
-    results.to_csv("blog_posts.csv")
-    print(f"Crawled {len(results)} pages")
-    ```
-
-  </Tab>
-  <Tab value="Node.js">
-
-    ```typescript
-    class Crawl {
-      constructor(startUrl: string, session?: Session);
-      follow(selector: string): this;
-      limit(limitNum: number): this;
-      depth(depthNum: number): this;
-      concurrency(n: number): this;
-      delay(seconds: number): this;
-      field(name: string, selector: string, options?: {
-        selectorType?: 'css' | 'xpath';
-        defaultVal?: string;
-      }): this;
-      webhook(url: string): this;
-      schedule(intervalSeconds: number): void;
-      run(): Promise<DatasetResult[]>;
-    }
-    ```
-
-    ```typescript
-    const crawl = new Crawl("https://blog.example.com");
-    crawl.follow("a.next-page");
-    crawl.limit(50);
-    crawl.depth(3);
-    crawl.concurrency(5);
-    crawl.field("title", "h1.entry-title");
-    crawl.field("date", "time.published");
-    const results = await crawl.run();
-    console.log(`Crawled ${results.length} pages`);
-    ```
-
-    **Note:** Node.js uses `.run()` instead of `.build()`. Returns `DatasetResult[]` directly.
-
-  </Tab>
-</Tabs>
-
----
-
-## CrawlResults
-
-```python
-class CrawlResults:
-    def to_json(self, path: str) -> None
-    def to_csv(self, path: str) -> None
-    def to_parquet(self, path: str) -> None
-    def df(self) -> pandas.DataFrame
-    def __iter__(self) -> Iterator[DatasetResult]
-    def __len__(self) -> int
-    def __getitem__(self, idx: int) -> DatasetResult
-```
-
-| Method | Description |
-|--------|-------------|
-| `.to_json(path)` | Export all results as JSON array |
-| `.to_csv(path)` | Export all results as CSV (header + multiple rows) |
-| `.to_parquet(path)` | Export all results as multi-row Parquet file |
-| `.df()` | Pandas DataFrame of all results |
-| `len(results)` | Number of pages crawled |
-| `for r in results` | Iterate over DatasetResult objects |
-
-**Node.js:** No `CrawlResults` class — `.run()` returns `DatasetResult[]` directly.
-
----
-
-## Watch
-
-### Parameters
-
-| Constructor Parameter | Type | Default | Description |
-|----------------------|------|---------|-------------|
-| `url` | `str` | — | URL to monitor |
-| `session` | `Session` | `None` | Optional session |
+Recursive crawler with concurrency limits, delay pacing, webhooks, and background scheduling.
 
 ### Methods
 
-| Method | Default | Python | Node.js |
-|--------|---------|--------|---------|
-| `.field(...)` | — | ✅ | ✅ |
-| `.interval(secs)` | `60` | ✅ | ✅ |
-| `.on_change(fn)` | — | ✅ | ❌ (use `.run()` callback) |
-| `.on_price_change(fn)` | — | ✅ | ❌ |
-| `.on_stock_change(fn)` | — | ✅ | ❌ |
-| `.on_element_added(fn)` | — | ✅ | ❌ |
-| `.on_element_removed(fn)` | — | ✅ | ❌ |
-| `.run()` | — | ✅ (blocking) | ✅ (callback-based) |
-| `.run_async()` | — | ✅ (background) | ❌ |
-| `.stop()` | — | ✅ | ✅ |
+<div className="space-y-4">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">Crawl(start_url, session)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Create a new crawler.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl = Crawl("https://example.com", session)
+      ```
+    </div>
+  </HoverBorderCard>
 
-**Python thread safety:** `.run()` releases the GIL during fetch/sleep, re-acquires only for callbacks.
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.follow(selector)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">CSS selector of links to follow recursively.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.follow("a.next-page")
+      ```
+    </div>
+  </HoverBorderCard>
 
-<Tabs items={['Python', 'Node.js']}>
-  <Tab value="Python">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.limit(pages)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Limit the crawler to a maximum page count.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.limit(50)
+      ```
+    </div>
+  </HoverBorderCard>
 
-    ```python
-    class Watch:
-        def __init__(self, url: str, session: Session | None = None)
-        def field(self, name: str, selector: str, selector_type: str = "css", default: str | None = None) -> Watch
-        def interval(self, seconds: int) -> Watch
-        def auto_match(self, enabled: bool) -> Watch
-        def on_change(self, fn: Callable[[ChangeEvent], None]) -> Watch
-        def on_price_change(self, fn: Callable[[ChangeEvent], None]) -> Watch
-        def on_stock_change(self, fn: Callable[[ChangeEvent], None]) -> Watch
-        def on_element_added(self, fn: Callable[[ChangeEvent], None]) -> Watch
-        def on_element_removed(self, fn: Callable[[ChangeEvent], None]) -> Watch
-        def run(self) -> None
-        async def run_async(self) -> None
-        def stop(self) -> None
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.depth(max_depth)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Maximum links hop depth.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.depth(3)
+      ```
+    </div>
+  </HoverBorderCard>
 
-    ```python
-    watch = Watch("https://example.com/product/1")
-    watch.field("price", "span.price")
-    watch.interval(300)
-    watch.on_price_change(lambda ev: print(f"Price: {ev.old_value} -> {ev.new_value}"))
-    watch.on_stock_change(lambda ev: print(f"Stock: {ev.new_value}"))
-    watch.run()  # Blocks
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.concurrency(n)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Max concurrent fetching workers.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.concurrency(4)
+      ```
+    </div>
+  </HoverBorderCard>
 
-  </Tab>
-  <Tab value="Node.js">
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.delay(seconds)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Politeness pacing delay.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.delay(0.5)
+      ```
+    </div>
+  </HoverBorderCard>
 
-    ```typescript
-    class Watch {
-      constructor(url: string, session?: Session);
-      field(name: string, selector: string, options?: {
-        selectorType?: 'css' | 'xpath';
-        defaultVal?: string;
-      }): this;
-      interval(seconds: number): this;
-      run(callback: (err: Error | null, event: WatchChangeEvent) => void): void;
-      stop(): void;
-    }
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.field(name, selector, selector_type, default)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Define fields to extract from every page.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.field("title", "h1", selector_type="css")
+      ```
+    </div>
+  </HoverBorderCard>
 
-    ```typescript
-    const watch = new Watch("https://example.com/product/1");
-    watch.field("price", "span.price");
-    watch.interval(300);
-    watch.run((err, event) => {
-      if (err) { console.error(err); return; }
-      if (event.changeType === "PriceChange") {
-        console.log(`Price: ${event.oldValue} -> ${event.newValue}`);
-      }
-    });
-    ```
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.webhook(url)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Real-time JSON result delivery webhook URL.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">Crawl</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.webhook("https://api.myweb.com/webhook")
+      ```
+    </div>
+  </HoverBorderCard>
 
-    **Note:** Node.js uses a single callback for all change types. Filter by `event.changeType`.
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.schedule(interval_seconds)</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Run scheduled recurring crawl background loops.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">None</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      crawl.schedule(3600)
+      ```
+    </div>
+  </HoverBorderCard>
 
-  </Tab>
-</Tabs>
-
----
-
-## ChangeEvent
-
-### Fields
-
-| Field | Type | Python | Node.js |
-|-------|------|--------|---------|
-| `url` | `str` | `url` | `url` |
-| `field` | `str` | `field` | `field` |
-| `change_type` | `str` | `"content"`, `"price"`, `"stock"`, `"added"`, `"removed"`, `"layout"` | `"ContentChange"`, `"PriceChange"`, `"StockChange"`, `"ElementAdded"`, `"ElementRemoved"`, `"LayoutChange"` |
-| `old_value` | `str` or `None` | `old_value` | `oldValue` |
-| `new_value` | `str` or `None` | `new_value` | `newValue` |
-| `diff` | `str` or `None` | `diff` | ❌ |
-| `detected_at` | `str` or `None` | `detected_at` | ❌ |
-| `similarity_score` | `float` or `None` | `similarity_score` | ❌ |
-
-```python
-class ChangeEvent:
-    url: str
-    field: str
-    change_type: str
-    old_value: str | None
-    new_value: str | None
-    diff: str | None
-    detected_at: str | None
-    similarity_score: float | None
-```
-
-**Node.js type:** `WatchChangeEvent` with fields `url`, `field`, `changeType`, `oldValue?`, `newValue?`.
-
----
-
-## CLI
-
-```bash
-crawlingo shell [url]
-crawlingo extract <url> [--css] [--xpath] [--text] [--regex] [--auto-match] [--json]
-crawlingo mcp [--host HOST] [--port PORT]
-```
-
-### `shell`
-
-Start interactive Python REPL with pre-imported classes.
-
-| Argument | Type | Description |
-|----------|------|-------------|
-| `url` (optional) | `str` | URL to pre-fetch into a `page` variable |
-
-Pre-imported: `Page`, `Dataset`, `Crawl`, `Watch`, `Session`.
-
-### `extract`
-
-One-shot extraction from a URL.
-
-| Flag | Type | Description |
-|------|------|-------------|
-| `<url>` | `str` | Target URL |
-| `--css` | `str` | CSS selector |
-| `--xpath` | `str` | XPath expression |
-| `--text` | `str` | Text anchor |
-| `--regex` | `str` | Regex pattern |
-| `--auto-match` | flag | Enable auto-match |
-| `--json` | flag | JSON output |
-
-### `mcp`
-
-Start MCP SSE server.
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--host` | `127.0.0.1` | Bind address |
-| `--port` | `8000` | TCP port |
-
-Protocol: SSE at `/sse`, POST to `/message`.
-
----
-
-## MCP Server
-
-Tools exposed over JSON-RPC 2.0 / SSE:
-
-| Tool | Description |
-|------|-------------|
-| `fetch_page` | Fetch URL, return text/title/status |
-| `extract_data` | Extract structured fields using CSS/XPath |
-| `crawl_site` | Crawl site with link following and field extraction |
-
----
-
-## Exceptions
-
-| Exception | Description | When Raised |
-|-----------|-------------|-------------|
-| `CrawlingoError` | Base exception | Generic errors |
-| `FetchError` | Network failure | Connection refused, DNS failure, proxy error, SSL error |
-| `ParseError` | HTML parse failure | Invalid HTML, encoding issues |
-| `SelectorError` | Invalid selector | Invalid CSS/XPath/regex syntax |
-| `AutoMatchFailed` | Auto-match recovery failed | No DOM element above 0.5 similarity threshold |
-| `TimeoutError` | Request timeout | Response exceeded configured timeout |
-| `RateLimitError` | Host rate limit | Token bucket exhausted (not currently raised — rate limiter blocks instead) |
-| `ChangeDetectionError` | Change detection failure | Internal processing error in `detect_changes` |
-| `ExportError` | Export failure | File write error, CSV/Parquet serialization error |
-| `DnsError` | DNS resolution failure | Host not found, DNS server unreachable |
-| `FingerprintStoreError` | Fingerprint store failure | Sled database read/write error |
+  <HoverBorderCard className="p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <span className="font-mono text-xs text-black dark:text-white font-semibold">.build()</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Run crawl loops synchronously.</p>
+      </div>
+      <span className="text-[10px] font-mono text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-2 py-0.5 rounded shrink-0">CrawlResults</span>
+    </div>
+    <div className="mt-3">
+      ```python
+      results = crawl.build()
+      ```
+    </div>
+  </HoverBorderCard>
+</div>
