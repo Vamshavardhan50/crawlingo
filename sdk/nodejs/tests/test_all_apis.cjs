@@ -123,7 +123,7 @@ const ROUTES = {
 
 function createTestServer() {
   return new Promise(resolve => {
-    const srv = http.createServer((req, res) => {
+    const srv = http.createServer({ keepAliveTimeout: 1000 }, (req, res) => {
       const p = req.url;
       const m = req.method;
 
@@ -137,7 +137,9 @@ function createTestServer() {
         }
         if (p === '/auth') {
           const a = req.headers['authorization'] || '';
-          if (a.includes('test_token') || a.includes('dGVzdDpwYXNz')) {
+          const c = req.headers['cookie'] || '';
+          const k = req.headers['x-api-key'] || '';
+          if (a.includes('test_token') || a.includes('dGVzdDpwYXNz') || c.includes('session') || k) {
             return json(res, { authenticated: true });
           }
           res.writeHead(401, { 'WWW-Authenticate': 'Bearer realm="test"', 'Connection': 'close' });
@@ -167,6 +169,12 @@ function createTestServer() {
       }
       res.writeHead(405, { 'Connection': 'close' });
       res.end();
+    });
+    srv.timeout = 5000;
+    srv.keepAliveTimeout = 1000;
+    srv.on('connection', socket => {
+      socket.setTimeout(5000);
+      socket.on('error', () => {});
     });
     srv.listen(0, '127.0.0.1', () => resolve(srv));
   });
