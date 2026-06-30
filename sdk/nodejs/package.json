@@ -23,7 +23,8 @@
     "build:ts": "tsc",
     "lint": "tsc --noEmit",
     "test": "node tests/smoke.cjs",
-    "test:amazon": "node tests/amazon-scrape.cjs"
+    "test:amazon": "node tests/amazon-scrape.cjs",
+    "test:all": "node tests/test_all_apis.cjs"
   },
   "devDependencies": {
     "@napi-rs/cli": "^2.18.4",
