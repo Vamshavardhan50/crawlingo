@@ -11,9 +11,9 @@ pub struct ConnectionPoolConfig {
 impl Default for ConnectionPoolConfig {
     fn default() -> Self {
         Self {
-            max_idle_per_host: 10,
-            idle_timeout: Duration::from_secs(10),
-            tcp_keepalive: Duration::from_secs(10),
+            max_idle_per_host: 100,
+            idle_timeout: Duration::from_secs(90),
+            tcp_keepalive: Duration::from_secs(30),
         }
     }
 }

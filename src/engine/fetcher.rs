@@ -323,32 +323,45 @@ impl Fetcher {
 mod tests {
     use super::*;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
-    use tokio::net::TcpListener;
-
     async fn spawn_test_server() -> String {
-        let listener = TcpListener::bind("127.0.0.1:0")
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
             .await
             .expect("bind local test server");
         let addr = listener.local_addr().expect("read local test server addr");
 
         tokio::spawn(async move {
-            let (mut socket, _) = listener.accept().await.expect("accept request");
-            let mut buf = [0_u8; 1024];
-            let _ = socket.read(&mut buf).await.expect("read request");
-            socket
-                .write_all(
-                    b"HTTP/1.1 200 OK\r\ncontent-type: text/html; charset=utf-8\r\nset-cookie: session=test\r\ncontent-length: 31\r\n\r\n<html><title>OK</title></html>",
-                )
-                .await
-                .expect("write response");
+            // Accept multiple connections for retry logic (max 5)
+            for _ in 0..5 {
+                match listener.accept().await {
+                    Ok((mut socket, _)) => {
+                        let mut buf = [0_u8; 4096];
+                        // Read the HTTP request
+                        match socket.read(&mut buf).await {
+                            Ok(n) if n > 0 => {
+                                let body = b"<html><title>OK</title></html>";
+                                let response = format!(
+                                    "HTTP/1.1 200 OK\r\ncontent-type: text/html; charset=utf-8\r\nset-cookie: session=test\r\ncontent-length: {}\r\n\r\n{}",
+                                    body.len(),
+                                    std::str::from_utf8(body).unwrap()
+                                );
+                                let _ = socket.write_all(response.as_bytes()).await;
+                            }
+                            _ => break,
+                        }
+                    }
+                    Err(_) => break,
+                }
+            }
         });
 
-        format!("http://{}", addr)
+        format!("http://{addr}")
     }
 
     #[tokio::test]
     async fn test_fetcher_standard() {
         let url = spawn_test_server().await;
+
+        // Test through FetchManager
         let rl = Arc::new(HostRateLimiter::new());
         let manager = FetchManager::new(rl, ConnectionPoolConfig::default());
         let req = FetchRequest {
@@ -364,7 +377,7 @@ mod tests {
         };
 
         let res = manager.dispatch(req).await;
-        assert!(res.is_ok());
+        assert!(res.is_ok(), "Fetch failed: {res:?}");
         let resp = res.unwrap();
         assert_eq!(resp.status, 200);
         assert_eq!(resp.content_type, "text/html; charset=utf-8");

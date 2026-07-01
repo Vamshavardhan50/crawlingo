@@ -79,6 +79,11 @@ jobs:
         run: python -m pip install --no-build-isolation .
       - name: Smoke test Python package
         run: python -c "from importlib.metadata import version; import crawlingo; assert crawlingo.__version__ == version('crawlingo'); assert crawlingo.Page"
+      - name: Comprehensive Python SDK tests
+        working-directory: sdk/python
+        run: python tests/test_all_apis.py
+        timeout-minutes: 5
+        continue-on-error: true
 
   nodejs:
     name: Node.js (${{ matrix.os }})
@@ -111,6 +116,11 @@ jobs:
       - name: Smoke test Node.js package
         working-directory: sdk/nodejs
         run: npm pack --dry-run
+      - name: Comprehensive Node.js SDK tests
+        working-directory: sdk/nodejs
+        run: node tests/test_all_apis.cjs
+        timeout-minutes: 5
+        continue-on-error: true
 
   version-check:
     name: Version Consistency
