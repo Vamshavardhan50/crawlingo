@@ -50,7 +50,7 @@ class TestRunner {
   constructor() {
     this.results = [];
     this.startTime = Date.now();
-    this.skippedApis = [];
+    this.missingApis = [];
   }
 
   check(name, passed, detail = '') {
@@ -60,10 +60,10 @@ class TestRunner {
     log(`  [${icon}] ${name} — ${status}${detail ? ' (' + detail + ')' : ''}`);
   }
 
-  skip(name, reason = 'Not yet implemented in SDK') {
-    this.results.push({ name, status: 'SKIP', detail: reason });
-    this.skippedApis.push(name);
-    log(`  [-] ${name} — SKIP (${reason})`);
+  missing(name, reason = 'Not yet implemented') {
+    this.results.push({ name, status: 'FAIL', detail: `Not implemented: ${reason}` });
+    this.missingApis.push(name);
+    log(`  [!] ${name} — FAIL (Not implemented: ${reason})`);
   }
 
   section(title) { log(`\n${'='.repeat(65)}\n  ${title}\n${'='.repeat(65)}`); }
@@ -72,7 +72,6 @@ class TestRunner {
   get total() { return this.results.length; }
   get passed() { return this.results.filter(r => r.status === 'PASS').length; }
   get failed() { return this.results.filter(r => r.status === 'FAIL').length; }
-  get skipped() { return this.results.filter(r => r.status === 'SKIP').length; }
 
   printSummary() {
     const elapsed = ((Date.now() - this.startTime) / 1000).toFixed(2);
@@ -83,14 +82,17 @@ class TestRunner {
     log(`  Total APIs tested:  ${this.total}`);
     log(`  Passed:             ${this.passed}`);
     log(`  Failed:             ${this.failed}`);
-    log(`  Skipped:            ${this.skipped}`);
     log(`  Execution time:     ${elapsed}s`);
     log(`  Coverage:           ${coverage}%`);
-    if (this.skippedApis.length > 0) {
-      log(`\n  Skipped APIs (${this.skippedApis.length}):`);
-      this.skippedApis.forEach(n => log(`    - ${n}`));
+    if (this.missingApis.length > 0) {
+      log(`\n  Missing APIs (${this.missingApis.length}):`);
+      this.missingApis.forEach(n => log(`    - ${n}`));
+      log(`  (mark features above as FAIL — implement to resolve)`);
     }
-    log(`\n  ${this.failed === 0 ? 'ALL PASSED' : 'SOME FAILURES — review above'}`);
+    log(`\n  ${this.failed === 0 ? 'ALL PASSED' : this.failed + ' FAILURE(S) — review above'}`);
+    if (this.failed === 0) {
+      log(`  ${this.passed}/${this.total} APIs implemented and passing.`);
+    }
   }
 }
 
@@ -200,8 +202,8 @@ async function testSession(runner, base) {
   runner.subsection('1.4 Custom');
   new Session().headers({ X: 'y' }).timeout(15).rateLimit(5);
   runner.check('Custom session', true);
-  runner.skip('Clone', 'Not exposed');
-  runner.skip('Destroy', 'GC handled');
+  runner.missing('Clone', 'Not exposed');
+  runner.missing('Destroy', 'GC handled');
 }
 
 // ─── 2. Fetchers ─────────────────────────────────────────────────────────────
@@ -212,7 +214,7 @@ async function testFetchers(runner, base) {
     const p = await Page.create(base, { session: new Session().fetcherTier(t), timeout: TIMEOUT_S });
     runner.check(`Fetcher '${t}' — status 200`, p.status === 200);
   }
-  runner.skip("'browser'", 'Not in SDK'); runner.skip("'auto'", 'Not in SDK'); runner.skip('Future', 'N/A');
+  runner.missing("'browser'", 'Not in SDK'); runner.missing("'auto'", 'Not in SDK'); runner.missing('Future', 'N/A');
 }
 
 // ─── 3. Profiles ─────────────────────────────────────────────────────────────
@@ -223,7 +225,7 @@ async function testProfiles(runner, base) {
     const p = await Page.create(base, { session: new Session().browserProfile(pr), timeout: TIMEOUT_S });
     runner.check(`Profile '${pr}' — status 200`, p.status === 200);
   }
-  runner.skip("'edge'", 'Not exposed');
+  runner.missing("'edge'", 'Not exposed');
 }
 
 // ─── 4. Headers ──────────────────────────────────────────────────────────────
@@ -234,7 +236,7 @@ async function testHeaders(runner, base) {
   runner.check('Session headers', p.status === 200);
   p = await Page.create(base, { timeout: TIMEOUT_S, headers: { O: 'v' } });
   runner.check('Per-request headers', p.status === 200);
-  runner.skip('Merge', 'No API'); runner.skip('Remove', 'No API');
+  runner.missing('Merge', 'No API'); runner.missing('Remove', 'No API');
 }
 
 // ─── 5. Cookies ──────────────────────────────────────────────────────────────
@@ -245,17 +247,17 @@ async function testCookies(runner, base) {
   runner.check('Session cookies', p.status === 200);
   p = await Page.create(base, { timeout: TIMEOUT_S, cookies: { c: 'v' } });
   runner.check('Per-request cookies', p.status === 200);
-  runner.skip('Update/Delete/Persist', 'No API');
+  runner.missing('Update/Delete/Persist', 'No API');
 }
 
 // ─── 6. Proxy ────────────────────────────────────────────────────────────────
 
 async function testProxy(runner, base) {
   runner.section('6. Proxy');
-  runner.skip('Single proxy', 'Requires live proxy');
+  runner.missing('Single proxy', 'Requires live proxy');
   new Session().proxyPool(['http://p1:8080']); runner.check('Pool', true);
   new Session().proxyProvider('http://ex.com'); runner.check('Provider', true);
-  runner.skip('Invalid/Auth/Rotation', 'See errors / no API');
+  runner.missing('Invalid/Auth/Rotation', 'See errors / no API');
 }
 
 // ─── 7. Timeouts ─────────────────────────────────────────────────────────────
@@ -266,7 +268,7 @@ async function testTimeouts(runner, base) {
   runner.check('Default (30s)', p.status === 200);
   p = await Page.create(base, { timeout: TIMEOUT_S });
   runner.check('Custom (10s)', p.status === 200);
-  runner.skip('Exceeded', 'See section 24');
+  runner.missing('Exceeded', 'See section 24');
 }
 
 // ─── 8. Rate ─────────────────────────────────────────────────────────────────
@@ -284,7 +286,7 @@ async function testRetry(runner, base) {
   runner.section('9. Retry Logic');
   const p = await Page.create(base, { timeout: TIMEOUT_S });
   runner.check('Page fetched', p.status === 200);
-  runner.skip('Exhausted/Backoff', 'No retry config in Node API');
+  runner.missing('Exhausted/Backoff', 'No retry config in Node API');
 }
 
 // ─── 10. HTTP Methods ────────────────────────────────────────────────────────
@@ -293,7 +295,7 @@ async function testHttp(runner, base) {
   runner.section('10. HTTP Requests');
   const p = await Page.create(base, { timeout: TIMEOUT_S });
   runner.check('GET — fetched', p.status === 200);
-  runner.skip('POST/PUT/PATCH/DELETE/HEAD/OPTIONS', 'Not exposed on Page/Session');
+  runner.missing('POST/PUT/PATCH/DELETE/HEAD/OPTIONS', 'Not exposed on Page/Session');
 }
 
 // ─── 11. Page APIs ───────────────────────────────────────────────────────────
@@ -311,7 +313,7 @@ async function testPageApis(runner, base) {
   runner.check('autoMatch=true', p2.status === 200);
   const p3 = await Page.create(base, { timeout: 15, headers: { X: 'v' }, cookies: { t: 'c' } });
   runner.check('All params', p3.status === 200);
-  runner.skip('Navigate/Reload/Back/Forward/Close', 'Not in SDK');
+  runner.missing('Navigate/Reload/Back/Forward/Close', 'Not in SDK');
 }
 
 // ─── 12. HTML ────────────────────────────────────────────────────────────────
@@ -321,7 +323,7 @@ async function testHtml(runner, base) {
   const p = await Page.create(base, { timeout: TIMEOUT_S });
   runner.check('.html returns string', typeof p.html === 'string' && p.html.length > 0);
   runner.check('Contains OK', p.html.includes('OK'));
-  runner.skip('Pretty HTML', 'No API');
+  runner.missing('Pretty HTML', 'No API');
   runner.check('Raw HTML', p.html.toLowerCase().includes('<html'));
 }
 
@@ -389,8 +391,12 @@ async function testExtraction(runner, base) {
   runner.subsection('15.6 Dataset.build()');
   const ds3 = new Dataset(base, new Session());
   ds3.field('h', 'h1').timeout(15);
-  try { const r = await ds3.build(); runner.check('build() returns DatasetResult', r instanceof DatasetResult); }
-  catch (e) { runner.check('build()', false, (e.message||'').slice(0,60)); }
+  try {
+    const r = await ds3.build();
+    runner.check('build() returns DatasetResult', r instanceof DatasetResult);
+    log(`    Dataset result: ${JSON.stringify(r, null, 2)}`);
+  }
+  catch (e) { runner.check('build()', false, (e.message||'').slice(0,160)); }
 
   runner.subsection('15.7 Links/Images/Scripts/Styles');
   const p2 = await Page.create(base + '/links', { timeout: TIMEOUT_S });
@@ -402,10 +408,10 @@ async function testExtraction(runner, base) {
 
 // ─── 16–19. Skipped ──────────────────────────────────────────────────────────
 
-async function testPagination(runner, base) { runner.section('16. Pagination'); runner.skip('All', 'No API'); }
-async function testScreenshots(runner, base) { runner.section('17. Screenshots'); runner.skip('All', 'No browser engine'); }
-async function testDownloads(runner, base) { runner.section('18. Downloads'); runner.skip('All', 'No download API'); }
-async function testUploads(runner, base) { runner.section('19. Uploads'); runner.skip('All', 'No upload API'); }
+async function testPagination(runner, base) { runner.section('16. Pagination'); runner.missing('All', 'No API'); }
+async function testScreenshots(runner, base) { runner.section('17. Screenshots'); runner.missing('All', 'No browser engine'); }
+async function testDownloads(runner, base) { runner.section('18. Downloads'); runner.missing('All', 'No download API'); }
+async function testUploads(runner, base) { runner.section('19. Uploads'); runner.missing('All', 'No upload API'); }
 
 // ─── 20. Auth ────────────────────────────────────────────────────────────────
 
@@ -437,8 +443,10 @@ async function testDataset(runner, base) {
   try {
     const r = await ds.build();
     runner.check('build() returns DatasetResult', r instanceof DatasetResult);
-    runner.check('toDict() object', typeof r.toDict() === 'object');
-  } catch (e) { runner.check('Dataset.build()', false, (e.message||'').slice(0,80)); return; }
+    const rd = r.toDict();
+    runner.check('toDict() object', typeof rd === 'object');
+    log(`    Dataset result: ${JSON.stringify(rd, null, 2)}`);
+  } catch (e) { runner.check('Dataset.build()', false, (e.message||'').slice(0,160)); return; }
 
   runner.subsection('21.3 Export');
   try {
@@ -451,7 +459,7 @@ async function testDataset(runner, base) {
     runner.check('Parquet export', fs.existsSync(path.join(TEST_DIR, '_crawlingo_n_test.parquet')));
   } catch (e) { runner.check('Export', false, (e.message||'').slice(0,80)); }
 
-  runner.skip('Update/Delete', 'Read-only');
+  runner.missing('Update/Delete', 'Read-only');
 }
 
 // ─── 22. Parsing ─────────────────────────────────────────────────────────────
@@ -460,14 +468,14 @@ async function testParsing(runner, base) {
   runner.section('22. Parsing');
   const p = await Page.create(base, { timeout: TIMEOUT_S });
   runner.check('HTML string', typeof p.html === 'string');
-  runner.skip('JSON/XML/MD/CSV', 'Use standard libraries');
+  runner.missing('JSON/XML/MD/CSV', 'Use standard libraries');
 }
 
 // ─── 23. Utilities ───────────────────────────────────────────────────────────
 
 async function testUtilities(runner, base) {
   runner.section('23. Utilities');
-  runner.skip('All', 'No utility API in SDK');
+  runner.missing('All', 'No utility API in SDK');
 }
 
 // ─── 24. Errors ──────────────────────────────────────────────────────────────
@@ -488,14 +496,14 @@ async function testErrors(runner, base) {
   try { await Page.create('http://this-domain-does-not-exist-99999.com', { timeout: 5 }); runner.check('DNS fail', false, 'No error'); }
   catch (e) { runner.check('DNS fail — throws', true); }
 
-  runner.skip('Invalid URL / Timeout', 'Handled or would hang');
+  runner.missing('Invalid URL / Timeout', 'Handled or would hang');
 }
 
 // ─── 25. Logging ─────────────────────────────────────────────────────────────
 
 async function testLogging(runner, base) {
   runner.section('25. Logging');
-  runner.skip('All log levels', 'No logging API in Node.js SDK');
+  runner.missing('All log levels', 'No logging API in Node.js SDK');
 }
 
 // ─── 26. Performance ─────────────────────────────────────────────────────────
@@ -506,7 +514,7 @@ async function testPerformance(runner, base) {
   runner.check('Crawl.concurrency(4)', true);
   const p = await Page.create(base + '/large', { timeout: 30 });
   runner.check('Large page fetched', p.status === 200 && p.html.length > 50000);
-  runner.skip('Memory/Stress', 'External tools');
+  runner.missing('Memory/Stress', 'External tools');
 }
 
 // ─── 27. Cleanup ─────────────────────────────────────────────────────────────
@@ -518,7 +526,7 @@ async function testCleanup(runner, base) {
   runner.check('Page GC\'d', true);
   let s = new Session(); runner.check('Session created', s instanceof Session); s = null;
   runner.check('Session GC\'d', true);
-  runner.skip('Cache/Cookies/Resources', 'GC handled');
+  runner.missing('Cache/Cookies/Resources', 'GC handled');
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────

@@ -78,13 +78,13 @@ impl Dataset {
             cookies,
             proxy,
             timeout: std::time::Duration::from_secs(timeout_secs),
-            retries: 2,
+            retries: 3,
             rate_limit_rps,
         };
 
-        // 3. Fetch using Fetch Manager and standard pool
+        // 3. Fetch using Fetch Manager with no keepalive (test-safe)
         let rate_limiter = Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
-        let manager = FetchManager::new(rate_limiter, ConnectionPoolConfig::default());
+        let manager = FetchManager::new(rate_limiter, ConnectionPoolConfig::no_keepalive());
         let response = manager.dispatch(req).await?;
 
         // 4. Parse using HtmlParser producing Page

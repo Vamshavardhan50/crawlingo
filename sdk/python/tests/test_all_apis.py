@@ -236,7 +236,7 @@ class TestRunner:
     def __init__(self):
         self.results = []
         self.start_time = time.time()
-        self.skipped_apis = []
+        self.missing_apis = []
 
     def check(self, name, passed, detail=""):
         status = "PASS" if passed else "FAIL"
@@ -244,10 +244,11 @@ class TestRunner:
         icon = "+" if passed else "X"
         print(f"  [{icon}] {name} — {status}" + (f" ({detail})" if detail else ""))
 
-    def skip(self, name, reason="Not yet implemented in SDK"):
-        self.results.append({"name": name, "status": "SKIP", "detail": reason})
-        self.skipped_apis.append(name)
-        print(f"  [-] {name} — SKIP ({reason})")
+    def missing(self, name, reason="Not yet implemented"):
+        """Report a feature as missing (FAIL, not SKIP)."""
+        self.results.append({"name": name, "status": "FAIL", "detail": f"Not implemented: {reason}"})
+        self.missing_apis.append(name)
+        print(f"  [!] {name} — FAIL (Not implemented: {reason})")
 
     def section(self, title):
         print(f"\n{'=' * 65}")
@@ -270,26 +271,31 @@ class TestRunner:
         return sum(1 for r in self.results if r["status"] == "FAIL")
 
     @property
-    def skipped(self):
-        return sum(1 for r in self.results if r["status"] == "SKIP")
+    def missing_count(self):
+        return len(self.missing_apis)
 
     def print_summary(self):
         elapsed = time.time() - self.start_time
-        coverage = (self.passed / max(self.total, 1)) * 100
+        passed = self.passed
+        failed = self.failed
+        total = self.total
+        coverage = (passed / max(total, 1)) * 100
         print(f"\n{'=' * 65}")
         print(f"  FINAL SUMMARY")
         print(f"{'=' * 65}")
-        print(f"  Total APIs tested:  {self.total}")
-        print(f"  Passed:             {self.passed}")
-        print(f"  Failed:             {self.failed}")
-        print(f"  Skipped:            {self.skipped}")
+        print(f"  Total APIs tested:  {total}")
+        print(f"  Passed:             {passed}")
+        print(f"  Failed:             {failed}")
         print(f"  Execution time:     {elapsed:.2f}s")
         print(f"  Coverage:           {coverage:.1f}%")
-        if self.skipped_apis:
-            print(f"\n  Skipped APIs ({len(self.skipped_apis)}):")
-            for name in self.skipped_apis:
+        if self.missing_apis:
+            print(f"\n  Missing APIs ({len(self.missing_apis)}):")
+            for name in self.missing_apis:
                 print(f"    - {name}")
-        print(f"\n  {'ALL PASSED' if self.failed == 0 else 'SOME FAILURES — review above'}")
+            print(f"  (mark features above as FAIL — implement to resolve)")
+        print(f"\n  {'ALL PASSED' if failed == 0 else f'{failed} FAILURE(S) — review above'}")
+        if failed == 0:
+            print(f"  {passed}/{total} APIs implemented and passing.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -325,7 +331,7 @@ def test_session(runner, server):
     runner.check("Custom Session configured", True)
 
     runner.subsection("1.5 Clone")
-    runner.skip("Session.clone()", "Not exposed")
+    runner.missing("Session.clone()", "Not exposed")
 
     runner.subsection("1.6 Context Manager")
     with Session() as cs:
@@ -346,9 +352,9 @@ def test_fetchers(runner, server):
         p.html()
         runner.check(f"Fetcher '{tier}' — status 200", p.status == 200)
 
-    runner.skip("Fetcher 'browser'", "Not in SDK")
-    runner.skip("Fetcher 'auto'", "Not in SDK")
-    runner.skip("Future tiers", "Not exposed")
+    runner.missing("Fetcher 'browser'", "Not in SDK")
+    runner.missing("Fetcher 'auto'", "Not in SDK")
+    runner.missing("Future tiers", "Not exposed")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -361,7 +367,7 @@ def test_browser_profiles(runner, server):
         p = Page(server.url, session=Session().browser_profile(profile), timeout=10)
         p.html()
         runner.check(f"Profile '{profile}' — status 200", p.status == 200)
-    runner.skip("Profile 'edge'", "Not exposed")
+    runner.missing("Profile 'edge'", "Not exposed")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -377,8 +383,8 @@ def test_headers(runner, server):
     p2 = Page(server.url, timeout=10, headers={"X-O": "y"})
     runner.check("Per-request headers", p2.status == 200)
 
-    runner.skip("Header merge", "No merge API")
-    runner.skip("Header remove", "No remove API")
+    runner.missing("Header merge", "No merge API")
+    runner.missing("Header remove", "No remove API")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -394,9 +400,9 @@ def test_cookies(runner, server):
     p2 = Page(server.url, timeout=10, cookies={"c": "v"})
     runner.check("Per-request cookies — page fetched", p2.status == 200)
 
-    runner.skip("Update cookies", "No update API")
-    runner.skip("Delete cookies", "No delete API")
-    runner.skip("Persistent cookies", "No store API")
+    runner.missing("Update cookies", "No update API")
+    runner.missing("Delete cookies", "No delete API")
+    runner.missing("Persistent cookies", "No store API")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -406,14 +412,14 @@ def test_cookies(runner, server):
 def test_proxy(runner, server):
     runner.section("6. Proxy")
 
-    runner.skip("Single proxy", "Requires live proxy")
+    runner.missing("Single proxy", "Requires live proxy")
     Session().proxy_pool(["http://p1:8080"])
     runner.check("Proxy pool — accepts list", True)
     Session().proxy_provider("http://example.com/list")
     runner.check("Proxy provider — accepts URL", True)
-    runner.skip("Invalid proxy", "Covered by error tests")
-    runner.skip("Proxy auth", "No explicit API")
-    runner.skip("Proxy rotation", "Automatic via pool")
+    runner.missing("Invalid proxy", "Covered by error tests")
+    runner.missing("Proxy auth", "No explicit API")
+    runner.missing("Proxy rotation", "Automatic via pool")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -431,7 +437,7 @@ def test_timeouts(runner, server):
     p2.html()
     runner.check("Custom timeout (10s)", p2.status == 200)
 
-    runner.skip("Timeout exceeded", "Would hang; see section 24")
+    runner.missing("Timeout exceeded", "Would hang; see section 24")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -461,8 +467,8 @@ def test_retry_logic(runner, server):
     p.html()
     runner.check("Page with retries=3 — fetched", p.status == 200)
 
-    runner.skip("Retry exhausted", "See section 24")
-    runner.skip("Backoff", "No backoff API")
+    runner.missing("Retry exhausted", "See section 24")
+    runner.missing("Backoff", "No backoff API")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -476,12 +482,12 @@ def test_http_requests(runner, server):
     p.html()
     runner.check("GET — Page fetch", p.status == 200)
 
-    runner.skip("POST", "Not exposed on Page/Session")
-    runner.skip("PUT", "Not exposed")
-    runner.skip("PATCH", "Not exposed")
-    runner.skip("DELETE", "Not exposed")
-    runner.skip("HEAD", "Not exposed")
-    runner.skip("OPTIONS", "Not exposed")
+    runner.missing("POST", "Not exposed on Page/Session")
+    runner.missing("PUT", "Not exposed")
+    runner.missing("PATCH", "Not exposed")
+    runner.missing("DELETE", "Not exposed")
+    runner.missing("HEAD", "Not exposed")
+    runner.missing("OPTIONS", "Not exposed")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -506,10 +512,10 @@ def test_page_apis(runner, server):
     p3.html()
     runner.check("All params — fetched", p3.status == 200)
 
-    runner.skip("Navigate", "Not supported")
-    runner.skip("Reload", "Not supported")
-    runner.skip("Back/Forward", "Not supported")
-    runner.skip("Close", "Not supported")
+    runner.missing("Navigate", "Not supported")
+    runner.missing("Reload", "Not supported")
+    runner.missing("Back/Forward", "Not supported")
+    runner.missing("Close", "Not supported")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -524,7 +530,7 @@ def test_html(runner, server):
     runner.check("Page.html() returns string", isinstance(html, str) and len(html) > 0)
     runner.check("Contains 'OK'", "OK" in html)
 
-    runner.skip("Pretty HTML", "Not exposed")
+    runner.missing("Pretty HTML", "Not exposed")
     runner.check("Raw HTML — original server response", "<html" in html.lower() or "<!DOCTYPE" in html)
 
 
@@ -595,9 +601,16 @@ def test_extraction(runner, server):
     try:
         result = ds.build()
         rd = result.to_dict()
-        runner.check("build().to_dict() returns dict", isinstance(rd, dict) and len(rd) > 0)
+        ok = isinstance(rd, dict) and len(rd) > 0
+        runner.check("Dataset.build().to_dict()", ok)
+        if ok:
+            print(f"    Dataset result: {json.dumps(rd, indent=2)}")
+            # Also export to CLI-visible path
+            cli_path = os.path.join(TEST_DIR, "_dataset_output.json")
+            result.to_json(cli_path)
+            print(f"    Dataset JSON exported to: {cli_path}")
     except Exception as e:
-        runner.check("Dataset.build()", False, str(e)[:80])
+        runner.check("Dataset.build()", False, str(e)[:160])
 
     runner.subsection("15.4 Tables")
     p2 = Page(f"{server.url}/table", timeout=10)
@@ -612,7 +625,7 @@ def test_extraction(runner, server):
     runner.check("Scripts — script[src]", len(p3.css("script[src]")) >= 1)
     runner.check("Stylesheets — link[rel]", len(p3.css("link[rel]")) >= 1)
 
-    runner.skip("JSON extraction", "Use Python json module")
+    runner.missing("JSON extraction", "Use Python json module")
     runner.check("Meta elements", isinstance(p.css("meta"), ElementCollection))
 
 
@@ -622,22 +635,22 @@ def test_extraction(runner, server):
 
 def test_pagination(runner, server):
     runner.section("16. Pagination")
-    runner.skip("All pagination", "Use Crawl.follow() for link-based; no dedicated API")
+    runner.missing("All pagination", "Use Crawl.follow() for link-based; no dedicated API")
 
 
 def test_screenshots(runner, server):
     runner.section("17. Screenshots")
-    runner.skip("All screenshots", "No browser engine in SDK")
+    runner.missing("All screenshots", "No browser engine in SDK")
 
 
 def test_downloads(runner, server):
     runner.section("18. Downloads")
-    runner.skip("All downloads", "Content via Page.html(); no file download API")
+    runner.missing("All downloads", "Content via Page.html(); no file download API")
 
 
 def test_uploads(runner, server):
     runner.section("19. Uploads")
-    runner.skip("All uploads", "No upload API")
+    runner.missing("All uploads", "No upload API")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -679,9 +692,14 @@ def test_dataset(runner, server):
     try:
         result = ds.build()
         runner.check("build() returns DatasetResult", isinstance(result, DatasetResult))
-        runner.check("to_dict() returns dict", isinstance(result.to_dict(), dict))
+        rd = result.to_dict()
+        runner.check("to_dict() returns dict", isinstance(rd, dict) and len(rd) > 0)
+        print(f"    Dataset result: {json.dumps(rd, indent=2)}")
+        cli_path = os.path.join(TEST_DIR, "_dataset_output.json")
+        result.to_json(cli_path)
+        print(f"    Dataset JSON exported to: {cli_path}")
     except Exception as e:
-        runner.check("Dataset.build()", False, str(e)[:80])
+        runner.check("Dataset.build()", False, str(e)[:160])
         return
 
     runner.subsection("21.3 Export")
@@ -721,7 +739,7 @@ def test_dataset(runner, server):
     if HAS_PANDAS:
         runner.check("result.df() returns DataFrame", isinstance(result.df(), pd.DataFrame))
     else:
-        runner.skip("result.df()", "pandas not installed")
+        runner.missing("result.df()", "pandas not installed")
 
     try:
         d2 = Dataset(server.url, Session())
@@ -733,8 +751,8 @@ def test_dataset(runner, server):
     except Exception as e:
         runner.check("Dataset with transforms", False, str(e)[:80])
 
-    runner.skip("Row update", "Dataset is read-only")
-    runner.skip("Row delete", "Dataset is read-only")
+    runner.missing("Row update", "Dataset is read-only")
+    runner.missing("Row delete", "Dataset is read-only")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -747,10 +765,10 @@ def test_parsing(runner, server):
     p = Page(server.url, timeout=10)
     runner.check("HTML — Page.html() returns string", isinstance(p.html(), str))
 
-    runner.skip("JSON parsing", "Use json module")
-    runner.skip("XML parsing", "Use xml module")
-    runner.skip("Markdown parsing", "Not built in")
-    runner.skip("CSV parsing", "Use csv module")
+    runner.missing("JSON parsing", "Use json module")
+    runner.missing("XML parsing", "Use xml module")
+    runner.missing("Markdown parsing", "Not built in")
+    runner.missing("CSV parsing", "Use csv module")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -759,10 +777,10 @@ def test_parsing(runner, server):
 
 def test_utilities(runner, server):
     runner.section("23. Utilities")
-    runner.skip("URL normalization", "Not in SDK")
-    runner.skip("URL validation", "Not in SDK")
-    runner.skip("Domain extraction", "Not in SDK")
-    runner.skip("Hash / Encode / Decode", "Not in SDK")
+    runner.missing("URL normalization", "Not in SDK")
+    runner.missing("URL validation", "Not in SDK")
+    runner.missing("Domain extraction", "Not in SDK")
+    runner.missing("Hash / Encode / Decode", "Not in SDK")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -830,7 +848,7 @@ def test_errors(runner, server):
     except Exception:
         runner.check("Invalid URL — error raised", True)
 
-    runner.skip("Timeout error", "Would hang")
+    runner.missing("Timeout error", "Would hang")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -864,7 +882,7 @@ def test_logging(runner, server):
     runner.check("Page hooks — before_parse registered", True)
     runner.check("Page hooks — after_extract registered", True)
 
-    runner.skip("Log levels (debug/info/warn/error/trace)", "No logging levels; use hooks")
+    runner.missing("Log levels (debug/info/warn/error/trace)", "No logging levels; use hooks")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -883,8 +901,8 @@ def test_performance(runner, server):
     runner.check("Large page fetched", p.status == 200)
     runner.check("Large page > 50000 chars", len(p.html()) > 50000)
 
-    runner.skip("Memory profiling", "External tools")
-    runner.skip("Stress test", "External tools")
+    runner.missing("Memory profiling", "External tools")
+    runner.missing("Stress test", "External tools")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -905,9 +923,9 @@ def test_cleanup(runner, server):
     del s
     runner.check("Session dereferenced", True)
 
-    runner.skip("Clear cache", "No cache clear API")
-    runner.skip("Clear cookies", "No cookie clear API")
-    runner.skip("Release resources", "Handled by GC")
+    runner.missing("Clear cache", "No cache clear API")
+    runner.missing("Clear cookies", "No cookie clear API")
+    runner.missing("Release resources", "Handled by GC")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
