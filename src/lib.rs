@@ -10,11 +10,15 @@ pub mod crawl;
 pub mod dataset;
 pub mod engine;
 pub mod error;
+pub mod extraction;
 pub mod fingerprint;
 pub mod matcher;
 pub mod parser;
 pub mod selector;
 pub mod watch;
+
+/// Convenience re-export of the core Page type.
+pub use parser::document::Page;
 
 #[cfg(feature = "python")]
 use crate::engine::fetcher::{FetchManager, FetchRequest, FetcherTier};

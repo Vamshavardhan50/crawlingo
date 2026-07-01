@@ -23,6 +23,9 @@ pub enum CrawlingoError {
     #[error("Change detection failed: {0}")]
     ChangeDetectionError(String),
 
+    #[error("Dataset error: {0}")]
+    DatasetError(String),
+
     #[error("Export failed: {0}")]
     ExportError(String),
 

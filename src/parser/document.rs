@@ -2,6 +2,28 @@ use once_cell::sync::OnceCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+/// A fetched image resource with optional alt text.
+#[derive(Debug, Clone)]
+pub struct ImageResource {
+    pub src: String,
+    pub alt: Option<String>,
+}
+
+/// Parsed tabular data from HTML tables.
+#[derive(Debug, Clone)]
+pub struct TableData {
+    pub headers: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+}
+
+/// Extracted form controls from HTML forms.
+#[derive(Debug, Clone)]
+pub struct FormDetails {
+    pub action: Option<String>,
+    pub method: Option<String>,
+    pub inputs: Vec<String>,
+}
+
 /// A node in the custom in-memory DOM Tree.
 #[derive(Debug, Clone)]
 pub struct DomNode {
@@ -286,7 +308,13 @@ pub struct Page {
     html: String,
     tree: Arc<DomTree>,
     text_cache: OnceCell<String>,
+    markdown_cache: OnceCell<String>,
     links_cache: OnceCell<Vec<String>>,
+    images_cache: OnceCell<Vec<ImageResource>>,
+    tables_cache: OnceCell<Vec<TableData>>,
+    forms_cache: OnceCell<Vec<FormDetails>>,
+    scripts_cache: OnceCell<Vec<String>>,
+    styles_cache: OnceCell<Vec<String>>,
 }
 
 impl Page {
@@ -306,7 +334,13 @@ impl Page {
             html,
             tree: Arc::new(tree),
             text_cache: OnceCell::new(),
+            markdown_cache: OnceCell::new(),
             links_cache: OnceCell::new(),
+            images_cache: OnceCell::new(),
+            tables_cache: OnceCell::new(),
+            forms_cache: OnceCell::new(),
+            scripts_cache: OnceCell::new(),
+            styles_cache: OnceCell::new(),
         }
     }
 
@@ -338,6 +372,65 @@ impl Page {
         self.text_cache.get_or_init(|| self.tree.get_text(0))
     }
 
+    /// Lazy-converts the DOM to clean markdown text.
+    pub fn markdown(&self) -> &str {
+        self.markdown_cache.get_or_init(|| {
+            let mut md = String::new();
+            if let Some(root) = self.tree.nodes.first() {
+                Self::dom_to_markdown(&self.tree, root.index, &mut md, 0);
+            }
+            md
+        })
+    }
+
+    fn dom_to_markdown(tree: &DomTree, idx: usize, buf: &mut String, depth: usize) {
+        if let Some(node) = tree.nodes.get(idx) {
+            let tag = node.tag.to_lowercase();
+            let text = node.text.trim();
+            match tag.as_str() {
+                "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
+                    let level = tag[1..].parse::<usize>().unwrap_or(1);
+                    let prefix = "#".repeat(level);
+                    if !text.is_empty() {
+                        buf.push_str(&format!("\n{prefix} {text}\n\n"));
+                    }
+                }
+                "a" => {
+                    if let Some(href) = node.attrs.get("href") {
+                        if !text.is_empty() {
+                            buf.push_str(&format!("[{text}]({href})"));
+                        } else {
+                            buf.push_str(&format!("<{href}>"));
+                        }
+                    } else if !text.is_empty() {
+                        buf.push_str(text);
+                    }
+                }
+                "img" => {
+                    if let Some(src) = node.attrs.get("src") {
+                        let alt = node.attrs.get("alt").map(|s| s.as_str()).unwrap_or("");
+                        buf.push_str(&format!("![{alt}]({src})"));
+                    }
+                }
+                "br" => buf.push('\n'),
+                "p" | "div" | "li" => {
+                    if !text.is_empty() {
+                        buf.push_str(&format!("\n{text}\n"));
+                    }
+                }
+                "hr" => buf.push_str("\n---\n"),
+                _ => {
+                    if !text.is_empty() {
+                        buf.push_str(text);
+                    }
+                }
+            }
+            for &child_idx in &node.children {
+                Self::dom_to_markdown(tree, child_idx, buf, depth + 1);
+            }
+        }
+    }
+
     pub fn links(&self) -> &[String] {
         self.links_cache.get_or_init(|| {
             let mut resolved = Vec::new();
@@ -357,16 +450,204 @@ impl Page {
         })
     }
 
-    pub fn images(&self) -> Vec<(String, Option<String>)> {
-        let mut imgs = Vec::new();
-        let matches = crate::selector::css::query(&self.tree, "img");
-        for &idx in &matches {
-            if let Some(src) = self.tree.nodes[idx].attrs.get("src") {
-                let alt = self.tree.nodes[idx].attrs.get("alt").cloned();
-                imgs.push((src.clone(), alt));
+    pub fn images(&self) -> &[ImageResource] {
+        self.images_cache.get_or_init(|| {
+            let mut imgs = Vec::new();
+            let matches = crate::selector::css::query(&self.tree, "img");
+            for &idx in &matches {
+                if let Some(src) = self.tree.nodes[idx].attrs.get("src") {
+                    let alt = self.tree.nodes[idx].attrs.get("alt").cloned();
+                    let resolved_src = if let Ok(base) = url::Url::parse(&self.url) {
+                        if let Ok(abs_url) = base.join(src) {
+                            abs_url.to_string()
+                        } else {
+                            src.clone()
+                        }
+                    } else {
+                        src.clone()
+                    };
+                    imgs.push(ImageResource {
+                        src: resolved_src,
+                        alt,
+                    });
+                }
+            }
+            imgs
+        })
+    }
+
+    pub fn tables(&self) -> &[TableData] {
+        self.tables_cache.get_or_init(|| {
+            let mut tables = Vec::new();
+            let matches = crate::selector::css::query(&self.tree, "table");
+            for &table_idx in &matches {
+                let node = &self.tree.nodes[table_idx];
+                let mut headers = Vec::new();
+                let mut rows = Vec::new();
+
+                for &child_idx in &node.children {
+                    let child = &self.tree.nodes[child_idx];
+                    if child.tag.to_lowercase() == "thead" {
+                        for &th_idx in &child.children {
+                            let h = self.tree.get_text(th_idx).trim().to_string();
+                            if !h.is_empty() {
+                                headers.push(h);
+                            }
+                        }
+                    }
+                }
+
+                for &child_idx in &node.children {
+                    let child = &self.tree.nodes[child_idx];
+                    let tagname = child.tag.to_lowercase();
+                    if tagname == "tr" {
+                        let row = Self::extract_table_row(&self.tree, child_idx);
+                        if !row.is_empty() && headers.is_empty() {
+                            headers = row;
+                        } else if !row.is_empty() {
+                            rows.push(row);
+                        }
+                    } else if tagname == "tbody" || tagname == "tfoot" {
+                        for &tr_idx in &child.children {
+                            if let Some(tr) = self.tree.nodes.get(tr_idx) {
+                                if tr.tag.to_lowercase() == "tr" {
+                                    let row = Self::extract_table_row(&self.tree, tr_idx);
+                                    if !row.is_empty() {
+                                        rows.push(row);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                tables.push(TableData { headers, rows });
+            }
+            tables
+        })
+    }
+
+    fn extract_table_row(tree: &DomTree, tr_idx: usize) -> Vec<String> {
+        let mut row = Vec::new();
+        if let Some(tr) = tree.nodes.get(tr_idx) {
+            for &cell_idx in &tr.children {
+                let cell = &tree.nodes[cell_idx];
+                let tagname = cell.tag.to_lowercase();
+                if tagname == "td" || tagname == "th" {
+                    let text = tree.get_text(cell_idx).trim().to_string();
+                    row.push(text);
+                }
             }
         }
-        imgs
+        row
+    }
+
+    pub fn forms(&self) -> &[FormDetails] {
+        self.forms_cache.get_or_init(|| {
+            let mut forms = Vec::new();
+            let matches = crate::selector::css::query(&self.tree, "form");
+            for &form_idx in &matches {
+                let node = &self.tree.nodes[form_idx];
+                let action = node.attrs.get("action").cloned();
+                let method = node
+                    .attrs
+                    .get("method")
+                    .cloned()
+                    .or_else(|| Some("get".to_string()));
+                let mut inputs = Vec::new();
+                for &child_idx in &node.children {
+                    Self::collect_form_inputs(&self.tree, child_idx, &mut inputs);
+                }
+                forms.push(FormDetails {
+                    action,
+                    method,
+                    inputs,
+                });
+            }
+            forms
+        })
+    }
+
+    fn collect_form_inputs(tree: &DomTree, idx: usize, inputs: &mut Vec<String>) {
+        if let Some(node) = tree.nodes.get(idx) {
+            let tag = node.tag.to_lowercase();
+            if tag == "input" || tag == "textarea" || tag == "select" {
+                if let Some(name) = node.attrs.get("name") {
+                    inputs.push(name.clone());
+                }
+            }
+            for &child_idx in &node.children {
+                Self::collect_form_inputs(tree, child_idx, inputs);
+            }
+        }
+    }
+
+    pub fn scripts(&self) -> &[String] {
+        self.scripts_cache.get_or_init(|| {
+            let mut scripts = Vec::new();
+            let matches = crate::selector::css::query(&self.tree, "script");
+            for &idx in &matches {
+                if let Some(src) = self.tree.nodes[idx].attrs.get("src") {
+                    if let Ok(base) = url::Url::parse(&self.url) {
+                        if let Ok(abs_url) = base.join(src) {
+                            scripts.push(abs_url.to_string());
+                            continue;
+                        }
+                    }
+                    scripts.push(src.clone());
+                }
+            }
+            scripts
+        })
+    }
+
+    pub fn styles(&self) -> &[String] {
+        self.styles_cache.get_or_init(|| {
+            let mut styles = Vec::new();
+            let matches = crate::selector::css::query(&self.tree, "link[rel='stylesheet']");
+            for &idx in &matches {
+                if let Some(href) = self.tree.nodes[idx].attrs.get("href") {
+                    if let Ok(base) = url::Url::parse(&self.url) {
+                        if let Ok(abs_url) = base.join(href) {
+                            styles.push(abs_url.to_string());
+                            continue;
+                        }
+                    }
+                    styles.push(href.clone());
+                }
+            }
+            styles
+        })
+    }
+
+    /// Returns page metadata as key-value pairs (title, description, charset, etc.).
+    pub fn metadata(&self) -> HashMap<String, String> {
+        let mut meta = HashMap::new();
+        let title_matches = crate::selector::css::query(&self.tree, "title");
+        if let Some(&title_idx) = title_matches.first() {
+            let title = self.tree.get_text(title_idx).trim().to_string();
+            if !title.is_empty() {
+                meta.insert("title".to_string(), title);
+            }
+        }
+        let meta_matches = crate::selector::css::query(&self.tree, "meta");
+        for &meta_idx in &meta_matches {
+            let node = &self.tree.nodes[meta_idx];
+            if let Some(name) = node.attrs.get("name").or_else(|| node.attrs.get("property")) {
+                if let Some(content) = node.attrs.get("content") {
+                    meta.insert(name.to_lowercase().replace(':', "_"), content.clone());
+                }
+            }
+            if let Some(charset) = node.attrs.get("charset") {
+                meta.insert("charset".to_string(), charset.clone());
+            }
+        }
+        if !meta.contains_key("description") {
+            if let Some(desc) = meta.get("og_description") {
+                meta.insert("description".to_string(), desc.clone());
+            }
+        }
+        meta
     }
 
     pub fn query(
