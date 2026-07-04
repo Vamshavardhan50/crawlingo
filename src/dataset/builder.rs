@@ -1,5 +1,4 @@
-use crate::engine::fetcher::{FetchManager, FetchRequest};
-use crate::engine::pool::ConnectionPoolConfig;
+use crate::engine::fetcher::FetchRequest;
 #[cfg(feature = "python")]
 use crate::engine::session::PySession;
 use crate::engine::session::Session;
@@ -82,9 +81,9 @@ impl Dataset {
             rate_limit_rps,
         };
 
-        // 3. Fetch using Fetch Manager with no keepalive (test-safe)
-        let rate_limiter = Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
-        let manager = FetchManager::new(rate_limiter, ConnectionPoolConfig::no_keepalive());
+        // 3. Fetch using the session-wide manager so connection state and host rate limits
+        //    are shared across every build rather than reset on each call.
+        let manager = self.session.fetch_manager();
         let response = manager.dispatch(req).await?;
 
         // 4. Parse using HtmlParser producing Page
@@ -98,8 +97,10 @@ impl Dataset {
     pub async fn extract_from_page(&self, page: &Page) -> Result<DatasetResult> {
         let auto_match_enabled = *self.session.auto_match.read().unwrap();
 
-        // Retrieve long-lived fingerprint store from Session
-        let store = self.session.get_fingerprint_store()?;
+        // The fingerprint store is only needed for auto-match recovery. Open it lazily so that
+        // the common path (auto_match disabled) never touches Sled — this avoids both the I/O
+        // cost and lockfile contention when many datasets extract concurrently.
+        let mut store = None;
 
         let mut fields_map = HashMap::new();
 
@@ -120,6 +121,11 @@ impl Dataset {
 
             // Auto-matching recovery logic
             if matches.is_empty() && auto_match_enabled && f.selector_type == "css" {
+                // Open (and cache) the fingerprint store on first actual use.
+                if store.is_none() {
+                    store = Some(self.session.get_fingerprint_store()?);
+                }
+                let store_ref = store.as_ref().unwrap();
                 let weights = self.session.similarity_weights.read().unwrap();
                 let weights_opt = if weights.is_empty() {
                     None
@@ -130,7 +136,7 @@ impl Dataset {
                     page.dom_tree(),
                     page.url(),
                     &f.selector,
-                    &store,
+                    store_ref,
                     weights_opt,
                 ) {
                     matches = vec![recovered_idx];

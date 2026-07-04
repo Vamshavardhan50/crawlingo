@@ -10,6 +10,8 @@ This document catalogues the current technical debt in the Crawlingo codebase, r
 - **Location:** [crawler.rs](file:///d:/Scraper/src/crawl/crawler.rs), [builder.rs](file:///d:/Scraper/src/dataset/builder.rs)
 - **Problem:** Every crawler worker loop and every call to `Dataset::build_async` constructs a new `Fetcher` and a new `HostRateLimiter` instance rather than reusing a shared instance from the `Session`.
 - **Impact:** Empties the HTTP connection pool, bypasses connection reuse, and defeats rate-limit enforcement across concurrent worker threads.
+- **Status (rate limiter): RESOLVED.** `Session` now owns a single lazily-built `FetchManager` (`Session::fetch_manager()`), reused by `Dataset::build_async`, `Crawler::crawl_async`, and proxy-provider fetches. Host rate limits are therefore shared per-session. The crawler webhook also reuses one `wreq::Client` instead of building one per delivered result.
+- **Remaining follow-up (pooling):** `HttpFetcher::execute` still builds a fresh `wreq::Client` on **every** request, so connection pooling never actually engages regardless of `ConnectionPoolConfig`. Caching a client per (proxy, tier, profile) key is the next performance task.
 
 ### 2. Sled Database Connection Bottleneck
 - **Location:** [builder.rs](file:///d:/Scraper/src/dataset/builder.rs)
@@ -20,6 +22,7 @@ This document catalogues the current technical debt in the Crawlingo codebase, r
 - **Location:** [fetcher.rs](file:///d:/Scraper/src/engine/fetcher.rs)
 - **Problem:** There is no generic `Fetcher` trait; the fetcher is a concrete struct tied directly to `wreq`.
 - **Impact:** Impossible to mock HTTP responses or test network error recoveries offline. Integration tests have to rely entirely on loading local HTML files manually.
+- **Status: RESOLVED.** The old RPITIT `FetchStrategy` trait (not dyn-compatible) was replaced with an object-safe `Transport` trait returning a `BoxFuture`. `FetchManager` now holds `Arc<dyn Transport>` and gains `FetchManager::with_transport(...)`. A public `MockTransport` (canned per-URL/default responses, call recording, `failing_first(n)` for retry simulation) can be injected via `Session::set_transport(...)`. The dead legacy `Fetcher` struct (~60 duplicated lines) was removed. New offline tests cover the full fetch → retry → parse → extract pipeline with zero network access (`tests/mock_transport_test.rs`, unit tests in `fetcher.rs`).
 
 ---
 
@@ -45,6 +48,12 @@ This document catalogues the current technical debt in the Crawlingo codebase, r
 - **Problem:** The crawler extraction loop only calls `css::query()`, ignoring the configured `selector_type` parameter.
 - **Impact:** Crawler fails if a schema uses XPath, regex, or text anchor selectors.
 
+### 12. Retry Engine Ignored Retryable HTTP Statuses
+- **Location:** [fetcher.rs](file:///d:/Scraper/src/engine/fetcher.rs) (`FetchManager::dispatch`)
+- **Problem:** The retry loop only fired on transport-level `Err`s. A `429 Too Many Requests` or `5xx` server error is an `Ok(NormalizedResponse)` as far as the `Transport` is concerned, so these responses were returned to the caller on the first attempt with no retry at all.
+- **Impact:** Callers hitting rate limits or transient server errors got an immediate failed-looking response instead of the automatic recovery the "retry engine" is supposed to provide.
+- **Status: RESOLVED.** Added a `RetryPolicy` (`src/engine/retry.rs`) consulted by `FetchManager::dispatch` on every attempt, not just on `Err`. Defaults to retrying `{429, 500, 502, 503, 504}` with exponential backoff (500ms base, ×2, capped at 30s), honoring a `Retry-After` response header when present in place of the computed backoff. Non-retryable statuses (e.g. `404`) and successes return immediately, as before. Configurable per `FetchManager` via `.with_retry_policy(...)`. Covered by unit tests in `retry.rs` and dispatch-level integration tests in `fetcher.rs` (`manager_retries_503_then_succeeds`, `manager_does_not_retry_404`, `manager_honors_retry_after_header`).
+
 ---
 
 ## Low Severity Issues
@@ -58,3 +67,13 @@ This document catalogues the current technical debt in the Crawlingo codebase, r
 - **Location:** `Cargo.toml`, `sdk/python/pyproject.toml`, `sdk/nodejs/package.json`
 - **Problem:** The project version (`0.1.0`) is defined in three separate files.
 - **Impact:** High risk of drift. CI checks enforce parity, but updates require manual edits across three package configuration manifests.
+
+### 10. `PyDataset.build_async` Is Not Actually Async
+- **Location:** [builder.rs](file:///d:/Scraper/src/dataset/builder.rs) (`PyDataset::build_async`)
+- **Problem:** The method blocks on the Tokio runtime and returns an already-computed `PyDatasetResult`, not an awaitable. `await`ing it in Python is misleading.
+- **Impact:** False async API surface. A truthful fix needs `pyo3-async-runtimes` (integrate the future with the Python event loop) or the method should be documented/renamed as synchronous.
+
+### 11. PyO3 0.23 Cannot Build Against Python ≥ 3.14
+- **Location:** `Cargo.toml` (`pyo3 = "0.23"`)
+- **Problem:** PyO3 0.23 supports CPython ≤ 3.13; `cargo build --features python` fails outright on newer interpreters ("configured Python interpreter version (3.14) is newer than PyO3's maximum supported version").
+- **Impact:** Blocks local Python-feature builds/tests on modern toolchains. Fix: bump PyO3 to a release supporting 3.14, or set `PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1` as an interim workaround.

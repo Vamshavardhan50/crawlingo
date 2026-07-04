@@ -1,4 +1,6 @@
-use crate::engine::fetcher::FetcherTier;
+use crate::engine::fetcher::{FetchManager, FetcherTier, Transport};
+use crate::engine::pool::ConnectionPoolConfig;
+use crate::engine::rate_limiter::HostRateLimiter;
 use crate::fingerprint::store::FingerprintStore;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -20,6 +22,13 @@ pub struct Session {
     pub proxy_index: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     pub proxy_provider_url: RwLock<Option<String>>,
     pub fingerprint_store: RwLock<Option<(String, Arc<FingerprintStore>)>>,
+    /// A single, session-wide fetch manager shared by all `Dataset` and `Crawler` operations.
+    ///
+    /// Sharing one manager (and therefore one [`HostRateLimiter`]) is what makes rate limiting
+    /// actually global per session, instead of being silently reset on every build. Lazily
+    /// initialised by [`Session::fetch_manager`]; overridable in tests via
+    /// [`Session::set_transport`].
+    pub fetch_manager: RwLock<Option<Arc<FetchManager>>>,
 }
 
 impl Session {
@@ -40,7 +49,45 @@ impl Session {
             proxy_index: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             proxy_provider_url: RwLock::new(None),
             fingerprint_store: RwLock::new(None),
+            fetch_manager: RwLock::new(None),
         }
+    }
+
+    /// Returns the session-wide [`FetchManager`], creating it on first use.
+    ///
+    /// All fetch traffic for a session flows through this single instance so that connection
+    /// state and, critically, host rate limits are shared rather than reset per operation.
+    pub fn fetch_manager(&self) -> Arc<FetchManager> {
+        {
+            let guard = self.fetch_manager.read().unwrap();
+            if let Some(ref manager) = *guard {
+                return manager.clone();
+            }
+        }
+
+        let mut guard = self.fetch_manager.write().unwrap();
+        // Re-check: another thread may have initialised it between the locks.
+        if let Some(ref manager) = *guard {
+            return manager.clone();
+        }
+        let manager = Arc::new(FetchManager::new(
+            Arc::new(HostRateLimiter::new()),
+            ConnectionPoolConfig::default(),
+        ));
+        *guard = Some(manager.clone());
+        manager
+    }
+
+    /// Replaces the session's fetch transport — primarily to inject a mock in tests.
+    ///
+    /// The supplied transport is used for both the standard and stealth tiers, wrapped in a
+    /// fresh [`FetchManager`] so retry and rate-limit logic still apply.
+    pub fn set_transport(&self, transport: Arc<dyn Transport>) {
+        let manager = Arc::new(FetchManager::with_transport(
+            Arc::new(HostRateLimiter::new()),
+            transport,
+        ));
+        *self.fetch_manager.write().unwrap() = Some(manager);
     }
 
     /// Selects the next proxy from the pool, or falls back to the static proxy setting.
@@ -62,6 +109,7 @@ impl Session {
     pub fn fetch_provider_proxies(&self) -> Result<(), String> {
         let provider_url = self.proxy_provider_url.read().unwrap().clone();
         if let Some(url) = provider_url {
+            let manager = self.fetch_manager();
             let res = crate::TOKIO_RUNTIME.block_on(async {
                 let req = crate::engine::fetcher::FetchRequest {
                     url: url.clone(),
@@ -74,14 +122,8 @@ impl Session {
                     retries: 1,
                     rate_limit_rps: 0.0,
                 };
-                let rate_limiter = Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
-                let fetcher = crate::engine::fetcher::Fetcher::new(
-                    rate_limiter,
-                    crate::engine::pool::ConnectionPoolConfig::default(),
-                );
-                let resp = fetcher.fetch(req).await.map_err(|e| e.to_string())?;
-                let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
-                let text = String::from_utf8_lossy(&bytes).to_string();
+                let resp = manager.dispatch(req).await.map_err(|e| e.to_string())?;
+                let text = String::from_utf8_lossy(&resp.body).to_string();
                 let proxies: Vec<String> = text
                     .lines()
                     .map(|s| s.trim().to_string())

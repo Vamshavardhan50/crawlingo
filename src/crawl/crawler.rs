@@ -1,6 +1,5 @@
 use crate::dataset::builder::{DatasetField, DatasetResult};
-use crate::engine::fetcher::{FetchManager, FetchRequest};
-use crate::engine::pool::ConnectionPoolConfig;
+use crate::engine::fetcher::FetchRequest;
 use crate::engine::session::Session;
 use crate::error::Result;
 use crate::parser::streaming::HtmlParser;
@@ -67,11 +66,12 @@ impl Crawler {
         let delay = self.delay_seconds;
         let webhook_url = self.webhook_url.clone();
 
-        let rate_limiter = Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
-        let manager = Arc::new(FetchManager::new(
-            rate_limiter,
-            ConnectionPoolConfig::default(),
-        ));
+        // Share the session-wide fetch manager (and its rate limiter) across all workers.
+        let manager = self.session.fetch_manager();
+
+        // Build a single webhook client up front (wreq::Client is Arc-backed and cheap to clone),
+        // instead of constructing a brand-new client for every delivered result.
+        let webhook_client = webhook_url.as_ref().map(|_| Arc::new(wreq::Client::new()));
 
         // Create field extraction instructions
         let mut fields_def = Vec::new();
@@ -98,6 +98,7 @@ impl Crawler {
             let fields = fields_def_arc.clone();
             let follow_sel = follow_sel.clone();
             let webhook_url = webhook_url.clone();
+            let webhook_client = webhook_client.clone();
 
             workers.spawn(async move {
                 loop {
@@ -182,9 +183,11 @@ impl Crawler {
                                 };
                                 results.lock().await.push(result.clone());
 
-                                // Deliver Webhook POST request if configured
-                                if let Some(ref hook_url) = webhook_url {
-                                    let client = wreq::Client::new();
+                                // Deliver Webhook POST request if configured, reusing the
+                                // shared client so connections can be pooled across deliveries.
+                                if let (Some(hook_url), Some(client)) =
+                                    (webhook_url.as_ref(), webhook_client.as_ref())
+                                {
                                     let _ = client
                                         .request(wreq::Method::POST, hook_url.clone())
                                         .json(&result)

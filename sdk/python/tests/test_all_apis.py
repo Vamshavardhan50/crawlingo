@@ -9,8 +9,9 @@ Usage:
   python tests/test_all_apis.py --save   (also saves output to a log file)
 
 Output:
-  Section headers with PASS/FAIL/SKIP per API, final summary table.
-  All output is also saved to: crawlingo_test_output_<timestamp>.log
+  Section headers with PASS/FAIL per API, final summary table.
+  Missing features are reported as FAIL with "[!]" markers.
+  Dataset results printed to CLI and exported to _dataset_output.json.
 
 Test Categories:
    1 — Session
@@ -64,7 +65,8 @@ from crawlingo import (
     ChangeDetectionError, ExportError, DnsError, FingerprintStoreError,
 )
 from crawlingo.hooks import (
-    strip_whitespace, uppercase, lowercase, log_request, log_response,
+    strip_whitespace, uppercase, lowercase,
+    log_request, log_response,
 )
 
 try:
@@ -180,10 +182,7 @@ class _TestRequestHandler(BaseHTTPRequestHandler):
         self._send(200, {"Content-Length": "0"}, b"")
 
     def do_OPTIONS(self):
-        self._send(204, {"Allow": "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"}, b"")
-
-    def log_message(self, fmt, *args):
-        pass
+        self._send(200, {"Content-Length": "0"}, b"")
 
 
 class TestServer:
@@ -208,22 +207,19 @@ class TestServer:
         return f"http://127.0.0.1:{self.port}"
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Tee — writes to both stdout and a log file
-# ═══════════════════════════════════════════════════════════════════════════════
-
 class Tee:
-    def __init__(self, *streams):
-        self.streams = streams
+    """Duplex stream: writes to both stdout and a file."""
+    def __init__(self, s1, s2):
+        self.s1 = s1
+        self.s2 = s2
 
     def write(self, data):
-        for s in self.streams:
-            s.write(data)
-            s.flush()
+        self.s1.write(data)
+        self.s2.write(data)
 
     def flush(self):
-        for s in self.streams:
-            s.flush()
+        self.s1.flush()
+        self.s2.flush()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -304,6 +300,7 @@ class TestRunner:
 
 def test_session(runner, server):
     runner.section("1. Session")
+
     runner.subsection("1.1 Create")
     s = Session()
     runner.check("Session() returns Session instance", isinstance(s, Session))
@@ -312,7 +309,7 @@ def test_session(runner, server):
     s2 = Session()
     s2.headers({"Accept": "text/html"}).timeout(30).rate_limit(2.0)
     s2.fetcher_tier("stealthy").browser_profile("chrome").auto_match(True)
-    s2.fingerprint_path("/tmp/crawlingo_test_fp")
+    s2.fingerprint_path(os.path.join(TEST_DIR, "_crawlingo_test_fp"))
     s2.auto_match_weights({"text": 2.0})
     for name in ("headers", "timeout", "rate_limit", "fetcher_tier",
                  "browser_profile", "auto_match", "fingerprint_path", "auto_match_weights"):
@@ -340,7 +337,7 @@ def test_session(runner, server):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 2. Fetchers
+# 2. Fetchers (tiers)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def test_fetchers(runner, server):
@@ -531,7 +528,8 @@ def test_html(runner, server):
     runner.check("Contains 'OK'", "OK" in html)
 
     runner.missing("Pretty HTML", "Not exposed")
-    runner.check("Raw HTML — original server response", "<html" in html.lower() or "<!DOCTYPE" in html)
+    runner.check("Raw HTML — original server response",
+                 "<html" in html.lower() or "<!DOCTYPE" in html)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -564,16 +562,26 @@ def test_selectors(runner, server):
     p.html()
 
     runner.check("CSS h1", isinstance(p.css("h1"), ElementCollection) and len(p.css("h1")) >= 1)
-    runner.check("XPath //h1", isinstance(p.xpath("//h1"), ElementCollection) and len(p.xpath("//h1")) >= 1)
+    runner.check("XPath //h1",
+                 isinstance(p.xpath("//h1"), ElementCollection) and len(p.xpath("//h1")) >= 1)
     runner.check("find_text 'OK'", len(p.find_text("OK")) >= 1)
     runner.check("after_text 'OK'", isinstance(p.after_text("OK"), ElementCollection))
-    runner.check("before_text 'paragraph'", isinstance(p.before_text("paragraph"), ElementCollection))
+    runner.check("before_text 'paragraph'",
+                 isinstance(p.before_text("paragraph"), ElementCollection))
     runner.check("regex 'OK'", isinstance(p.regex("OK"), ElementCollection))
     runner.check("ID selector '#nonexist' empty", len(p.css("#nonexist")) == 0)
     runner.check("Class selector '.nonexist' empty", len(p.css(".nonexist")) == 0)
     runner.check("XPath //@class", isinstance(p.xpath("//@class"), ElementCollection))
     runner.check("CSS h1 returns 1+", len(p.css("h1")) >= 1)
     runner.check("CSS p returns 1+", len(p.css("p")) >= 1)
+
+    # Attribute selectors
+    p_links = Page(f"{server.url}/links", timeout=10)
+    p_links.html()
+    runner.check("CSS a[href]", len(p_links.css("a[href]")) >= 1)
+    runner.check("CSS img[src]", len(p_links.css("img[src]")) >= 1)
+    runner.check("CSS script[src]", len(p_links.css("script[src]")) >= 1)
+    runner.check("CSS link[rel]", len(p_links.css("link[rel]")) >= 1)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -605,7 +613,6 @@ def test_extraction(runner, server):
         runner.check("Dataset.build().to_dict()", ok)
         if ok:
             print(f"    Dataset result: {json.dumps(rd, indent=2)}")
-            # Also export to CLI-visible path
             cli_path = os.path.join(TEST_DIR, "_dataset_output.json")
             result.to_json(cli_path)
             print(f"    Dataset JSON exported to: {cli_path}")
@@ -630,23 +637,36 @@ def test_extraction(runner, server):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 16–19. Pagination / Screenshots / Downloads / Uploads
+# 16. Pagination
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def test_pagination(runner, server):
     runner.section("16. Pagination")
-    runner.missing("All pagination", "Use Crawl.follow() for link-based; no dedicated API")
+    runner.missing("All pagination",
+                   "Use Crawl.follow() for link-based; no dedicated API")
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 17. Screenshots
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def test_screenshots(runner, server):
     runner.section("17. Screenshots")
     runner.missing("All screenshots", "No browser engine in SDK")
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# 18. Downloads
+# ═══════════════════════════════════════════════════════════════════════════════
+
 def test_downloads(runner, server):
     runner.section("18. Downloads")
     runner.missing("All downloads", "Content via Page.html(); no file download API")
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 19. Uploads
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def test_uploads(runner, server):
     runner.section("19. Uploads")
@@ -708,7 +728,8 @@ def test_dataset(runner, server):
         result.to_csv(csv_path)
         with open(csv_path) as f:
             header = next(csv.reader(f))
-        runner.check("CSV export — header written", os.path.exists(csv_path) and "heading" in header)
+        runner.check("CSV export — header written",
+                     os.path.exists(csv_path) and "heading" in header)
     except Exception as e:
         runner.check("CSV export", False, str(e)[:80])
 
@@ -717,7 +738,8 @@ def test_dataset(runner, server):
         result.to_json(json_path)
         with open(json_path) as f:
             data = json.load(f)
-        runner.check("JSON export — valid array", isinstance(data, list) and len(data) > 0)
+        runner.check("JSON export — valid array",
+                     isinstance(data, list) and len(data) > 0)
     except Exception as e:
         runner.check("JSON export", False, str(e)[:80])
 
@@ -747,7 +769,8 @@ def test_dataset(runner, server):
         d2.field("p", "p", transform=uppercase)
         d2.timeout(10)
         r2 = d2.build()
-        runner.check("Dataset with transform hooks — build succeeds", isinstance(r2, DatasetResult))
+        runner.check("Dataset with transform hooks — build succeeds",
+                     isinstance(r2, DatasetResult))
     except Exception as e:
         runner.check("Dataset with transforms", False, str(e)[:80])
 
@@ -810,8 +833,10 @@ def test_errors(runner, server):
             runner.check(f"{name} — raised and caught", True)
 
     runner.subsection("24.2 Inheritance")
-    runner.check("FetchError inherits CrawlingoError", issubclass(FetchError, CrawlingoError))
-    runner.check("TimeoutError inherits CrawlingoError", issubclass(TimeoutError, CrawlingoError))
+    runner.check("FetchError inherits CrawlingoError",
+                 issubclass(FetchError, CrawlingoError))
+    runner.check("TimeoutError inherits CrawlingoError",
+                 issubclass(TimeoutError, CrawlingoError))
 
     runner.subsection("24.3 HTTP Errors")
     p404 = Page(f"{server.url}/404", timeout=10)
@@ -867,7 +892,8 @@ def test_logging(runner, server):
     ]:
         runner.check(f"Hook '{name}' callable", callable(fn))
 
-    runner.check("strip_whitespace('  hi  ') = 'hi'", strip_whitespace("  hi  ") == "hi")
+    runner.check("strip_whitespace('  hi  ') = 'hi'",
+                 strip_whitespace("  hi  ") == "hi")
     runner.check("uppercase('hi') = 'HI'", uppercase("hi") == "HI")
     runner.check("lowercase('HI') = 'hi'", lowercase("HI") == "hi")
 
@@ -882,7 +908,8 @@ def test_logging(runner, server):
     runner.check("Page hooks — before_parse registered", True)
     runner.check("Page hooks — after_extract registered", True)
 
-    runner.missing("Log levels (debug/info/warn/error/trace)", "No logging levels; use hooks")
+    runner.missing("Log levels (debug/info/warn/error/trace)",
+                   "No logging levels; use hooks")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -933,7 +960,6 @@ def test_cleanup(runner, server):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def main():
-    # Capture output to log file
     if SAVE_LOG:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         log_path = os.path.join(TEST_DIR, f"crawlingo_test_output_{timestamp}.log")
