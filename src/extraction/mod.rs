@@ -4,9 +4,10 @@ use crate::selector::SelectorQuery;
 use std::collections::HashMap;
 
 /// Defines how a raw extracted string should be cleaned and typed.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum ExtractionType {
     /// Plain text extraction (trimmed).
+    #[default]
     Text,
     /// Extract a specific HTML attribute value.
     Attribute(String),
@@ -16,6 +17,22 @@ pub enum ExtractionType {
     DateTime,
     /// Resolve relative URLs to absolute against the page URL.
     NormalizedUrl,
+}
+
+impl ExtractionType {
+    /// Parses a selector-config string (as used by the SDKs' `field(..., extract_type=...)`
+    /// parameter) into an [`ExtractionType`]. Unrecognized values fall back to `Text`.
+    pub fn from_str_or_text(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "price" => ExtractionType::Price,
+            "datetime" | "date" => ExtractionType::DateTime,
+            "url" | "normalized_url" => ExtractionType::NormalizedUrl,
+            other if other.starts_with("attr:") => {
+                ExtractionType::Attribute(other["attr:".len()..].to_string())
+            }
+            _ => ExtractionType::Text,
+        }
+    }
 }
 
 /// A single extraction rule binding a field name to a selector + extraction type.

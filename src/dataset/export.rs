@@ -47,39 +47,6 @@ pub async fn write_parquet(path: &str, fields: &HashMap<String, String>) -> Resu
     Ok(())
 }
 
-/// Streams key-value records from an mpsc receiver and writes them row-by-row to a CSV file.
-pub async fn write_csv_stream(
-    path: &str,
-    mut receiver: tokio::sync::mpsc::Receiver<HashMap<String, String>>,
-) -> Result<()> {
-    let path_str = path.to_string();
-    tokio::task::spawn_blocking(move || {
-        let mut writer = csv::Writer::from_path(&path_str)?;
-        let mut header_written = false;
-        let mut headers = Vec::new();
-
-        while let Some(record) = receiver.blocking_recv() {
-            if !header_written {
-                headers = record.keys().cloned().collect();
-                writer.write_record(&headers)?;
-                header_written = true;
-            }
-            let mut row = Vec::new();
-            for h in &headers {
-                row.push(record.get(h).cloned().unwrap_or_default());
-            }
-            writer.write_record(&row)?;
-        }
-        writer.flush()?;
-        Ok::<(), CrawlingoError>(())
-    })
-    .await
-    .map_err(|e| CrawlingoError::ExportError(format!("Task execution panicked: {}", e)))?
-    .map_err(|e| CrawlingoError::ExportError(e.to_string()))?;
-
-    Ok(())
-}
-
 /// Streams key-value records from an mpsc receiver and writes them to a Parquet file.
 pub async fn write_parquet_stream(
     path: &str,

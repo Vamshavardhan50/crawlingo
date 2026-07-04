@@ -79,6 +79,7 @@ impl PyWatch {
             selector_type: selector_type.to_string(),
             transform: None,
             default,
+            extract_type: Default::default(),
         };
         self_.inner.fields.push(field);
         Ok(self_.into())
@@ -135,6 +136,7 @@ impl PyWatch {
                 selector_type: f.selector_type.clone(),
                 transform: None,
                 default: f.default.clone(),
+                extract_type: f.extract_type.clone(),
             });
         }
 
@@ -159,6 +161,7 @@ impl PyWatch {
                                     selector_type: f.selector_type.clone(),
                                     transform: None,
                                     default: f.default.clone(),
+                                    extract_type: f.extract_type.clone(),
                                 });
                             }
 

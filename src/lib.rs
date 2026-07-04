@@ -170,6 +170,11 @@ impl PyPage {
         self.html.clone()
     }
 
+    /// Converts the page's DOM to clean Markdown text.
+    pub fn markdown(&self) -> String {
+        crate::parser::document::Page::render_markdown(&self.tree)
+    }
+
     /// Extract page title tag text.
     pub fn title(&self) -> String {
         let matched = css::query(&self.tree, "title");

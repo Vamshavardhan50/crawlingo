@@ -374,13 +374,19 @@ impl Page {
 
     /// Lazy-converts the DOM to clean markdown text.
     pub fn markdown(&self) -> &str {
-        self.markdown_cache.get_or_init(|| {
-            let mut md = String::new();
-            if let Some(root) = self.tree.nodes.first() {
-                Self::dom_to_markdown(&self.tree, root.index, &mut md, 0);
-            }
-            md
-        })
+        self.markdown_cache
+            .get_or_init(|| Self::render_markdown(&self.tree))
+    }
+
+    /// Renders a [`DomTree`] to markdown. Public so SDK bindings holding just a `DomTree` (e.g.
+    /// `PyPage`/`JsPage`, which don't wrap a full [`Page`]) can expose markdown conversion without
+    /// duplicating the DOM-walk logic.
+    pub fn render_markdown(tree: &DomTree) -> String {
+        let mut md = String::new();
+        if let Some(root) = tree.nodes.first() {
+            Self::dom_to_markdown(tree, root.index, &mut md, 0);
+        }
+        md
     }
 
     fn dom_to_markdown(tree: &DomTree, idx: usize, buf: &mut String, depth: usize) {

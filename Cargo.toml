@@ -21,8 +21,7 @@ wreq-util = "3.0.0-rc.12"
 # HTML parsing
 lol_html = "2.0"
 
-# DNS resolver cache
-hickory-resolver = { version = "0.24", features = ["tokio-runtime"] }
+# HTTP client-pool cache (fetcher.rs) and response caching
 moka = { version = "0.12", features = ["future"] }
 
 # Concurrency & Lock-free

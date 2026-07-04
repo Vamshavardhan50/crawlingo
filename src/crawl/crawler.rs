@@ -83,6 +83,7 @@ impl Crawler {
                 #[cfg(feature = "python")]
                 transform: f.transform.clone(),
                 default: f.default.clone(),
+                extract_type: f.extract_type.clone(),
             });
         }
         let fields_def_arc = Arc::new(fields_def);
@@ -172,8 +173,21 @@ impl Crawler {
                                     };
 
                                     let matches = page.query(query).unwrap_or_default();
-                                    let text_val = page.get_nodes_combined_text(&matches);
-                                    fields_map.insert(f.name.clone(), text_val);
+                                    let extracted = if matches.is_empty() {
+                                        None
+                                    } else {
+                                        let combined_text = page.get_nodes_combined_text(&matches);
+                                        let normalized = crate::extraction::ExtractionEngine::normalize_value(
+                                            &combined_text,
+                                            &f.extract_type,
+                                            page.url(),
+                                        );
+                                        if normalized.is_empty() { None } else { Some(normalized) }
+                                    };
+                                    let final_val = extracted
+                                        .or_else(|| f.default.clone())
+                                        .unwrap_or_default();
+                                    fields_map.insert(f.name.clone(), final_val);
                                 }
 
                                 let result = DatasetResult {
@@ -304,6 +318,7 @@ impl PyCrawl {
             #[cfg(feature = "python")]
             transform: None,
             default: default.map(|s| s.to_string()),
+            extract_type: Default::default(),
         };
         self_.inner.fields.push(field);
         Ok(self_.into())

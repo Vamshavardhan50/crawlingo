@@ -1,8 +1,10 @@
+use crate::dataset::schema::DatasetSchema;
 use crate::engine::fetcher::FetchRequest;
 #[cfg(feature = "python")]
 use crate::engine::session::PySession;
 use crate::engine::session::Session;
 use crate::error::Result;
+use crate::extraction::{ExtractionEngine, ExtractionType};
 use crate::matcher::auto_matcher;
 use crate::parser::document::Page;
 use crate::parser::streaming::HtmlParser;
@@ -20,6 +22,10 @@ pub struct DatasetField {
     #[cfg(feature = "python")]
     pub transform: Option<pyo3::PyObject>,
     pub default: Option<String>,
+    /// How the raw matched text is cleaned and typed (plain text, price, date, absolute URL, ...).
+    /// Defaults to [`ExtractionType::Text`], which simply trims the combined text — identical to
+    /// this field's behavior before typed extraction existed.
+    pub extract_type: ExtractionType,
 }
 
 /// A fluent builder for structured data extraction.
@@ -27,6 +33,9 @@ pub struct Dataset {
     pub url: String,
     pub fields: Vec<DatasetField>,
     pub session: Arc<Session>,
+    /// Optional constraints (required fields, type coercion) checked against the extracted field
+    /// map before a build is considered successful. See [`DatasetSchema`].
+    pub schema: Option<DatasetSchema>,
 }
 
 /// Holds the output fields and metadata of a dataset build.
@@ -44,12 +53,22 @@ impl Dataset {
             url: url.to_string(),
             fields: Vec::new(),
             session,
+            schema: None,
         }
     }
 
     /// Adds a field rule to the dataset.
     pub fn add_field(&mut self, field: DatasetField) {
         self.fields.push(field);
+    }
+
+    /// Attaches a [`DatasetSchema`] that extracted fields must satisfy. When set, `build`/
+    /// `build_async` return a [`crate::error::CrawlingoError::DatasetError`] if a required field
+    /// is missing/empty or a value fails to parse as its declared [`crate::dataset::schema::FieldType`],
+    /// instead of silently returning the raw (or default) string.
+    pub fn with_schema(mut self, schema: DatasetSchema) -> Self {
+        self.schema = Some(schema);
+        self
     }
 
     /// Fetches and extracts all fields synchronously from the current thread.
@@ -143,12 +162,14 @@ impl Dataset {
                 }
             }
 
-            // Extract combined text
+            // Extract combined text, cleaned and typed per the field's `extract_type` (plain
+            // text, price, date, or absolute URL normalization).
             if !matches.is_empty() {
                 let combined_text = page.get_nodes_combined_text(&matches);
-                let trimmed = combined_text.trim().to_string();
-                if !trimmed.is_empty() {
-                    extracted_val = Some(trimmed);
+                let normalized =
+                    ExtractionEngine::normalize_value(&combined_text, &f.extract_type, page.url());
+                if !normalized.is_empty() {
+                    extracted_val = Some(normalized);
                 }
             }
 
@@ -157,6 +178,14 @@ impl Dataset {
                 .or_else(|| f.default.clone())
                 .unwrap_or_default();
             fields_map.insert(f.name.clone(), final_val);
+        }
+
+        // Apply schema validation/type-coercion, if attached. Only overlays the fields the
+        // schema declares constraints for; fields outside the schema are left untouched. Returns
+        // an error (aborting the build) if a required field is missing or fails to parse.
+        if let Some(ref schema) = self.schema {
+            let validated = schema.validate(&fields_map)?;
+            fields_map.extend(validated);
         }
 
         Ok(DatasetResult {
@@ -174,12 +203,14 @@ impl Dataset {
         let (tx, rx) = tokio::sync::mpsc::channel(100);
         let fields = self.fields.clone();
         let session = self.session.clone();
+        let schema = self.schema.clone();
 
         tokio::spawn(async move {
             let temp_dataset = Dataset {
                 url: String::new(),
                 fields,
                 session,
+                schema,
             };
             while let Some(page) = page_receiver.recv().await {
                 let res = temp_dataset.extract_from_page(&page).await;
@@ -190,6 +221,60 @@ impl Dataset {
         });
 
         rx
+    }
+
+    /// Builds this dataset's configured fields against many URLs concurrently, streaming each
+    /// completed record onto a [`DatasetStream`] as it finishes rather than collecting everything
+    /// into memory first — useful for large URL lists where results should be written out (see
+    /// [`DatasetStream::write_csv`]/[`DatasetStream::write_parquet`]) incrementally.
+    ///
+    /// Each pushed record's field map additionally carries a `"url"` entry (unless a field named
+    /// `"url"` is already configured) so the source page remains identifiable once flattened into
+    /// a plain `HashMap`.
+    pub fn build_many_streamed(
+        &self,
+        urls: Vec<String>,
+        concurrency: usize,
+    ) -> crate::dataset::stream::DatasetStream {
+        let mut stream = crate::dataset::stream::DatasetStream::new();
+        let handle = stream.handle();
+        // The spawned producer below owns the only remaining sender (via `handle` and its
+        // per-request clones); detach the stream's own copy so the caller's `recv()` loop can
+        // observe the channel closing once every in-flight fetch has pushed its result.
+        stream.detach_sender();
+        let fields = self.fields.clone();
+        let session = self.session.clone();
+        let schema = self.schema.clone();
+        let concurrency = concurrency.max(1);
+
+        tokio::spawn(async move {
+            use futures::stream::{self, StreamExt};
+
+            stream::iter(urls)
+                .for_each_concurrent(concurrency, move |url| {
+                    let fields = fields.clone();
+                    let session = session.clone();
+                    let schema = schema.clone();
+                    let handle = handle.clone();
+                    async move {
+                        let dataset = Dataset {
+                            url,
+                            fields,
+                            session,
+                            schema,
+                        };
+                        let result = dataset.build_async().await.map(|r| {
+                            let mut fields = r.fields;
+                            fields.entry("url".to_string()).or_insert(r.url);
+                            fields
+                        });
+                        handle.push(result);
+                    }
+                })
+                .await;
+        });
+
+        stream
     }
 }
 
@@ -213,8 +298,13 @@ impl PyDataset {
         }
     }
 
-    /// Add a field to be extracted (supports Python mapping callback)
-    #[pyo3(signature = (name, selector, selector_type=None, transform=None, default=None))]
+    /// Add a field to be extracted (supports Python mapping callback).
+    ///
+    /// `extract_type` selects built-in cleaning/typing applied to the raw matched text before
+    /// `transform` (if any) runs: `"text"` (default), `"price"`, `"datetime"`, `"url"`, or
+    /// `"attr:<name>"` for an HTML attribute value.
+    #[pyo3(signature = (name, selector, selector_type=None, transform=None, default=None, extract_type=None))]
+    #[allow(clippy::too_many_arguments)]
     pub fn field(
         mut self_: PyRefMut<'_, Self>,
         name: &str,
@@ -222,6 +312,7 @@ impl PyDataset {
         selector_type: Option<&str>,
         transform: Option<PyObject>,
         default: Option<&str>,
+        extract_type: Option<&str>,
     ) -> PyResult<Py<Self>> {
         let field = DatasetField {
             name: name.to_string(),
@@ -229,6 +320,9 @@ impl PyDataset {
             selector_type: selector_type.unwrap_or("css").to_string(),
             transform,
             default: default.map(|s| s.to_string()),
+            extract_type: extract_type
+                .map(ExtractionType::from_str_or_text)
+                .unwrap_or_default(),
         };
         self_.inner.add_field(field);
         Ok(self_.into())
