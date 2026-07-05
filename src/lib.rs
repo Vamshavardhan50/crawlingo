@@ -6,6 +6,7 @@ use std::sync::Arc;
 use tokio::runtime::Runtime;
 
 pub mod change;
+pub mod config;
 pub mod crawl;
 pub mod dataset;
 pub mod engine;

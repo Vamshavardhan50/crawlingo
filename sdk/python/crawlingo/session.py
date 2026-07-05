@@ -98,6 +98,30 @@ class Session:
         self._core_session.proxy_provider(url)
         return self
 
+    @classmethod
+    def from_config(cls, path: str | None = None) -> "Session":
+        """Build a Session from a config file (`.toml`/`.json`), layered with `CRAWLINGO_*`
+        environment variable overrides. Pass no path to load from defaults + environment only.
+
+        Any setter called on the returned Session (e.g. `.proxy(...)`) still overrides whatever
+        was loaded here, same as calling it on a plain `Session()`.
+        """
+        session = cls.__new__(cls)
+        session._core_session = _CoreSession.from_config(path)
+        session._headers = {}
+        session._cookies = {}
+        session._proxy = None
+        session._rate_limit_rps = 0.0
+        session._auto_match = False
+        session._timeout = 30
+        session._fingerprint_path = ".crawlingo"
+        session._fetcher_tier = "standard"
+        session._browser_profile = None
+        session._auto_match_weights = {}
+        session._proxy_pool = []
+        session._proxy_provider = None
+        return session
+
     def page(self, url: str) -> "Page":
         """Create a new lazy Page attached to this session."""
         from .page import Page

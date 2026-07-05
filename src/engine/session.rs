@@ -32,6 +32,47 @@ pub struct Session {
 }
 
 impl Session {
+    /// Builds a `Session` from a loaded [`crate::config::CrawlingoConfig`].
+    ///
+    /// Applies the config's values as the session's *initial* state; any `Session`/`PySession`
+    /// setter called afterward simply overwrites the corresponding field as normal, so explicit
+    /// configuration always wins over what was loaded from a file or environment variable.
+    pub fn from_config(config: &crate::config::CrawlingoConfig) -> Self {
+        let session = Self::new();
+        *session.headers.write().unwrap() = config.headers.clone();
+        *session.proxy.write().unwrap() = config.proxy.clone();
+        *session.proxy_pool.write().unwrap() = config.proxy_pool.clone();
+        *session.proxy_provider_url.write().unwrap() = config.proxy_provider_url.clone();
+        *session.rate_limit_rps.write().unwrap() = config.rate_limit_rps;
+        *session.auto_match.write().unwrap() = config.auto_match;
+        if config.timeout_seconds > 0 {
+            *session.timeout_seconds.write().unwrap() = config.timeout_seconds;
+        }
+        if let Some(ref path) = config.fingerprint_path {
+            *session.fingerprint_path.write().unwrap() = path.clone();
+        }
+        if let Some(ref tier) = config.fetcher_tier {
+            *session.fetcher_tier.write().unwrap() = if tier.eq_ignore_ascii_case("stealthy") {
+                FetcherTier::Stealthy
+            } else {
+                FetcherTier::Standard
+            };
+        }
+        *session.browser_profile.write().unwrap() = config.browser_profile.clone();
+
+        // Pre-build the shared FetchManager using the config's pool/retry settings, rather than
+        // leaving fetch_manager() to lazily build one from ConnectionPoolConfig::default() and
+        // RetryPolicy::default() on first use.
+        let manager = FetchManager::new(
+            Arc::new(HostRateLimiter::new()),
+            (&config.pool).into(),
+        )
+        .with_retry_policy((&config.retry).into());
+        *session.fetch_manager.write().unwrap() = Some(Arc::new(manager));
+
+        session
+    }
+
     /// Creates a new, empty `Session` with default settings.
     pub fn new() -> Self {
         Self {
@@ -173,6 +214,58 @@ impl Default for Session {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::CrawlingoConfig;
+
+    #[test]
+    fn from_config_applies_loaded_values() {
+        let config = CrawlingoConfig {
+            proxy: Some("http://proxy.example.com:8080".to_string()),
+            rate_limit_rps: 4.0,
+            auto_match: true,
+            timeout_seconds: 45,
+            fetcher_tier: Some("stealthy".to_string()),
+            browser_profile: Some("firefox".to_string()),
+            ..Default::default()
+        };
+
+        let session = Session::from_config(&config);
+
+        assert_eq!(
+            session.proxy.read().unwrap().as_deref(),
+            Some("http://proxy.example.com:8080")
+        );
+        assert_eq!(*session.rate_limit_rps.read().unwrap(), 4.0);
+        assert!(*session.auto_match.read().unwrap());
+        assert_eq!(*session.timeout_seconds.read().unwrap(), 45);
+        assert_eq!(*session.fetcher_tier.read().unwrap(), FetcherTier::Stealthy);
+        assert_eq!(
+            session.browser_profile.read().unwrap().as_deref(),
+            Some("firefox")
+        );
+    }
+
+    #[test]
+    fn from_config_zero_timeout_keeps_default() {
+        // timeout_seconds: 0 is CrawlingoConfig's Default (unset), not a real "0 second timeout" —
+        // Session::new()'s default of 30s should be preserved instead of being zeroed out.
+        let config = CrawlingoConfig::default();
+        let session = Session::from_config(&config);
+        assert_eq!(*session.timeout_seconds.read().unwrap(), 30);
+    }
+
+    #[test]
+    fn from_config_prebuilds_fetch_manager_reused_by_fetch_manager_accessor() {
+        let config = CrawlingoConfig::default();
+        let session = Session::from_config(&config);
+        let first = session.fetch_manager();
+        let second = session.fetch_manager();
+        assert!(Arc::ptr_eq(&first, &second));
+    }
+}
+
 /// PyO3 Python wrapper for `Session` permitting shared state context.
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
@@ -192,6 +285,19 @@ impl PySession {
         Self {
             inner: Arc::new(Session::new()),
         }
+    }
+
+    /// Builds a `Session` from a config file (`.toml`/`.json`) layered with `CRAWLINGO_*`
+    /// environment variable overrides. Pass `path=None` to skip the file layer and load from
+    /// defaults + environment only.
+    #[staticmethod]
+    #[pyo3(signature = (path=None))]
+    pub fn from_config(path: Option<&str>) -> PyResult<Self> {
+        let config = crate::config::CrawlingoConfig::load(path.map(std::path::Path::new))
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+        Ok(Self {
+            inner: Arc::new(Session::from_config(&config)),
+        })
     }
 
     /// Set headers (returns self to enable fluent chaining)

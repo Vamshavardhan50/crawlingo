@@ -55,6 +55,9 @@ pub enum CrawlingoError {
 
     #[error("Arrow error: {0}")]
     ArrowError(#[from] arrow::error::ArrowError),
+
+    #[error("Configuration error: {0}")]
+    ConfigError(String),
 }
 
 // Convert FFI errors if python feature is enabled
