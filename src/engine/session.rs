@@ -145,6 +145,13 @@ impl Session {
         )));
     }
 
+    /// Authenticates every fetch made through this session per the given [`crate::engine::auth::AuthScheme`]
+    /// (see [`crate::engine::auth`]). Must be called before the session's first fetch, like
+    /// [`Session::add_middleware`].
+    pub fn set_auth(&self, scheme: crate::engine::auth::AuthScheme) {
+        self.add_middleware(Arc::new(crate::engine::auth::AuthLayer::new(scheme)));
+    }
+
     /// Returns the session-wide [`FetchManager`], creating it on first use.
     ///
     /// All fetch traffic for a session flows through this single instance so that connection
@@ -583,6 +590,47 @@ impl PySession {
         self_
             .inner
             .enable_response_cache(max_entries, std::time::Duration::from_secs(default_ttl_seconds));
+        Ok(self_.into())
+    }
+
+    /// Authenticate every fetch with HTTP Basic auth. Must be called before the first fetch made
+    /// through this session. Returns self.
+    pub fn basic_auth(self_: PyRef<'_, Self>, username: &str, password: &str) -> PyResult<Py<Self>> {
+        self_.inner.set_auth(crate::engine::auth::AuthScheme::Basic {
+            username: username.to_string(),
+            password: password.to_string(),
+        });
+        Ok(self_.into())
+    }
+
+    /// Authenticate every fetch with a fixed `Authorization: Bearer <token>` header. Must be
+    /// called before the first fetch made through this session. Returns self.
+    pub fn bearer_auth(self_: PyRef<'_, Self>, token: &str) -> PyResult<Py<Self>> {
+        self_
+            .inner
+            .set_auth(crate::engine::auth::AuthScheme::Bearer(token.to_string()));
+        Ok(self_.into())
+    }
+
+    /// Authenticate every fetch with a fixed custom header (e.g. an API key header). Must be
+    /// called before the first fetch made through this session. Returns self.
+    pub fn header_auth(self_: PyRef<'_, Self>, name: &str, value: &str) -> PyResult<Py<Self>> {
+        self_.inner.set_auth(crate::engine::auth::AuthScheme::Header {
+            name: name.to_string(),
+            value: value.to_string(),
+        });
+        Ok(self_.into())
+    }
+
+    /// Authenticate every fetch by appending an API key query parameter to the request URL. Must
+    /// be called before the first fetch made through this session. Returns self.
+    pub fn api_key_auth(self_: PyRef<'_, Self>, name: &str, value: &str) -> PyResult<Py<Self>> {
+        self_
+            .inner
+            .set_auth(crate::engine::auth::AuthScheme::ApiKeyQuery {
+                name: name.to_string(),
+                value: value.to_string(),
+            });
         Ok(self_.into())
     }
 

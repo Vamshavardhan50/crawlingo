@@ -105,6 +105,29 @@ class Session:
         self._core_session.enable_response_cache(max_entries, default_ttl_seconds)
         return self
 
+    def basic_auth(self, username: str, password: str) -> "Session":
+        """Authenticate every fetch with HTTP Basic auth. Must be called before the first fetch."""
+        self._core_session.basic_auth(username, password)
+        return self
+
+    def bearer_auth(self, token: str) -> "Session":
+        """Authenticate every fetch with a fixed `Authorization: Bearer <token>` header. Must be
+        called before the first fetch."""
+        self._core_session.bearer_auth(token)
+        return self
+
+    def header_auth(self, name: str, value: str) -> "Session":
+        """Authenticate every fetch with a fixed custom header (e.g. an API key header). Must be
+        called before the first fetch."""
+        self._core_session.header_auth(name, value)
+        return self
+
+    def api_key_auth(self, name: str, value: str) -> "Session":
+        """Authenticate every fetch by appending an API key query parameter to the request URL.
+        Must be called before the first fetch."""
+        self._core_session.api_key_auth(name, value)
+        return self
+
     @classmethod
     def from_config(cls, path: str | None = None) -> "Session":
         """Build a Session from a config file (`.toml`/`.json`), layered with `CRAWLINGO_*`

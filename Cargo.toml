@@ -45,6 +45,9 @@ bytes = "1.6"
 memchr = "2.7"
 xxhash-rust = { version = "0.8", features = ["xxh64"] }
 
+# Basic-auth header encoding
+base64 = "0.22"
+
 # Selectors cache
 once_cell = "1.19"
 
