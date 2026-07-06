@@ -126,6 +126,25 @@ impl Session {
         self.metrics.snapshot()
     }
 
+    /// Enables in-memory HTTP response caching for this session, honoring `Cache-Control`
+    /// (`no-store`/`no-cache`/`max-age`) and `ETag`/`Last-Modified` conditional revalidation (see
+    /// [`crate::engine::cache`]). Opt-in, unlike metrics — caching trades freshness for fewer
+    /// requests, which isn't always what a scraper wants. Must be called before the session's
+    /// first fetch, like [`Session::add_middleware`].
+    ///
+    /// `max_entries` bounds the number of distinct cached URLs; `default_ttl` is the freshness
+    /// window applied to a cacheable response with no explicit `Cache-Control: max-age`.
+    pub fn enable_response_cache(&self, max_entries: u64, default_ttl: std::time::Duration) {
+        let cache = Arc::new(crate::engine::cache::InMemoryCache::new(
+            max_entries,
+            std::time::Duration::from_secs(3600).max(default_ttl),
+        ));
+        self.add_middleware(Arc::new(crate::engine::cache::CachingLayer::new(
+            cache,
+            default_ttl,
+        )));
+    }
+
     /// Returns the session-wide [`FetchManager`], creating it on first use.
     ///
     /// All fetch traffic for a session flows through this single instance so that connection
@@ -550,6 +569,20 @@ impl PySession {
         }
         // Fetch initially
         let _ = self_.inner.fetch_provider_proxies();
+        Ok(self_.into())
+    }
+
+    /// Enable in-memory HTTP response caching (honors `Cache-Control`/`ETag`/`Last-Modified`).
+    /// Must be called before the first fetch made through this session. Returns self.
+    #[pyo3(signature = (max_entries=1024, default_ttl_seconds=300))]
+    pub fn enable_response_cache(
+        self_: PyRef<'_, Self>,
+        max_entries: u64,
+        default_ttl_seconds: u64,
+    ) -> PyResult<Py<Self>> {
+        self_
+            .inner
+            .enable_response_cache(max_entries, std::time::Duration::from_secs(default_ttl_seconds));
         Ok(self_.into())
     }
 

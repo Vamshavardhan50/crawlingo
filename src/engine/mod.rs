@@ -1,3 +1,4 @@
+pub mod cache;
 pub mod fetcher;
 pub mod middleware;
 pub mod pool;

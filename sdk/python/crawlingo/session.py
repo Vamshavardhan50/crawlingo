@@ -98,6 +98,13 @@ class Session:
         self._core_session.proxy_provider(url)
         return self
 
+    def enable_response_cache(self, max_entries: int = 1024, default_ttl_seconds: int = 300) -> "Session":
+        """Enable in-memory HTTP response caching (honors `Cache-Control`/`ETag`/`Last-Modified`).
+        Must be called before the first fetch made through this session.
+        """
+        self._core_session.enable_response_cache(max_entries, default_ttl_seconds)
+        return self
+
     @classmethod
     def from_config(cls, path: str | None = None) -> "Session":
         """Build a Session from a config file (`.toml`/`.json`), layered with `CRAWLINGO_*`
