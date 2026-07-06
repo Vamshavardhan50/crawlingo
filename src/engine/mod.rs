@@ -1,4 +1,5 @@
 pub mod fetcher;
+pub mod middleware;
 pub mod pool;
 pub mod rate_limiter;
 pub mod retry;

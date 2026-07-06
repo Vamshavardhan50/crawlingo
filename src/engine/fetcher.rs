@@ -342,6 +342,20 @@ impl FetchManager {
         self
     }
 
+    /// Wraps both the standard and stealth transports with the given
+    /// [`crate::engine::middleware::MiddlewareStack`] (caching, auth, metrics, ...). Chainable.
+    ///
+    /// A no-op for an empty stack. Must be called after [`FetchManager::new`]/
+    /// [`FetchManager::with_transport`], since it wraps whatever transport is already set — any
+    /// transport swapped in afterward (there is no such method today) would bypass it.
+    pub fn with_middleware(mut self, stack: &crate::engine::middleware::MiddlewareStack) -> Self {
+        if !stack.is_empty() {
+            self.http_strategy = stack.build(self.http_strategy);
+            self.browser_strategy = stack.build(self.browser_strategy);
+        }
+        self
+    }
+
     /// Dispatches the request through the correct strategy, applying rate limiting and retries.
     ///
     /// Retries are governed by [`RetryPolicy`]: transport errors are always retried, and by

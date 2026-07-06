@@ -1,4 +1,5 @@
 use crate::engine::fetcher::{FetchManager, FetcherTier, Transport};
+use crate::engine::middleware::{Layer, MiddlewareStack};
 use crate::engine::pool::ConnectionPoolConfig;
 use crate::engine::rate_limiter::HostRateLimiter;
 use crate::fingerprint::store::FingerprintStore;
@@ -29,6 +30,11 @@ pub struct Session {
     /// initialised by [`Session::fetch_manager`]; overridable in tests via
     /// [`Session::set_transport`].
     pub fetch_manager: RwLock<Option<Arc<FetchManager>>>,
+    /// Cross-cutting layers (caching, auth, metrics, ...) wrapped around every fetch. Must be
+    /// populated via [`Session::add_middleware`] *before* [`Session::fetch_manager`] is first
+    /// called (directly or via a `Dataset`/`Crawler` operation) — like `pool_config`/
+    /// `retry_policy`, the manager is built once and cached.
+    pub middleware: RwLock<MiddlewareStack>,
 }
 
 impl Session {
@@ -63,11 +69,9 @@ impl Session {
         // Pre-build the shared FetchManager using the config's pool/retry settings, rather than
         // leaving fetch_manager() to lazily build one from ConnectionPoolConfig::default() and
         // RetryPolicy::default() on first use.
-        let manager = FetchManager::new(
-            Arc::new(HostRateLimiter::new()),
-            (&config.pool).into(),
-        )
-        .with_retry_policy((&config.retry).into());
+        let manager = FetchManager::new(Arc::new(HostRateLimiter::new()), (&config.pool).into())
+            .with_retry_policy((&config.retry).into())
+            .with_middleware(&session.middleware.read().unwrap());
         *session.fetch_manager.write().unwrap() = Some(Arc::new(manager));
 
         session
@@ -91,7 +95,15 @@ impl Session {
             proxy_provider_url: RwLock::new(None),
             fingerprint_store: RwLock::new(None),
             fetch_manager: RwLock::new(None),
+            middleware: RwLock::new(MiddlewareStack::new()),
         }
+    }
+
+    /// Adds a middleware layer around all fetches for this session (see
+    /// [`crate::engine::middleware`]). Must be called before the session's `FetchManager` is
+    /// first built — see the field doc on [`Session::middleware`].
+    pub fn add_middleware(&self, layer: Arc<dyn Layer>) {
+        self.middleware.write().unwrap().push(layer);
     }
 
     /// Returns the session-wide [`FetchManager`], creating it on first use.
@@ -111,10 +123,10 @@ impl Session {
         if let Some(ref manager) = *guard {
             return manager.clone();
         }
-        let manager = Arc::new(FetchManager::new(
-            Arc::new(HostRateLimiter::new()),
-            ConnectionPoolConfig::default(),
-        ));
+        let manager = Arc::new(
+            FetchManager::new(Arc::new(HostRateLimiter::new()), ConnectionPoolConfig::default())
+                .with_middleware(&self.middleware.read().unwrap()),
+        );
         *guard = Some(manager.clone());
         manager
     }
@@ -122,12 +134,12 @@ impl Session {
     /// Replaces the session's fetch transport — primarily to inject a mock in tests.
     ///
     /// The supplied transport is used for both the standard and stealth tiers, wrapped in a
-    /// fresh [`FetchManager`] so retry and rate-limit logic still apply.
+    /// fresh [`FetchManager`] so retry, rate-limit, and middleware logic still apply.
     pub fn set_transport(&self, transport: Arc<dyn Transport>) {
-        let manager = Arc::new(FetchManager::with_transport(
-            Arc::new(HostRateLimiter::new()),
-            transport,
-        ));
+        let manager = Arc::new(
+            FetchManager::with_transport(Arc::new(HostRateLimiter::new()), transport)
+                .with_middleware(&self.middleware.read().unwrap()),
+        );
         *self.fetch_manager.write().unwrap() = Some(manager);
     }
 
@@ -263,6 +275,58 @@ mod tests {
         let first = session.fetch_manager();
         let second = session.fetch_manager();
         assert!(Arc::ptr_eq(&first, &second));
+    }
+
+    #[tokio::test]
+    async fn add_middleware_wraps_every_fetch_through_a_mock_transport() {
+        use crate::engine::fetcher::{
+            BoxFuture, FetchRequest, MockTransport, NormalizedResponse,
+        };
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        struct CountingLayer(Arc<AtomicUsize>);
+        struct CountingTransport(Arc<AtomicUsize>, Arc<dyn Transport>);
+        impl Transport for CountingTransport {
+            fn fetch<'a>(
+                &'a self,
+                request: &'a FetchRequest,
+            ) -> BoxFuture<'a, crate::error::Result<NormalizedResponse>> {
+                self.0.fetch_add(1, Ordering::SeqCst);
+                self.1.fetch(request)
+            }
+        }
+        impl Layer for CountingLayer {
+            fn wrap(&self, inner: Arc<dyn Transport>) -> Arc<dyn Transport> {
+                Arc::new(CountingTransport(self.0.clone(), inner))
+            }
+        }
+
+        let session = Session::new();
+        let count = Arc::new(AtomicUsize::new(0));
+        session.add_middleware(Arc::new(CountingLayer(count.clone())));
+
+        let mock = Arc::new(MockTransport::new().with_default_html("<h1>hi</h1>"));
+        session.set_transport(mock);
+
+        let manager = session.fetch_manager();
+        let req = FetchRequest {
+            url: "https://example.com".to_string(),
+            tier: FetcherTier::Standard,
+            browser_profile: None,
+            headers: Default::default(),
+            cookies: Default::default(),
+            proxy: None,
+            timeout: std::time::Duration::from_secs(5),
+            retries: 0,
+            rate_limit_rps: 0.0,
+        };
+        manager.dispatch(req).await.expect("mock fetch should succeed");
+
+        assert_eq!(
+            count.load(Ordering::SeqCst),
+            1,
+            "middleware added before set_transport must still wrap the injected mock"
+        );
     }
 }
 
