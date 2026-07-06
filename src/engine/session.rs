@@ -35,6 +35,12 @@ pub struct Session {
     /// called (directly or via a `Dataset`/`Crawler` operation) — like `pool_config`/
     /// `retry_policy`, the manager is built once and cached.
     pub middleware: RwLock<MiddlewareStack>,
+    /// Aggregated fetch metrics for this session (requests, successes/failures, per-host and
+    /// per-status counts, average latency). Always present and updated automatically — a
+    /// [`crate::metrics::MetricsLayer`] wrapping this same `Metrics` is seeded as the outermost
+    /// middleware layer in [`Session::new`], so no opt-in is required. Read via
+    /// [`Session::metrics`].
+    pub metrics: Arc<crate::metrics::Metrics>,
 }
 
 impl Session {
@@ -79,6 +85,10 @@ impl Session {
 
     /// Creates a new, empty `Session` with default settings.
     pub fn new() -> Self {
+        let metrics = Arc::new(crate::metrics::Metrics::new());
+        let mut middleware = MiddlewareStack::new();
+        middleware.push(Arc::new(crate::metrics::MetricsLayer::new(metrics.clone())));
+
         Self {
             headers: RwLock::new(HashMap::new()),
             cookies: RwLock::new(HashMap::new()),
@@ -95,15 +105,25 @@ impl Session {
             proxy_provider_url: RwLock::new(None),
             fingerprint_store: RwLock::new(None),
             fetch_manager: RwLock::new(None),
-            middleware: RwLock::new(MiddlewareStack::new()),
+            middleware: RwLock::new(middleware),
+            metrics,
         }
     }
 
     /// Adds a middleware layer around all fetches for this session (see
     /// [`crate::engine::middleware`]). Must be called before the session's `FetchManager` is
     /// first built — see the field doc on [`Session::middleware`].
+    ///
+    /// Layers added here run *inside* the always-on [`crate::metrics::MetricsLayer`] seeded by
+    /// [`Session::new`] (which is outermost), so their effect on latency/outcome is still
+    /// reflected in [`Session::metrics`].
     pub fn add_middleware(&self, layer: Arc<dyn Layer>) {
         self.middleware.write().unwrap().push(layer);
+    }
+
+    /// Returns a snapshot of this session's aggregated fetch metrics.
+    pub fn metrics(&self) -> crate::metrics::MetricsSnapshot {
+        self.metrics.snapshot()
     }
 
     /// Returns the session-wide [`FetchManager`], creating it on first use.
@@ -531,6 +551,18 @@ impl PySession {
         // Fetch initially
         let _ = self_.inner.fetch_provider_proxies();
         Ok(self_.into())
+    }
+
+    /// Returns a snapshot of this session's aggregated fetch metrics as a dict: `requests`,
+    /// `successes`, `failures`, `bytes_in`, `status_counts` (status code -> count), `per_host`
+    /// (host -> `{requests, successes, failures}`), and `avg_latency_ms`.
+    pub fn metrics(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let snapshot = self.inner.metrics();
+        let json = serde_json::to_string(&snapshot)
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+        let json_module = py.import("json")?;
+        let parsed = json_module.call_method1("loads", (json,))?;
+        Ok(parsed.into())
     }
 
     // Support Context Manager (with Session() as session:)

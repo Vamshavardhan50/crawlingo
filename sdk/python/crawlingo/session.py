@@ -122,6 +122,13 @@ class Session:
         session._proxy_provider = None
         return session
 
+    def metrics(self) -> dict:
+        """Return a snapshot of this session's aggregated fetch metrics: `requests`,
+        `successes`, `failures`, `bytes_in`, `status_counts`, `per_host`, and `avg_latency_ms`.
+        Updated automatically for every fetch made through this session, no setup required.
+        """
+        return self._core_session.metrics()
+
     def page(self, url: str) -> "Page":
         """Create a new lazy Page attached to this session."""
         from .page import Page

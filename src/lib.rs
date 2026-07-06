@@ -14,6 +14,7 @@ pub mod error;
 pub mod extraction;
 pub mod fingerprint;
 pub mod matcher;
+pub mod metrics;
 pub mod parser;
 pub mod selector;
 pub mod watch;
