@@ -4,5 +4,24 @@
   "private": true,
   "scripts": {
     "build": "npm ci --prefix waitlist && npm run build --prefix waitlist && npm ci --prefix docs && npm run build --prefix docs && node build-merge.js"
-  }
+  },
+  "description": "<h1 align=\"center\">     <a href=\"https://crawlingo.dev\">         <img alt=\"Crawlingo Cover\" src=\"https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/crawlingo.jpg\" width=\"600\">     </a>     <br>     <small>Effortless Self-Healing Web Scraping for the Modern Web</small> </h1>",
+  "main": "build-merge.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vamshavardhan50/crawlingo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Vamshavardhan50/crawlingo/issues"
+  },
+  "homepage": "https://github.com/Vamshavardhan50/crawlingo#readme"
 }

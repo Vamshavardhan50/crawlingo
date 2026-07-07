@@ -56,12 +56,28 @@ class Crawl:
     """
     Configuration and execution unit for multi-page spider crawls.
     """
-    def __init__(self, start_url: str, session: Optional[Session] = None):
+    def __init__(self, start_url: str, session: Optional[Session] = None, _core_crawl=None):
         self._session = session or Session()
+        if _core_crawl is not None:
+            self._core_crawl = _core_crawl
+            return
         try:
             self._core_crawl = _CoreCrawl(start_url, self._session._core_session)
         except Exception as e:
             raise handle_core_exception(e)
+
+    @classmethod
+    def resumable(cls, start_url: str, path: str, session: Optional[Session] = None) -> "Crawl":
+        """Create a crawl backed by a persistent frontier at `path`. Reopening the same path on a
+        later run continues from wherever the previous run left off (pending queue and visited
+        set) instead of re-crawling everything from `start_url` again.
+        """
+        session = session or Session()
+        try:
+            core_crawl = _CoreCrawl.resumable(start_url, session._core_session, path)
+        except Exception as e:
+            raise handle_core_exception(e)
+        return cls(start_url, session=session, _core_crawl=core_crawl)
 
     def follow(self, selector: str) -> "Crawl":
         """Set CSS selector pointing to links that crawler should queue and follow."""

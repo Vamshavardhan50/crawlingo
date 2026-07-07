@@ -1,10 +1,11 @@
+use crate::crawl::frontier::{Frontier, MemoryFrontier};
 use crate::dataset::builder::{DatasetField, DatasetResult};
 use crate::engine::fetcher::FetchRequest;
 use crate::engine::session::Session;
 use crate::error::Result;
 use crate::parser::streaming::HtmlParser;
 use crate::selector::SelectorQuery;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task::JoinSet;
@@ -22,6 +23,11 @@ pub struct Crawler {
     pub fields: Vec<DatasetField>,
     pub session: Arc<Session>,
     pub webhook_url: Option<String>,
+    /// The pending-URL queue and visited set (see [`crate::crawl::frontier`]). `None` (the
+    /// default) means an ephemeral [`MemoryFrontier`] is created fresh for each
+    /// `crawl`/`crawl_async` call, seeded with `start_url` — the crawler's original behavior. Set
+    /// via [`Crawler::with_frontier`] or [`Crawler::resumable`] to persist crawl state across runs.
+    pub frontier: Option<Arc<dyn Frontier>>,
 }
 
 impl Crawler {
@@ -37,7 +43,31 @@ impl Crawler {
             fields: Vec::new(),
             session,
             webhook_url: None,
+            frontier: None,
         }
+    }
+
+    /// Uses `frontier` as the pending-URL queue/visited-set instead of an ephemeral per-run one.
+    /// Chainable. `start_url` is seeded automatically by `crawl`/`crawl_async` only if the
+    /// frontier is completely fresh (nothing pending or visited yet) — a frontier already carrying
+    /// state from a previous run is left alone, continuing from wherever it left off.
+    pub fn with_frontier(mut self, frontier: Arc<dyn Frontier>) -> Self {
+        self.frontier = Some(frontier);
+        self
+    }
+
+    /// Builds a crawler backed by a [`crate::crawl::frontier::PersistentFrontier`] at `path`,
+    /// resumable across process restarts: reopening the same path continues from wherever a
+    /// previous run left off (its pending queue and visited set) instead of re-crawling
+    /// everything from `start_url` again.
+    pub fn resumable(
+        start_url: &str,
+        session: Arc<Session>,
+        path: &std::path::Path,
+    ) -> Result<Self> {
+        let frontier: Arc<dyn Frontier> =
+            Arc::new(crate::crawl::frontier::PersistentFrontier::open(path)?);
+        Ok(Self::new(start_url, session).with_frontier(frontier))
     }
 
     /// Helper to resolve absolute URLs.
@@ -53,10 +83,17 @@ impl Crawler {
 
     /// Asynchronous crawling engine using JoinSet.
     pub async fn crawl_async(&self) -> Result<Vec<DatasetResult>> {
-        let visited = Arc::new(Mutex::new(HashSet::new()));
         let results = Arc::new(Mutex::new(Vec::new()));
 
-        let pending_queue = Arc::new(Mutex::new(vec![(self.start_url.clone(), 0)]));
+        let frontier: Arc<dyn Frontier> = match &self.frontier {
+            Some(f) => f.clone(),
+            None => Arc::new(MemoryFrontier::new()),
+        };
+        // Seed the start URL only for a genuinely fresh frontier — one carrying state from a
+        // previous run (via Crawler::resumable) is left alone, continuing where it left off.
+        if frontier.pending_len() == 0 && frontier.visited_len() == 0 {
+            frontier.enqueue(self.start_url.clone(), 0);
+        }
 
         // Crawl parameters
         let limit = self.limit;
@@ -91,9 +128,8 @@ impl Crawler {
         let mut workers = JoinSet::new();
 
         for _ in 0..concurrency {
-            let visited = visited.clone();
             let results = results.clone();
-            let pending_queue = pending_queue.clone();
+            let frontier = frontier.clone();
             let manager = manager.clone();
             let session = self.session.clone();
             let fields = fields_def_arc.clone();
@@ -104,32 +140,22 @@ impl Crawler {
             workers.spawn(async move {
                 loop {
                     // 1. Check if we hit limit
-                    {
-                        let res_count = results.lock().await.len();
-                        if res_count >= limit {
-                            break;
-                        }
+                    if results.lock().await.len() >= limit {
+                        break;
                     }
 
                     // 2. Pop next URL
-                    let next_task = {
-                        let mut queue = pending_queue.lock().await;
-                        queue.pop()
-                    };
-
-                    let (url_str, depth) = match next_task {
+                    let (url_str, depth) = match frontier.dequeue() {
                         Some(task) => task,
                         None => break, // Queue is empty, worker can exit
                     };
 
-                    // Check if already visited
-                    {
-                        let mut vis = visited.lock().await;
-                        if vis.contains(&url_str) {
-                            continue;
-                        }
-                        vis.insert(url_str.clone());
+                    // Check if already visited (each URL is only ever enqueued once in practice,
+                    // but stay defensive rather than assume that invariant holds forever)
+                    if frontier.is_visited(&url_str) {
+                        continue;
                     }
+                    frontier.mark_visited(&url_str);
 
                     // 3. Fetch configs (rotating proxy dynamically)
                     let headers = session.headers.read().unwrap().clone();
@@ -214,21 +240,15 @@ impl Crawler {
                                     let matches = page
                                         .query(SelectorQuery::Css(&follow_sel))
                                         .unwrap_or_default();
-                                    let mut new_links = Vec::new();
                                     for &link_idx in &matches {
                                         if let Some(href) =
                                             page.dom_tree().nodes[link_idx].attrs.get("href")
                                         {
                                             if let Some(abs_url) = Self::resolve_url(&url_str, href)
                                             {
-                                                new_links.push(abs_url);
+                                                frontier.enqueue(abs_url, depth + 1);
                                             }
                                         }
-                                    }
-
-                                    let mut queue = pending_queue.lock().await;
-                                    for link in new_links {
-                                        queue.push((link, depth + 1));
                                     }
                                 }
                             }
@@ -286,6 +306,15 @@ impl PyCrawl {
         Self {
             inner: Crawler::new(start_url, session.inner.clone()),
         }
+    }
+
+    /// Builds a crawler backed by a persistent, resumable frontier at `path` — reopening the
+    /// same path continues from wherever a previous run left off instead of re-crawling
+    /// everything from `start_url` again.
+    #[staticmethod]
+    pub fn resumable(start_url: &str, session: &PySession, path: &str) -> PyResult<Self> {
+        let inner = Crawler::resumable(start_url, session.inner.clone(), std::path::Path::new(path))?;
+        Ok(Self { inner })
     }
 
     pub fn follow(mut self_: PyRefMut<'_, Self>, selector: &str) -> PyResult<Py<Self>> {
