@@ -32,6 +32,7 @@ waitlist/api/
 # Generated output data
 *.csv
 *.parquet
+examples/*.json
 
 # Local DB & cache
 .flowscrape/

@@ -1,32 +1,40 @@
-const { Watch } = require('../sdk/nodejs');
+/**
+ * Crawlingo: Web page change monitoring with Watch.
+ *
+ * Usage:
+ *   npm install crawlingo
+ *   node 04_monitor.js
+ */
+
+const { Watch } = require('crawlingo');
 
 async function main() {
-  console.log("=== Crawlingo Node.js Web Monitor Example ===");
+  console.log('=== Crawlingo Node.js Monitor Example ===\n');
 
-  const url = "https://www.rust-lang.org/";
+  const url = 'https://www.rust-lang.org/';
   console.log(`Starting monitor for ${url}...`);
 
   const watcher = new Watch(url)
-    .field("title", "h1")
-    .interval(2); // Check every 2 seconds
+    .field('title', 'h1')
+    .interval(2);
 
   watcher.run((err, event) => {
     if (err) {
-      console.error("Watcher error:", err);
+      console.error('Watcher error:', err);
       return;
     }
     console.log(`\n[EVENT] Field '${event.field}' changed!`);
-    console.log(`  Old value: '${event.oldValue}'`);
-    console.log(`  New value: '${event.newValue}'`);
-    console.log(`  Change Type: ${event.changeType}`);
+    console.log(`  Old: '${event.oldValue}'`);
+    console.log(`  New: '${event.newValue}'`);
+    console.log(`  Type: ${event.changeType}`);
   });
 
-  console.log("Watcher is running in the background. We will stop it after 6 seconds...");
+  console.log('Watcher running for 6 seconds...');
   await new Promise(resolve => setTimeout(resolve, 6000));
 
-  console.log("Stopping watcher...");
+  console.log('\nStopping watcher...');
   watcher.stop();
-  console.log("Monitor stopped successfully.");
+  console.log('Monitor stopped.');
 }
 
 main();

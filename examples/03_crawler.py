@@ -1,39 +1,37 @@
-import sys
-import os
+"""Crawlingo: Multi-page web crawler with field extraction.
 
-# Allow importing crawlingo from the local python source tree directly
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../sdk/python")))
+Usage:
+    pip install crawlingo
+    python 03_crawler.py
+"""
 
 from crawlingo import Crawl
 
+
 def main():
     print("=== Crawlingo Web Crawler Example ===")
-    
-    # Start URL to crawl
+
     start_url = "https://httpbin.org/links/5/0"
     print(f"Starting crawl from {start_url}...")
-    
-    # Configure and build the crawl job
-    crawl_job = (
+
+    results = (
         Crawl(start_url)
-        .follow("a")          # Selector for links to discover and queue
-        .limit(3)             # Limit total pages fetched
-        .depth(2)             # Max crawling depth hops
-        .concurrency(2)       # Fetching thread count
-        .delay(0.5)           # Politeness delay between fetches
+        .follow("a")
+        .limit(3)
+        .depth(2)
+        .concurrency(2)
+        .delay(0.5)
         .field("title", "h1")
-        .field("links", "a")
+        .build()
     )
-    
-    results = crawl_job.build()
-    
+
     print(f"\nCrawled {len(results)} pages:")
     for i, res in enumerate(results):
-        print(f"  Page {i+1} title: '{res['title']}'")
-        
-    # Export all results
+        print(f"  Page {i+1}: {res['url']} — title: '{res.get('title', 'N/A')}'")
+
     results.to_json("crawl_results.json")
-    print("\nSaved crawl outcomes to 'crawl_results.json'.")
+    print("\nSaved crawl results to 'crawl_results.json'.")
+
 
 if __name__ == "__main__":
     main()

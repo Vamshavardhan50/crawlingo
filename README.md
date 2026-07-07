@@ -818,23 +818,23 @@ cd examples/node && npm install crawlingo && npx ts-node simple_fetch.ts
 cd examples/rust && cargo run --example simple_fetch
 ```
 
-**Documentation (in `document/`):**
-| File | What It Covers |
-|------|---------------|
-| `01_ARCHITECTURE.md` | System architecture, module design |
-| `02_CODEBASE_MAP.md` | File-level codebase structure |
-| `05_ROADMAP.md` | Full roadmap with milestones |
-| `06_DEVELOPMENT_GUIDE.md` | Setup, build, test instructions |
-| `07_CONTRIBUTING_GUIDE.md` | PR process, review standards |
-| `10_PERFORMANCE.md` | Profiling data, optimization tips |
-| `11_SECURITY_REVIEW.md` | Security audit findings |
-| `12_API_DESIGN.md` | Design principles, conventions |
-| `20_PRODUCTION_CHECKLIST.md` | Production deployment steps |
-| `27_SELECTOR_ENGINE.md` | Selector engine internals & v2 plans |
-| `28_DATASET_ENGINE.md` | Dataset engine architecture |
-| `29_PLUGIN_SYSTEM.md` | Plugin hooks & registration |
+**Documentation:**
+| Guide | Description |
+|-------|-------------|
+| [Getting Started](docs/getting-started.md) | Install and run your first extraction |
+| [Page API](docs/page.md) | Page fetching and selectors |
+| [Session API](docs/session.md) | Shared configuration |
+| [Dataset API](docs/dataset.md) | Structured data extraction |
+| [Crawl API](docs/crawl.md) | Multi-page crawling |
+| [Watch API](docs/watch.md) | Change monitoring |
+| [Selectors](docs/selectors.md) | CSS, XPath, Regex, Text anchors |
+| [Auto-Match](docs/auto-match.md) | Self-healing selectors |
+| [Authentication](docs/authentication.md) | Auth helpers |
+| [Configuration](docs/configuration.md) | TOML, env vars, programmatic |
+| [Advanced](docs/advanced.md) | Hooks, middleware, streaming |
+| [FAQ](docs/faq.md) | Troubleshooting |
 
-**SDK docs:** `sdk/python/README.md`, `sdk/node/README.md`, `cargo doc --open`
+**SDK docs:** `sdk/python/README.md`, `sdk/nodejs/README.md`, `cargo doc --open`
 
 **Roadmap:**
 | Phase | Features |
@@ -940,8 +940,9 @@ Examples:
 
 ## 🔗 Related Projects
 - [Crawlingo Python SDK](sdk/python/) — PyPI package details
-- [Crawlingo Node.js SDK](sdk/node/) — npm package details
-- [Documentation](document/) — Technical deep-dives
+- [Crawlingo Node.js SDK](sdk/nodejs/) — npm package details
+- [Documentation](docs/) — Comprehensive user docs
+- [Dev Docs](document/) — Technical deep-dives (contributors)
 - [Issues](https://github.com/Vamshavardhan50/crawlingo/issues) — Bug reports & feature requests
 
 ## 🙏 Acknowledgments
