@@ -3,6 +3,15 @@ name = "crawlingo"
 version = "0.1.2"
 edition = "2021"
 license = "MIT"
+exclude = [
+    "sdk/",
+    "crawlingo-docs/",
+    "waitlist/",
+    "crawlingo.jpg",
+    "crawlingo_demo.gif",
+    "crawlingo_demo.webp",
+    "logo.svg"
+]
 
 [lib]
 name = "crawlingo"
