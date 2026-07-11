@@ -3,6 +3,10 @@ name = "crawlingo"
 version = "0.1.2"
 edition = "2021"
 license = "MIT"
+description = "Next-generation web data extraction, crawling, and website monitoring framework."
+repository = "https://github.com/Vamshavardhan50/crawlingo"
+homepage = "https://crawlingo.dev"
+documentation = "https://crawlingo.dev/docs"
 exclude = [
     "sdk/",
     "crawlingo-docs/",
