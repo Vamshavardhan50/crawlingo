@@ -1,6 +1,6 @@
 {
   "name": "crawlingo",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "MIT",
   "description": "Crawlingo - next-generation web scraping and monitoring framework",
   "main": "dist/index.js",

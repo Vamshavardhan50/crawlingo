@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "crawlingo"
-version = "0.1.1"
+version = "0.1.2"
 description = "Crawlingo - next-generation web scraping and monitoring framework"
 readme = "README.md"
 license = {text = "MIT"}
