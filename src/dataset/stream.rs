@@ -121,12 +121,14 @@ impl DatasetStream {
                 Ok(fields) => {
                     if !header_written {
                         let keys: Vec<&str> = fields.keys().map(|k| k.as_str()).collect();
-                        writer.write_record(&keys)
-                            .map_err(|e| crate::error::CrawlingoError::DatasetError(e.to_string()))?;
+                        writer.write_record(&keys).map_err(|e| {
+                            crate::error::CrawlingoError::DatasetError(e.to_string())
+                        })?;
                         header_written = true;
                     }
                     let values: Vec<&str> = fields.values().map(|v| v.as_str()).collect();
-                    writer.write_record(&values)
+                    writer
+                        .write_record(&values)
                         .map_err(|e| crate::error::CrawlingoError::DatasetError(e.to_string()))?;
                     total += 1;
                 }
@@ -136,7 +138,8 @@ impl DatasetStream {
             }
         }
 
-        writer.flush()
+        writer
+            .flush()
             .map_err(|e| crate::error::CrawlingoError::DatasetError(e.to_string()))?;
         Ok(total)
     }

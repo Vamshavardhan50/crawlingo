@@ -203,16 +203,20 @@ impl Crawler {
                                         None
                                     } else {
                                         let combined_text = page.get_nodes_combined_text(&matches);
-                                        let normalized = crate::extraction::ExtractionEngine::normalize_value(
-                                            &combined_text,
-                                            &f.extract_type,
-                                            page.url(),
-                                        );
-                                        if normalized.is_empty() { None } else { Some(normalized) }
+                                        let normalized =
+                                            crate::extraction::ExtractionEngine::normalize_value(
+                                                &combined_text,
+                                                &f.extract_type,
+                                                page.url(),
+                                            );
+                                        if normalized.is_empty() {
+                                            None
+                                        } else {
+                                            Some(normalized)
+                                        }
                                     };
-                                    let final_val = extracted
-                                        .or_else(|| f.default.clone())
-                                        .unwrap_or_default();
+                                    let final_val =
+                                        extracted.or_else(|| f.default.clone()).unwrap_or_default();
                                     fields_map.insert(f.name.clone(), final_val);
                                 }
 
@@ -313,7 +317,8 @@ impl PyCrawl {
     /// everything from `start_url` again.
     #[staticmethod]
     pub fn resumable(start_url: &str, session: &PySession, path: &str) -> PyResult<Self> {
-        let inner = Crawler::resumable(start_url, session.inner.clone(), std::path::Path::new(path))?;
+        let inner =
+            Crawler::resumable(start_url, session.inner.clone(), std::path::Path::new(path))?;
         Ok(Self { inner })
     }
 

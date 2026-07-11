@@ -130,7 +130,10 @@ mod tests {
         // Same underlying transport (no layers to add), proven by both producing identical
         // responses from the same mock, since Arc<dyn Transport> can't be pointer-compared
         // across a trait object boundary meaningfully otherwise.
-        let resp = wrapped.fetch(&mock_request("https://example.com")).await.unwrap();
+        let resp = wrapped
+            .fetch(&mock_request("https://example.com"))
+            .await
+            .unwrap();
         assert_eq!(&resp.body[..], b"<h1>hi</h1>");
     }
 
@@ -138,14 +141,27 @@ mod tests {
     async fn layers_run_outermost_first_in_insertion_order() {
         let log = Arc::new(Mutex::new(Vec::new()));
         let stack = MiddlewareStack::new()
-            .with_layer(Arc::new(RecordingLayer { name: "A", log: log.clone() }))
-            .with_layer(Arc::new(RecordingLayer { name: "B", log: log.clone() }))
-            .with_layer(Arc::new(RecordingLayer { name: "C", log: log.clone() }));
+            .with_layer(Arc::new(RecordingLayer {
+                name: "A",
+                log: log.clone(),
+            }))
+            .with_layer(Arc::new(RecordingLayer {
+                name: "B",
+                log: log.clone(),
+            }))
+            .with_layer(Arc::new(RecordingLayer {
+                name: "C",
+                log: log.clone(),
+            }));
 
-        let base: Arc<dyn Transport> = Arc::new(MockTransport::new().with_default_html("<p>ok</p>"));
+        let base: Arc<dyn Transport> =
+            Arc::new(MockTransport::new().with_default_html("<p>ok</p>"));
         let wrapped = stack.build(base);
 
-        wrapped.fetch(&mock_request("https://example.com")).await.unwrap();
+        wrapped
+            .fetch(&mock_request("https://example.com"))
+            .await
+            .unwrap();
 
         assert_eq!(*log.lock().unwrap(), vec!["A", "B", "C"]);
     }
@@ -175,9 +191,13 @@ mod tests {
         stack.push(Arc::new(CountingLayer(count.clone())));
         assert!(!stack.is_empty());
 
-        let base: Arc<dyn Transport> = Arc::new(MockTransport::new().with_default_html("<p>ok</p>"));
+        let base: Arc<dyn Transport> =
+            Arc::new(MockTransport::new().with_default_html("<p>ok</p>"));
         let wrapped = stack.build(base);
-        wrapped.fetch(&mock_request("https://example.com")).await.unwrap();
+        wrapped
+            .fetch(&mock_request("https://example.com"))
+            .await
+            .unwrap();
 
         assert_eq!(count.load(Ordering::SeqCst), 1);
     }

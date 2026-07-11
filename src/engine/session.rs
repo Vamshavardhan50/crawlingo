@@ -180,8 +180,11 @@ impl Session {
             return manager.clone();
         }
         let manager = Arc::new(
-            FetchManager::new(Arc::new(HostRateLimiter::new()), ConnectionPoolConfig::default())
-                .with_middleware(&self.middleware.read().unwrap()),
+            FetchManager::new(
+                Arc::new(HostRateLimiter::new()),
+                ConnectionPoolConfig::default(),
+            )
+            .with_middleware(&self.middleware.read().unwrap()),
         );
         *guard = Some(manager.clone());
         manager
@@ -335,9 +338,7 @@ mod tests {
 
     #[tokio::test]
     async fn add_middleware_wraps_every_fetch_through_a_mock_transport() {
-        use crate::engine::fetcher::{
-            BoxFuture, FetchRequest, MockTransport, NormalizedResponse,
-        };
+        use crate::engine::fetcher::{BoxFuture, FetchRequest, MockTransport, NormalizedResponse};
         use std::sync::atomic::{AtomicUsize, Ordering};
 
         struct CountingLayer(Arc<AtomicUsize>);
@@ -376,7 +377,10 @@ mod tests {
             retries: 0,
             rate_limit_rps: 0.0,
         };
-        manager.dispatch(req).await.expect("mock fetch should succeed");
+        manager
+            .dispatch(req)
+            .await
+            .expect("mock fetch should succeed");
 
         assert_eq!(
             count.load(Ordering::SeqCst),
@@ -597,19 +601,26 @@ impl PySession {
         max_entries: u64,
         default_ttl_seconds: u64,
     ) -> PyResult<Py<Self>> {
-        self_
-            .inner
-            .enable_response_cache(max_entries, std::time::Duration::from_secs(default_ttl_seconds));
+        self_.inner.enable_response_cache(
+            max_entries,
+            std::time::Duration::from_secs(default_ttl_seconds),
+        );
         Ok(self_.into())
     }
 
     /// Authenticate every fetch with HTTP Basic auth. Must be called before the first fetch made
     /// through this session. Returns self.
-    pub fn basic_auth(self_: PyRef<'_, Self>, username: &str, password: &str) -> PyResult<Py<Self>> {
-        self_.inner.set_auth(crate::engine::auth::AuthScheme::Basic {
-            username: username.to_string(),
-            password: password.to_string(),
-        });
+    pub fn basic_auth(
+        self_: PyRef<'_, Self>,
+        username: &str,
+        password: &str,
+    ) -> PyResult<Py<Self>> {
+        self_
+            .inner
+            .set_auth(crate::engine::auth::AuthScheme::Basic {
+                username: username.to_string(),
+                password: password.to_string(),
+            });
         Ok(self_.into())
     }
 
@@ -625,10 +636,12 @@ impl PySession {
     /// Authenticate every fetch with a fixed custom header (e.g. an API key header). Must be
     /// called before the first fetch made through this session. Returns self.
     pub fn header_auth(self_: PyRef<'_, Self>, name: &str, value: &str) -> PyResult<Py<Self>> {
-        self_.inner.set_auth(crate::engine::auth::AuthScheme::Header {
-            name: name.to_string(),
-            value: value.to_string(),
-        });
+        self_
+            .inner
+            .set_auth(crate::engine::auth::AuthScheme::Header {
+                name: name.to_string(),
+                value: value.to_string(),
+            });
         Ok(self_.into())
     }
 
@@ -665,16 +678,22 @@ impl PySession {
         *cloned.rate_limit_rps.write().unwrap() = *self.inner.rate_limit_rps.read().unwrap();
         *cloned.auto_match.write().unwrap() = *self.inner.auto_match.read().unwrap();
         *cloned.timeout_seconds.write().unwrap() = *self.inner.timeout_seconds.read().unwrap();
-        *cloned.fingerprint_path.write().unwrap() = self.inner.fingerprint_path.read().unwrap().clone();
+        *cloned.fingerprint_path.write().unwrap() =
+            self.inner.fingerprint_path.read().unwrap().clone();
         *cloned.fetcher_tier.write().unwrap() = *self.inner.fetcher_tier.read().unwrap();
-        *cloned.browser_profile.write().unwrap() = self.inner.browser_profile.read().unwrap().clone();
-        *cloned.similarity_weights.write().unwrap() = self.inner.similarity_weights.read().unwrap().clone();
+        *cloned.browser_profile.write().unwrap() =
+            self.inner.browser_profile.read().unwrap().clone();
+        *cloned.similarity_weights.write().unwrap() =
+            self.inner.similarity_weights.read().unwrap().clone();
         *cloned.proxy_pool.write().unwrap() = self.inner.proxy_pool.read().unwrap().clone();
         cloned.proxy_index.store(
-            self.inner.proxy_index.load(std::sync::atomic::Ordering::SeqCst),
+            self.inner
+                .proxy_index
+                .load(std::sync::atomic::Ordering::SeqCst),
             std::sync::atomic::Ordering::SeqCst,
         );
-        *cloned.proxy_provider_url.write().unwrap() = self.inner.proxy_provider_url.read().unwrap().clone();
+        *cloned.proxy_provider_url.write().unwrap() =
+            self.inner.proxy_provider_url.read().unwrap().clone();
         *cloned.retries.write().unwrap() = *self.inner.retries.read().unwrap();
         *cloned.retry_backoff.write().unwrap() = *self.inner.retry_backoff.read().unwrap();
         *cloned.retry_delay.write().unwrap() = *self.inner.retry_delay.read().unwrap();
@@ -711,7 +730,10 @@ impl PySession {
     }
 
     /// Merge headers into session headers
-    pub fn merge_headers(self_: PyRef<'_, Self>, headers: HashMap<String, String>) -> PyResult<Py<Self>> {
+    pub fn merge_headers(
+        self_: PyRef<'_, Self>,
+        headers: HashMap<String, String>,
+    ) -> PyResult<Py<Self>> {
         {
             let mut h = self_
                 .inner
@@ -725,7 +747,10 @@ impl PySession {
 
     /// Get cookies
     pub fn get_cookies(&self) -> PyResult<HashMap<String, String>> {
-        let c = self.inner.cookies.read()
+        let c = self
+            .inner
+            .cookies
+            .read()
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
         Ok(c.clone())
     }
@@ -797,7 +822,11 @@ impl PySession {
 
     /// Set proxy authentication
     #[pyo3(signature = (username=None, password=None))]
-    pub fn proxy_auth(self_: PyRef<'_, Self>, username: Option<String>, password: Option<String>) -> PyResult<Py<Self>> {
+    pub fn proxy_auth(
+        self_: PyRef<'_, Self>,
+        username: Option<String>,
+        password: Option<String>,
+    ) -> PyResult<Py<Self>> {
         {
             let mut u = self_
                 .inner
@@ -822,7 +851,6 @@ impl PySession {
 
     // Support Context Manager (with Session() as session:)
     fn __enter__(self_: PyRef<'_, Self>) -> PyResult<PyRef<'_, Self>> {
-
         Ok(self_)
     }
 

@@ -190,7 +190,11 @@ mod tests {
         let frontier = MemoryFrontier::new();
         frontier.mark_visited("https://seen.example.com");
         frontier.enqueue("https://seen.example.com".to_string(), 0);
-        assert_eq!(frontier.pending_len(), 0, "already-visited URLs must not be enqueued");
+        assert_eq!(
+            frontier.pending_len(),
+            0,
+            "already-visited URLs must not be enqueued"
+        );
     }
 
     #[test]

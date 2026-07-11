@@ -47,10 +47,7 @@ pub enum PaginationScheme {
     },
     /// Finds a page number in the current URL via `page_regex` (first capture group), increments
     /// it, and replaces the match. Stops when the extracted number reaches `max_page`.
-    UrlPattern {
-        page_regex: String,
-        max_page: usize,
-    },
+    UrlPattern { page_regex: String, max_page: usize },
 }
 
 /// Configuration for automatic pagination within a crawl.
@@ -124,9 +121,9 @@ impl Paginator {
         match &self.config.scheme {
             PaginationScheme::NextLink { selector } => {
                 let matches = css::query(dom, selector);
-                let next = matches.iter().find_map(|&idx| {
-                    dom.nodes[idx].attrs.get("href").cloned()
-                });
+                let next = matches
+                    .iter()
+                    .find_map(|&idx| dom.nodes[idx].attrs.get("href").cloned());
                 if let Some(href) = next {
                     let resolved = resolve_url(url, &href);
                     Ok(resolved)
@@ -135,9 +132,14 @@ impl Paginator {
                 }
             }
 
-            PaginationScheme::PageNumber { url_template, start_page: _, max_pages } => {
-                let current =
-                    self.page_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            PaginationScheme::PageNumber {
+                url_template,
+                start_page: _,
+                max_pages,
+            } => {
+                let current = self
+                    .page_counter
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 // current is the *next* page number to generate (already incremented above).
                 if current > *max_pages {
                     return Ok(None);
@@ -146,7 +148,10 @@ impl Paginator {
                 Ok(Some(next_url))
             }
 
-            PaginationScheme::UrlPattern { page_regex, max_page } => {
+            PaginationScheme::UrlPattern {
+                page_regex,
+                max_page,
+            } => {
                 let re = Regex::new(page_regex).map_err(|e| {
                     CrawlingoError::FetchError(format!("invalid pagination regex: {e}"))
                 })?;
@@ -159,7 +164,10 @@ impl Paginator {
                         }
                         // Replace the matched capture group with n+1.
                         let full_match = caps.get(0).unwrap();
-                        let new_segment = re.replace(url, full_match.as_str().replace(matched, &next_n.to_string()));
+                        let new_segment = re.replace(
+                            url,
+                            full_match.as_str().replace(matched, &next_n.to_string()),
+                        );
                         return Ok(Some(new_segment.into_owned()));
                     }
                 }
@@ -236,16 +244,24 @@ mod tests {
         let frontier = Arc::new(MemoryFrontier::new()) as Arc<dyn Frontier>;
 
         // Page 1 → enqueues page 1 URL, returns true
-        let r1 = paginator.enqueue_next("https://example.com/p/0", &empty_dom(), &frontier).unwrap();
+        let r1 = paginator
+            .enqueue_next("https://example.com/p/0", &empty_dom(), &frontier)
+            .unwrap();
         assert!(r1);
         // Page 2
-        let r2 = paginator.enqueue_next("https://example.com/p/1", &empty_dom(), &frontier).unwrap();
+        let r2 = paginator
+            .enqueue_next("https://example.com/p/1", &empty_dom(), &frontier)
+            .unwrap();
         assert!(r2);
         // Page 3: still within max_pages
-        let r3 = paginator.enqueue_next("https://example.com/p/2", &empty_dom(), &frontier).unwrap();
+        let r3 = paginator
+            .enqueue_next("https://example.com/p/2", &empty_dom(), &frontier)
+            .unwrap();
         assert!(r3);
         // Page 4: past max_pages (3)
-        let r4 = paginator.enqueue_next("https://example.com/p/3", &empty_dom(), &frontier).unwrap();
+        let r4 = paginator
+            .enqueue_next("https://example.com/p/3", &empty_dom(), &frontier)
+            .unwrap();
         assert!(!r4, "should stop after max_pages");
 
         assert_eq!(frontier.pending_len(), 3);
@@ -259,7 +275,10 @@ mod tests {
         let next = paginator
             .next_url("https://example.com/blog/page/2/more", &empty_dom())
             .unwrap();
-        assert_eq!(next.as_deref(), Some("https://example.com/blog/page/3/more"));
+        assert_eq!(
+            next.as_deref(),
+            Some("https://example.com/blog/page/3/more")
+        );
     }
 
     #[test]

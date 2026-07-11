@@ -78,20 +78,25 @@ impl Dataset {
     }
 
     /// Core logic: zip selector matches from an already-parsed DomTree into structured records.
-    pub fn extract_from_tree(&self, tree: &crate::parser::document::DomTree) -> Vec<HashMap<String, String>> {
-        use crate::selector::{css, xpath, text_anchor, regex_selector};
+    pub fn extract_from_tree(
+        &self,
+        tree: &crate::parser::document::DomTree,
+    ) -> Vec<HashMap<String, String>> {
+        use crate::selector::{css, regex_selector, text_anchor, xpath};
 
         // Collect all match index lists per field
-        let collections: Vec<Vec<usize>> = self.fields.iter().map(|f| {
-            match f.selector_type.as_str() {
-                "xpath"       => xpath::query(tree, &f.selector),
-                "text"        => text_anchor::find(tree, &f.selector),
-                "after_text"  => text_anchor::after(tree, &f.selector),
+        let collections: Vec<Vec<usize>> = self
+            .fields
+            .iter()
+            .map(|f| match f.selector_type.as_str() {
+                "xpath" => xpath::query(tree, &f.selector),
+                "text" => text_anchor::find(tree, &f.selector),
+                "after_text" => text_anchor::after(tree, &f.selector),
                 "before_text" => text_anchor::before(tree, &f.selector),
-                "regex"       => regex_selector::query(tree, &f.selector).unwrap_or_default(),
-                _             => css::query(tree, &f.selector),
-            }
-        }).collect();
+                "regex" => regex_selector::query(tree, &f.selector).unwrap_or_default(),
+                _ => css::query(tree, &f.selector),
+            })
+            .collect();
 
         let max_len = collections.iter().map(|c| c.len()).max().unwrap_or(0);
         let mut records = Vec::with_capacity(max_len);
@@ -111,9 +116,8 @@ impl Dataset {
         records
     }
 
-
     pub async fn build_structured(&self) -> Result<Vec<HashMap<String, String>>> {
-        use crate::engine::fetcher::{FetchRequest, FetchManager};
+        use crate::engine::fetcher::{FetchManager, FetchRequest};
         use crate::engine::pool::ConnectionPoolConfig;
         use crate::parser::streaming::HtmlParser;
 
@@ -440,14 +444,13 @@ impl PyDataset {
 
     pub fn build_structured(&self, py: Python<'_>) -> PyResult<Vec<HashMap<String, String>>> {
         let inner = self.inner.clone();
-        let res = py.allow_threads(move || {
-            crate::TOKIO_RUNTIME.block_on(async {
-                inner.build_structured().await
+        let res = py
+            .allow_threads(move || {
+                crate::TOKIO_RUNTIME.block_on(async { inner.build_structured().await })
             })
-        }).map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
         Ok(res)
     }
-
 
     #[staticmethod]
     pub fn save_json(records: Vec<HashMap<String, String>>, path: &str) -> PyResult<()> {
@@ -463,11 +466,16 @@ impl PyDataset {
             .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
         if let Some(first) = records.first() {
             let keys: Vec<&str> = first.keys().map(|k| k.as_str()).collect();
-            writer.write_record(&keys)
+            writer
+                .write_record(&keys)
                 .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
             for r in &records {
-                let values: Vec<&str> = keys.iter().map(|k| r.get(*k).map(|s| s.as_str()).unwrap_or("")).collect();
-                writer.write_record(&values)
+                let values: Vec<&str> = keys
+                    .iter()
+                    .map(|k| r.get(*k).map(|s| s.as_str()).unwrap_or(""))
+                    .collect();
+                writer
+                    .write_record(&values)
                     .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
             }
         }
@@ -475,7 +483,6 @@ impl PyDataset {
         Ok(())
     }
 }
-
 
 #[cfg(feature = "python")]
 #[pyclass(name = "DatasetResult")]

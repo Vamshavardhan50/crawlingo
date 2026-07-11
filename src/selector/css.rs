@@ -248,17 +248,12 @@ fn match_group(node: &DomNode, group: &SelectorGroup) -> bool {
                         }
                     }
                     AttributeMatch::Contains(val) => {
-                        if !attr_val
-                            .split_whitespace()
-                            .any(|word| word == val)
-                        {
+                        if !attr_val.split_whitespace().any(|word| word == val) {
                             return false;
                         }
                     }
                     AttributeMatch::Hyphen(val) => {
-                        if attr_val != val
-                            && !attr_val.starts_with(&format!("{val}-"))
-                        {
+                        if attr_val != val && !attr_val.starts_with(&format!("{val}-")) {
                             return false;
                         }
                     }
@@ -390,7 +385,8 @@ mod tests {
         assert_eq!(res.len(), 0, "a[data-x] should match 0");
 
         // Combined: tag + attribute + class
-        let html2 = b"<html><body><a class='external' href='http://example.com'>Example</a></body></html>";
+        let html2 =
+            b"<html><body><a class='external' href='http://example.com'>Example</a></body></html>";
         let tree2 = parse_html(html2).unwrap();
         let res = query(&tree2, "a.external[href]");
         assert_eq!(res.len(), 1, "a.external[href] should match 1");

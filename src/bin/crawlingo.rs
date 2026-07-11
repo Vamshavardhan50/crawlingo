@@ -45,7 +45,12 @@ fn main() {
         rate_limit_rps: Option<f64>,
 
         /// Request timeout in seconds (overrides config).
-        #[arg(long, global = true, env = "CRAWLINGO_TIMEOUT_SECONDS", default_value = "30")]
+        #[arg(
+            long,
+            global = true,
+            env = "CRAWLINGO_TIMEOUT_SECONDS",
+            default_value = "30"
+        )]
         timeout: u64,
 
         #[command(subcommand)]
@@ -167,13 +172,21 @@ fn main() {
     let session = Arc::new(Session::from_config(&config));
 
     match cli.command {
-        Commands::Fetch { url, markdown, stealthy } => {
+        Commands::Fetch {
+            url,
+            markdown,
+            stealthy,
+        } => {
             use crawlingo::engine::fetcher::{FetchRequest, FetcherTier};
             use crawlingo::parser::streaming::HtmlParser;
 
             let req = FetchRequest {
                 url: url.clone(),
-                tier: if stealthy { FetcherTier::Stealthy } else { FetcherTier::Standard },
+                tier: if stealthy {
+                    FetcherTier::Stealthy
+                } else {
+                    FetcherTier::Standard
+                },
                 browser_profile: None,
                 headers: session.headers.read().unwrap().clone(),
                 cookies: session.cookies.read().unwrap().clone(),
@@ -198,7 +211,10 @@ fn main() {
             match result {
                 Ok(page) => {
                     if markdown {
-                        println!("{}", crawlingo::parser::document::Page::render_markdown(page.dom_tree()));
+                        println!(
+                            "{}",
+                            crawlingo::parser::document::Page::render_markdown(page.dom_tree())
+                        );
                     } else {
                         println!("{}", page.html());
                     }
@@ -276,17 +292,20 @@ fn main() {
                         };
                         println!("{}", headers.join(","));
                         for r in &results {
-                            let mut row = vec![
-                                csv_escape(&r.url),
-                                csv_escape(&r.timestamp.to_rfc3339()),
-                            ];
+                            let mut row =
+                                vec![csv_escape(&r.url), csv_escape(&r.timestamp.to_rfc3339())];
                             for key in headers.iter().skip(2) {
-                                row.push(csv_escape(r.fields.get(key).map(String::as_str).unwrap_or("")));
+                                row.push(csv_escape(
+                                    r.fields.get(key).map(String::as_str).unwrap_or(""),
+                                ));
                             }
                             println!("{}", row.join(","));
                         }
                     } else {
-                        println!("{}", serde_json::to_string_pretty(&results).unwrap_or_default());
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&results).unwrap_or_default()
+                        );
                     }
                 }
                 Err(e) => {
@@ -296,7 +315,11 @@ fn main() {
             }
         }
 
-        Commands::Sitemap { url, urls_only, max_depth } => {
+        Commands::Sitemap {
+            url,
+            urls_only,
+            max_depth,
+        } => {
             // If the URL looks like a page rather than a sitemap, try appending /sitemap.xml.
             let sitemap_url = if url.ends_with(".xml") || url.ends_with(".xml.gz") {
                 url.clone()
@@ -361,7 +384,11 @@ fn main() {
                                     println!("{}", e.loc);
                                 }
                             } else {
-                                eprintln!("Sitemap index: {} ({} child sitemaps)", sitemap_url, entries.len());
+                                eprintln!(
+                                    "Sitemap index: {} ({} child sitemaps)",
+                                    sitemap_url,
+                                    entries.len()
+                                );
                                 for e in &entries {
                                     println!("{}", e.loc);
                                 }
@@ -380,7 +407,12 @@ fn main() {
             }
         }
 
-        Commands::Download { url, output, no_resume, max_bytes } => {
+        Commands::Download {
+            url,
+            output,
+            no_resume,
+            max_bytes,
+        } => {
             let mut dl = Downloader::new(session).with_resume(!no_resume);
             if let Some(max) = max_bytes {
                 dl = dl.with_max_bytes(max);

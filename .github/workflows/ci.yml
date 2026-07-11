@@ -15,127 +15,171 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
   rust:
-    name: Rust (${{ matrix.os }})
+    name: Rust • ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
+
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-rust-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-      - name: Lint
-        run: cargo clippy --workspace --all-targets -- -D warnings
-      - name: Test
-        run: cargo test --workspace --verbose
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Format Check
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Rust Tests
+        run: cargo test --workspace --all-features --verbose
 
   python:
-    name: Python (${{ matrix.os }} / ${{ matrix.python }})
+    name: Python • ${{ matrix.python }} • ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
+
     strategy:
       fail-fast: false
+
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+        python:
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+
         exclude:
           - os: windows-latest
-            python: '3.9'
+            python: "3.9"
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - name: Install maturin
-        run: python -m pip install maturin
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-python-${{ matrix.python }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock', 'sdk/python/pyproject.toml') }}
-      - name: Build Python extension
-        working-directory: sdk/python
-        run: python -m pip install --no-build-isolation .
-      - name: Smoke test Python package
-        run: python -c "from importlib.metadata import version; import crawlingo; assert crawlingo.__version__ == version('crawlingo'); assert crawlingo.Page"
-      - name: Comprehensive Python SDK tests
-        working-directory: sdk/python
-        run: python tests/test_all_apis.py
-        timeout-minutes: 5
-        continue-on-error: true
 
-  nodejs:
-    name: Node.js (${{ matrix.os }})
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install maturin
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install maturin
+
+      - name: Build Python SDK
+        working-directory: sdk/python
+        run: |
+          python -m pip install --no-build-isolation .
+
+      - name: Smoke Test
+        run: |
+          python -c "import crawlingo; print(crawlingo.__version__)"
+
+      - name: Python SDK Tests
+        working-directory: sdk/python
+        run: |
+          python tests/test_all_apis.py
+
+  node:
+    name: Node.js • ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
+
     strategy:
       fail-fast: false
+
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
+
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            sdk/nodejs/native/target
-          key: ${{ runner.os }}-node-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock', 'sdk/nodejs/package-lock.json', 'sdk/nodejs/native/Cargo.toml') }}
-      - name: Build native module
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sdk/nodejs/package-lock.json
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Dependencies
+        working-directory: sdk/nodejs
+        run: npm ci
+
+      - name: Build Native Module
         working-directory: sdk/nodejs
         run: |
-          npm ci
           npm run build
           npm run build:ts
-      - name: Smoke test Node.js package
+
+      - name: Package Check
         working-directory: sdk/nodejs
         run: npm pack --dry-run
-      - name: Comprehensive Node.js SDK tests
+
+      - name: Node SDK Tests
         working-directory: sdk/nodejs
-        run: node tests/test_all_apis.cjs
-        timeout-minutes: 5
-        continue-on-error: true
+        run: |
+          node tests/test_all.cjs
 
   version-check:
     name: Version Consistency
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-      - name: Check versions match
+
+      - name: Verify Versions
+        shell: bash
         run: |
           cargo_version=$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2)
           python_version=$(grep '^version' sdk/python/pyproject.toml | head -1 | cut -d'"' -f2)
           node_version=$(grep '"version"' sdk/nodejs/package.json | head -1 | cut -d'"' -f4)
-          echo "Cargo: $cargo_version"
-          echo "Python: $python_version"
+
+          echo "Cargo:   $cargo_version"
+          echo "Python:  $python_version"
           echo "Node.js: $node_version"
-          if [ "$cargo_version" != "$python_version" ] || [ "$cargo_version" != "$node_version" ]; then
-            echo "::error::Version mismatch!"
+
+          if [ "$cargo_version" != "$python_version" ]; then
+            echo "::error::Cargo and Python versions differ."
             exit 1
           fi
+
+          if [ "$cargo_version" != "$node_version" ]; then
+            echo "::error::Cargo and Node.js versions differ."
+            exit 1
+          fi
+
+          echo "✓ Versions match."

@@ -43,13 +43,25 @@ fn dataset_build_extracts_fields_offline() {
 
     let result = dataset.build().expect("offline build should succeed");
 
-    assert_eq!(result.fields.get("title").map(String::as_str), Some("Premium Widget"));
-    assert_eq!(result.fields.get("price").map(String::as_str), Some("$42.00"));
+    assert_eq!(
+        result.fields.get("title").map(String::as_str),
+        Some("Premium Widget")
+    );
+    assert_eq!(
+        result.fields.get("price").map(String::as_str),
+        Some("$42.00")
+    );
     // Missing selector falls back to the declared default.
-    assert_eq!(result.fields.get("stock").map(String::as_str), Some("unknown"));
+    assert_eq!(
+        result.fields.get("stock").map(String::as_str),
+        Some("unknown")
+    );
 
     // The transport was actually driven, exactly once, with the requested URL.
-    assert_eq!(mock.calls(), vec!["https://shop.example.com/item/1".to_string()]);
+    assert_eq!(
+        mock.calls(),
+        vec!["https://shop.example.com/item/1".to_string()]
+    );
 }
 
 #[test]
@@ -75,7 +87,9 @@ fn set_transport_overrides_the_session_manager() {
     let mut dataset = Dataset::new("https://any.example.com", session);
     dataset.add_field(css_field("t", "h1.t", None));
 
-    let result = dataset.build().expect("build should use the injected transport");
+    let result = dataset
+        .build()
+        .expect("build should use the injected transport");
     assert_eq!(result.fields.get("t").map(String::as_str), Some("Injected"));
     assert_eq!(mock.call_count(), 1);
 }
@@ -101,7 +115,10 @@ fn typed_extraction_normalizes_price() {
     });
 
     let result = dataset.build().expect("build should succeed");
-    assert_eq!(result.fields.get("price").map(String::as_str), Some("1234.56"));
+    assert_eq!(
+        result.fields.get("price").map(String::as_str),
+        Some("1234.56")
+    );
 }
 
 #[test]
@@ -118,31 +135,36 @@ fn schema_validation_coerces_typed_fields() {
         FieldConstraint::new("price", FieldType::Float, true),
     ]);
 
-    let mut dataset =
-        Dataset::new("https://shop.example.com/item/5", session).with_schema(schema);
+    let mut dataset = Dataset::new("https://shop.example.com/item/5", session).with_schema(schema);
     dataset.add_field(css_field("title", "h1.title", None));
     dataset.add_field(css_field("price", "span.price", None));
 
     let result = dataset.build().expect("schema-valid build should succeed");
-    assert_eq!(result.fields.get("price").map(String::as_str), Some("19.99"));
+    assert_eq!(
+        result.fields.get("price").map(String::as_str),
+        Some("19.99")
+    );
 }
 
 #[test]
 fn schema_validation_rejects_missing_required_field() {
     let session = Arc::new(Session::new());
-    let mock = Arc::new(
-        MockTransport::new().with_html("https://shop.example.com/item/6", "<h1 class='title'>Widget</h1>"),
-    );
+    let mock = Arc::new(MockTransport::new().with_html(
+        "https://shop.example.com/item/6",
+        "<h1 class='title'>Widget</h1>",
+    ));
     session.set_transport(mock);
 
     let schema = DatasetSchema::new(vec![FieldConstraint::new("price", FieldType::Float, true)]);
 
-    let mut dataset =
-        Dataset::new("https://shop.example.com/item/6", session).with_schema(schema);
+    let mut dataset = Dataset::new("https://shop.example.com/item/6", session).with_schema(schema);
     dataset.add_field(css_field("price", "span.price", None));
 
     let result = dataset.build();
-    assert!(result.is_err(), "missing required schema field should fail the build");
+    assert!(
+        result.is_err(),
+        "missing required schema field should fail the build"
+    );
 }
 
 #[tokio::test]
@@ -169,13 +191,20 @@ async fn build_many_streamed_extracts_all_urls_concurrently() {
     let mut titles = Vec::new();
     while let Some(record) = stream.recv().await {
         let fields = record.expect("each url should extract successfully");
-        assert!(fields.contains_key("url"), "url should be injected into the record");
+        assert!(
+            fields.contains_key("url"),
+            "url should be injected into the record"
+        );
         titles.push(fields.get("t").cloned().unwrap_or_default());
     }
     titles.sort();
     assert_eq!(
         titles,
-        vec!["Alpha".to_string(), "Bravo".to_string(), "Charlie".to_string()]
+        vec![
+            "Alpha".to_string(),
+            "Bravo".to_string(),
+            "Charlie".to_string()
+        ]
     );
     assert_eq!(mock.call_count(), 3);
 }

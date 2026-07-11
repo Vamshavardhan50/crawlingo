@@ -632,9 +632,8 @@ mod tests {
 
     #[tokio::test]
     async fn mock_transport_serves_registered_route() {
-        let mock = Arc::new(
-            MockTransport::new().with_html("https://example.com/a", "<h1>Alpha</h1>"),
-        );
+        let mock =
+            Arc::new(MockTransport::new().with_html("https://example.com/a", "<h1>Alpha</h1>"));
         let manager = FetchManager::with_transport(Arc::new(HostRateLimiter::new()), mock.clone());
 
         let resp = manager
@@ -651,7 +650,10 @@ mod tests {
     async fn mock_transport_default_and_status_passthrough() {
         let mock = Arc::new(
             MockTransport::new()
-                .with_response("https://example.com/404", MockResponse::with_status(404, "nope"))
+                .with_response(
+                    "https://example.com/404",
+                    MockResponse::with_status(404, "nope"),
+                )
                 .with_default_html("<p>default</p>"),
         );
         let manager = FetchManager::with_transport(Arc::new(HostRateLimiter::new()), mock);
@@ -673,7 +675,9 @@ mod tests {
     async fn mock_transport_without_route_errors() {
         let mock = Arc::new(MockTransport::new());
         let manager = FetchManager::with_transport(Arc::new(HostRateLimiter::new()), mock);
-        let res = manager.dispatch(mock_request("https://example.com/x")).await;
+        let res = manager
+            .dispatch(mock_request("https://example.com/x"))
+            .await;
         assert!(res.is_err(), "unrouted request should fail");
     }
 
@@ -689,7 +693,10 @@ mod tests {
         // retries=2 → one initial attempt + two retries; the first two fail, the third succeeds.
         let mut req = mock_request("https://example.com/flaky");
         req.retries = 2;
-        let resp = manager.dispatch(req).await.expect("should recover after retries");
+        let resp = manager
+            .dispatch(req)
+            .await
+            .expect("should recover after retries");
 
         assert_eq!(&resp.body[..], b"<h1>recovered</h1>");
         assert_eq!(mock.call_count(), 3, "expected 2 failures then 1 success");
@@ -697,7 +704,11 @@ mod tests {
 
     #[tokio::test]
     async fn manager_gives_up_after_exhausting_retries() {
-        let mock = Arc::new(MockTransport::new().with_default_html("<h1>late</h1>").failing_first(5));
+        let mock = Arc::new(
+            MockTransport::new()
+                .with_default_html("<h1>late</h1>")
+                .failing_first(5),
+        );
         let manager = FetchManager::with_transport(Arc::new(HostRateLimiter::new()), mock.clone());
 
         let mut req = mock_request("https://example.com/dead");
@@ -710,13 +721,10 @@ mod tests {
 
     #[tokio::test]
     async fn manager_retries_503_then_succeeds() {
-        let mock = Arc::new(
-            MockTransport::new()
-                .with_response(
-                    "https://example.com/flaky-status",
-                    MockResponse::with_status(503, "unavailable"),
-                ),
-        );
+        let mock = Arc::new(MockTransport::new().with_response(
+            "https://example.com/flaky-status",
+            MockResponse::with_status(503, "unavailable"),
+        ));
         let manager = FetchManager::with_transport(Arc::new(HostRateLimiter::new()), mock.clone())
             .with_retry_policy(RetryPolicy {
                 base_delay: Duration::from_millis(1),
@@ -735,17 +743,21 @@ mod tests {
 
     #[tokio::test]
     async fn manager_does_not_retry_404() {
-        let mock = Arc::new(
-            MockTransport::new()
-                .with_response("https://example.com/missing", MockResponse::with_status(404, "nope")),
-        );
+        let mock = Arc::new(MockTransport::new().with_response(
+            "https://example.com/missing",
+            MockResponse::with_status(404, "nope"),
+        ));
         let manager = FetchManager::with_transport(Arc::new(HostRateLimiter::new()), mock.clone());
 
         let mut req = mock_request("https://example.com/missing");
         req.retries = 3;
         let resp = manager.dispatch(req).await.expect("404 is not an Err");
         assert_eq!(resp.status, 404);
-        assert_eq!(mock.call_count(), 1, "non-retryable status must not be retried");
+        assert_eq!(
+            mock.call_count(),
+            1,
+            "non-retryable status must not be retried"
+        );
     }
 
     #[tokio::test]
@@ -760,7 +772,11 @@ mod tests {
         req.retries = 1;
         let resp = manager.dispatch(req).await.expect("429 is not an Err");
         assert_eq!(resp.status, 429);
-        assert_eq!(mock.call_count(), 2, "1 initial + 1 retry honoring Retry-After");
+        assert_eq!(
+            mock.call_count(),
+            2,
+            "1 initial + 1 retry honoring Retry-After"
+        );
     }
 
     // ---- Client-pool tests ---------------------------------------------------------------
@@ -809,12 +825,22 @@ mod tests {
 
         // Baseline standard client.
         fetcher
-            .pooled_client(&req_with("https://x.example.com", FetcherTier::Standard, None, None))
+            .pooled_client(&req_with(
+                "https://x.example.com",
+                FetcherTier::Standard,
+                None,
+                None,
+            ))
             .await
             .unwrap();
         // Tier change.
         fetcher
-            .pooled_client(&req_with("https://x.example.com", FetcherTier::Stealthy, None, None))
+            .pooled_client(&req_with(
+                "https://x.example.com",
+                FetcherTier::Stealthy,
+                None,
+                None,
+            ))
             .await
             .unwrap();
         // Browser-profile change (within stealth tier).

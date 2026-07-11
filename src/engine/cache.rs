@@ -248,11 +248,21 @@ mod tests {
         let cache: Arc<dyn ResponseCache> = Arc::new(InMemoryCache::default());
         let transport = wrap(mock.clone(), cache);
 
-        transport.fetch(&mock_request("https://example.com/a")).await.unwrap();
-        let second = transport.fetch(&mock_request("https://example.com/a")).await.unwrap();
+        transport
+            .fetch(&mock_request("https://example.com/a"))
+            .await
+            .unwrap();
+        let second = transport
+            .fetch(&mock_request("https://example.com/a"))
+            .await
+            .unwrap();
 
         assert_eq!(&second.body[..], b"<p>hi</p>");
-        assert_eq!(mock.call_count(), 1, "second fetch should be served from cache");
+        assert_eq!(
+            mock.call_count(),
+            1,
+            "second fetch should be served from cache"
+        );
     }
 
     #[tokio::test]
@@ -264,10 +274,20 @@ mod tests {
         let cache: Arc<dyn ResponseCache> = Arc::new(InMemoryCache::default());
         let transport = wrap(mock.clone(), cache);
 
-        transport.fetch(&mock_request("https://example.com/b")).await.unwrap();
-        transport.fetch(&mock_request("https://example.com/b")).await.unwrap();
+        transport
+            .fetch(&mock_request("https://example.com/b"))
+            .await
+            .unwrap();
+        transport
+            .fetch(&mock_request("https://example.com/b"))
+            .await
+            .unwrap();
 
-        assert_eq!(mock.call_count(), 2, "no-store must bypass the cache entirely");
+        assert_eq!(
+            mock.call_count(),
+            2,
+            "no-store must bypass the cache entirely"
+        );
     }
 
     #[tokio::test]
@@ -279,11 +299,21 @@ mod tests {
         let cache: Arc<dyn ResponseCache> = Arc::new(InMemoryCache::default());
         let transport = wrap(mock.clone(), cache);
 
-        transport.fetch(&mock_request("https://example.com/c")).await.unwrap();
+        transport
+            .fetch(&mock_request("https://example.com/c"))
+            .await
+            .unwrap();
         // Immediately stale (max-age=0), no ETag/Last-Modified -> must hit the network again.
-        transport.fetch(&mock_request("https://example.com/c")).await.unwrap();
+        transport
+            .fetch(&mock_request("https://example.com/c"))
+            .await
+            .unwrap();
 
-        assert_eq!(mock.call_count(), 2, "stale entry with no validator must be refetched");
+        assert_eq!(
+            mock.call_count(),
+            2,
+            "stale entry with no validator must be refetched"
+        );
     }
 
     /// A tiny hand-rolled `Transport` (rather than extending `MockTransport`) so the test can
@@ -340,11 +370,17 @@ mod tests {
         let cache: Arc<dyn ResponseCache> = Arc::new(InMemoryCache::default());
         let transport = wrap(inner.clone(), cache);
 
-        let first = transport.fetch(&mock_request("https://example.com/d")).await.unwrap();
+        let first = transport
+            .fetch(&mock_request("https://example.com/d"))
+            .await
+            .unwrap();
         assert_eq!(&first.body[..], b"<p>original</p>");
 
         // Immediately stale (max-age=0) but has an ETag -> must revalidate, not blindly refetch.
-        let second = transport.fetch(&mock_request("https://example.com/d")).await.unwrap();
+        let second = transport
+            .fetch(&mock_request("https://example.com/d"))
+            .await
+            .unwrap();
 
         assert_eq!(
             &second.body[..],

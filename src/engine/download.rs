@@ -92,9 +92,7 @@ impl Downloader {
     pub async fn download_to_file_async(&self, url: &str, dest: &Path) -> Result<DownloadResult> {
         // Determine whether to resume.
         let (offset, append) = if self.allow_resume && dest.exists() {
-            let existing = std::fs::metadata(dest)
-                .map(|m| m.len())
-                .unwrap_or(0);
+            let existing = std::fs::metadata(dest).map(|m| m.len()).unwrap_or(0);
             (existing, existing > 0)
         } else {
             (0, false)
@@ -113,9 +111,7 @@ impl Downloader {
             headers,
             cookies: self.session.cookies.read().unwrap().clone(),
             proxy: self.session.get_next_proxy(),
-            timeout: Duration::from_secs(
-                *self.session.timeout_seconds.read().unwrap(),
-            ),
+            timeout: Duration::from_secs(*self.session.timeout_seconds.read().unwrap()),
             retries: 2,
             rate_limit_rps: 0.0,
         };
@@ -258,12 +254,7 @@ pub fn extract_filename(
             }
             // Also handle filename*=UTF-8''foo.zip (RFC 5987)
             if let Some(rest) = part.strip_prefix("filename*=") {
-                let name = rest
-                    .trim()
-                    .splitn(3, '\'')
-                    .last()
-                    .unwrap_or("")
-                    .to_string();
+                let name = rest.trim().splitn(3, '\'').last().unwrap_or("").to_string();
                 if !name.is_empty() {
                     return Some(name);
                 }
@@ -338,8 +329,7 @@ mod tests {
     }
 
     #[test]
-    fn downloader_to_file_writes_body(
-    ) {
+    fn downloader_to_file_writes_body() {
         // Integration smoke-test using a temp file and mock transport (file-based, not a live
         // HTTP download). We write raw bytes through the Downloader's internal logic.
         use crate::engine::fetcher::MockTransport;
@@ -347,10 +337,7 @@ mod tests {
         use std::sync::Arc;
 
         let mock = Arc::new(
-            MockTransport::new().with_html(
-                "https://example.com/file.bin",
-                "binary-content-here",
-            ),
+            MockTransport::new().with_html("https://example.com/file.bin", "binary-content-here"),
         );
         let session = Arc::new(Session::new());
         session.set_transport(mock);

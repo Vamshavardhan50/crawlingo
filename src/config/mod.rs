@@ -225,7 +225,10 @@ mod tests {
         assert_eq!(pool.max_clients, default_pool.max_clients);
 
         let retry: crate::engine::retry::RetryPolicy = (&config.retry).into();
-        assert_eq!(retry.base_delay, crate::engine::retry::RetryPolicy::default().base_delay);
+        assert_eq!(
+            retry.base_delay,
+            crate::engine::retry::RetryPolicy::default().base_delay
+        );
         assert_eq!(retry.retryable_statuses.contains(&429), true);
     }
 
@@ -246,7 +249,10 @@ mod tests {
         .unwrap();
 
         let config = CrawlingoConfig::from_file(&path).unwrap();
-        assert_eq!(config.proxy.as_deref(), Some("http://proxy.example.com:8080"));
+        assert_eq!(
+            config.proxy.as_deref(),
+            Some("http://proxy.example.com:8080")
+        );
         assert_eq!(config.rate_limit_rps, 2.5);
         assert!(config.auto_match);
         assert_eq!(config.timeout_seconds, 45);
@@ -257,8 +263,11 @@ mod tests {
     fn loads_json_file() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("crawlingo.json");
-        std::fs::write(&path, r#"{"proxy": "http://p.example.com", "timeout_seconds": 10}"#)
-            .unwrap();
+        std::fs::write(
+            &path,
+            r#"{"proxy": "http://p.example.com", "timeout_seconds": 10}"#,
+        )
+        .unwrap();
 
         let config = CrawlingoConfig::from_file(&path).unwrap();
         assert_eq!(config.proxy.as_deref(), Some("http://p.example.com"));

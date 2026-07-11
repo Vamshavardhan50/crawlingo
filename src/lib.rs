@@ -412,7 +412,7 @@ impl PySitemap {
         let entries = py.allow_threads(move || {
             let crawler = crate::crawl::sitemap::SitemapCrawler::new(&sitemap_url, session)
                 .with_max_depth(max_depth);
-            
+
             crate::TOKIO_RUNTIME.block_on(async {
                 let mut results = Vec::new();
                 let mut queue = vec![(sitemap_url.clone(), 0)];
@@ -432,7 +432,9 @@ impl PySitemap {
                         headers: crawler.session.headers.read().unwrap().clone(),
                         cookies: crawler.session.cookies.read().unwrap().clone(),
                         proxy: crawler.session.get_next_proxy(),
-                        timeout: std::time::Duration::from_secs(*crawler.session.timeout_seconds.read().unwrap()),
+                        timeout: std::time::Duration::from_secs(
+                            *crawler.session.timeout_seconds.read().unwrap(),
+                        ),
                         retries: 2,
                         rate_limit_rps: 0.0,
                     };
@@ -463,7 +465,10 @@ impl PySitemap {
         Ok(entries)
     }
 
-    pub fn build(self_: PyRef<'_, Self>, py: Python<'_>) -> PyResult<Vec<crate::dataset::builder::PyDatasetResult>> {
+    pub fn build(
+        self_: PyRef<'_, Self>,
+        py: Python<'_>,
+    ) -> PyResult<Vec<crate::dataset::builder::PyDatasetResult>> {
         let sitemap_url = self_.sitemap_url.clone();
         let session = self_.session.clone();
         let max_depth = self_.max_depth;

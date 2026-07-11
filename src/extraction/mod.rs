@@ -72,7 +72,11 @@ impl ExtractionEngine {
             } else {
                 let raw_text = page.get_nodes_combined_text(&matched_indices);
                 let cleaned = Self::normalize_value(&raw_text, &rule.extract_type, page.url());
-                if cleaned.is_empty() { None } else { Some(cleaned) }
+                if cleaned.is_empty() {
+                    None
+                } else {
+                    Some(cleaned)
+                }
             };
 
             let final_val = extracted_val

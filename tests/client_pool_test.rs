@@ -82,10 +82,20 @@ async fn distinct_configurations_are_cached_separately() {
     // Unreachable endpoints: the fetch fails on connect, but the client is cached beforehand,
     // which is exactly what we want to observe. retries=0 keeps this fast.
     let _ = fetcher
-        .fetch(&request("http://127.0.0.1:1/a", FetcherTier::Standard, None, None))
+        .fetch(&request(
+            "http://127.0.0.1:1/a",
+            FetcherTier::Standard,
+            None,
+            None,
+        ))
         .await;
     let _ = fetcher
-        .fetch(&request("http://127.0.0.1:1/b", FetcherTier::Stealthy, None, None))
+        .fetch(&request(
+            "http://127.0.0.1:1/b",
+            FetcherTier::Stealthy,
+            None,
+            None,
+        ))
         .await;
     let _ = fetcher
         .fetch(&request(
@@ -109,10 +119,20 @@ async fn max_clients_bound_is_enforced() {
     let fetcher = HttpFetcher::new(cfg);
 
     let _ = fetcher
-        .fetch(&request("http://127.0.0.1:1/a", FetcherTier::Standard, None, None))
+        .fetch(&request(
+            "http://127.0.0.1:1/a",
+            FetcherTier::Standard,
+            None,
+            None,
+        ))
         .await;
     let _ = fetcher
-        .fetch(&request("http://127.0.0.1:1/b", FetcherTier::Stealthy, None, None))
+        .fetch(&request(
+            "http://127.0.0.1:1/b",
+            FetcherTier::Stealthy,
+            None,
+            None,
+        ))
         .await;
 
     assert!(

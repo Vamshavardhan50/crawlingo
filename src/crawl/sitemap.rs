@@ -96,15 +96,27 @@ fn parse_urlset_entries(text: &str) -> Vec<SitemapEntry> {
             loc,
             lastmod: {
                 let v = extract_tag_text(chunk, "lastmod");
-                if v.is_empty() { None } else { Some(v) }
+                if v.is_empty() {
+                    None
+                } else {
+                    Some(v)
+                }
             },
             changefreq: {
                 let v = extract_tag_text(chunk, "changefreq");
-                if v.is_empty() { None } else { Some(v) }
+                if v.is_empty() {
+                    None
+                } else {
+                    Some(v)
+                }
             },
             priority: {
                 let v = extract_tag_text(chunk, "priority");
-                if v.is_empty() { None } else { Some(v) }
+                if v.is_empty() {
+                    None
+                } else {
+                    Some(v)
+                }
             },
         });
     }
@@ -123,7 +135,11 @@ fn parse_sitemap_index_entries(text: &str) -> Vec<SitemapIndexEntry> {
             loc,
             lastmod: {
                 let v = extract_tag_text(chunk, "lastmod");
-                if v.is_empty() { None } else { Some(v) }
+                if v.is_empty() {
+                    None
+                } else {
+                    Some(v)
+                }
             },
         });
     }
@@ -227,19 +243,11 @@ impl SitemapCrawler {
 
         // Collect all page URLs from the sitemap tree.
         let mut visited_sitemaps: HashSet<String> = HashSet::new();
-        self.collect_urls(
-            &self.sitemap_url,
-            0,
-            &frontier,
-            &mut visited_sitemaps,
-        )
-        .await?;
+        self.collect_urls(&self.sitemap_url, 0, &frontier, &mut visited_sitemaps)
+            .await?;
 
         if frontier.pending_len() == 0 {
-            tracing::warn!(
-                "sitemap at {} yielded no crawlable URLs",
-                self.sitemap_url
-            );
+            tracing::warn!("sitemap at {} yielded no crawlable URLs", self.sitemap_url);
             return Ok(Vec::new());
         }
 
@@ -277,13 +285,8 @@ impl SitemapCrawler {
                 for entry in entries {
                     // Recurse into each child sitemap.
                     let child_url = entry.loc.clone();
-                    if let Err(e) = Box::pin(self.collect_urls(
-                        &child_url,
-                        depth + 1,
-                        frontier,
-                        visited,
-                    ))
-                    .await
+                    if let Err(e) =
+                        Box::pin(self.collect_urls(&child_url, depth + 1, frontier, visited)).await
                     {
                         tracing::error!("failed to fetch child sitemap {child_url}: {e}");
                     }

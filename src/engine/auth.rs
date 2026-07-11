@@ -75,9 +75,7 @@ impl AuthTransport {
             }
             AuthScheme::ApiKeyQuery { name, value } => {
                 let mut url = url::Url::parse(&request.url).map_err(|e| {
-                    CrawlingoError::FetchError(format!(
-                        "invalid URL for auth query parameter: {e}"
-                    ))
+                    CrawlingoError::FetchError(format!("invalid URL for auth query parameter: {e}"))
                 })?;
                 url.query_pairs_mut().append_pair(name, value);
                 request.url = url.to_string();
@@ -162,7 +160,11 @@ mod tests {
             Box::pin(async move {
                 let body = format!(
                     "auth={} url={}",
-                    request.headers.get("Authorization").cloned().unwrap_or_default(),
+                    request
+                        .headers
+                        .get("Authorization")
+                        .cloned()
+                        .unwrap_or_default(),
                     request.url,
                 );
                 Ok(NormalizedResponse {
@@ -194,16 +196,28 @@ mod tests {
                 password: "wonderland".to_string(),
             },
         );
-        let resp = transport.fetch(&mock_request("https://example.com")).await.unwrap();
+        let resp = transport
+            .fetch(&mock_request("https://example.com"))
+            .await
+            .unwrap();
         let body = String::from_utf8(resp.body.to_vec()).unwrap();
         // base64("alice:wonderland") = "YWxpY2U6d29uZGVybGFuZA=="
-        assert!(body.contains("auth=Basic YWxpY2U6d29uZGVybGFuZA=="), "{body}");
+        assert!(
+            body.contains("auth=Basic YWxpY2U6d29uZGVybGFuZA=="),
+            "{body}"
+        );
     }
 
     #[tokio::test]
     async fn bearer_auth_sets_authorization_header() {
-        let transport = wrap(Arc::new(EchoAuthTransport), AuthScheme::Bearer("tok123".to_string()));
-        let resp = transport.fetch(&mock_request("https://example.com")).await.unwrap();
+        let transport = wrap(
+            Arc::new(EchoAuthTransport),
+            AuthScheme::Bearer("tok123".to_string()),
+        );
+        let resp = transport
+            .fetch(&mock_request("https://example.com"))
+            .await
+            .unwrap();
         let body = String::from_utf8(resp.body.to_vec()).unwrap();
         assert!(body.contains("auth=Bearer tok123"), "{body}");
     }
@@ -217,7 +231,11 @@ mod tests {
                 request: &'a FetchRequest,
             ) -> BoxFuture<'a, Result<NormalizedResponse>> {
                 Box::pin(async move {
-                    let body = request.headers.get("X-Api-Key").cloned().unwrap_or_default();
+                    let body = request
+                        .headers
+                        .get("X-Api-Key")
+                        .cloned()
+                        .unwrap_or_default();
                     Ok(NormalizedResponse {
                         url: request.url.clone(),
                         status: 200,
@@ -239,7 +257,10 @@ mod tests {
                 value: "secret-key".to_string(),
             },
         );
-        let resp = transport.fetch(&mock_request("https://example.com")).await.unwrap();
+        let resp = transport
+            .fetch(&mock_request("https://example.com"))
+            .await
+            .unwrap();
         assert_eq!(&resp.body[..], b"secret-key");
     }
 
@@ -296,13 +317,18 @@ mod tests {
             request: &'a FetchRequest,
         ) -> BoxFuture<'a, Result<NormalizedResponse>> {
             Box::pin(async move {
-                let authed = request.headers.get("Authorization").map(String::as_str) == Some("Bearer fresh-token");
+                let authed = request.headers.get("Authorization").map(String::as_str)
+                    == Some("Bearer fresh-token");
                 Ok(NormalizedResponse {
                     url: request.url.clone(),
                     status: if authed { 200 } else { 401 },
                     headers: HashMap::new(),
                     cookies: HashMap::new(),
-                    body: if authed { "welcome".into() } else { "denied".into() },
+                    body: if authed {
+                        "welcome".into()
+                    } else {
+                        "denied".into()
+                    },
                     content_type: "text/plain".to_string(),
                     encoding: "utf-8".to_string(),
                     timings: Default::default(),
@@ -322,7 +348,10 @@ mod tests {
             AuthScheme::Dynamic(provider.clone()),
         );
 
-        let resp = transport.fetch(&mock_request("https://example.com")).await.unwrap();
+        let resp = transport
+            .fetch(&mock_request("https://example.com"))
+            .await
+            .unwrap();
 
         assert_eq!(resp.status, 200);
         assert_eq!(&resp.body[..], b"welcome");
@@ -332,13 +361,21 @@ mod tests {
     #[tokio::test]
     async fn static_schemes_do_not_retry_on_401() {
         let mock = Arc::new(
-            MockTransport::new().with_response("https://example.com/", MockResponse::with_status(401, "no")),
+            MockTransport::new()
+                .with_response("https://example.com/", MockResponse::with_status(401, "no")),
         );
         let transport = wrap(mock.clone(), AuthScheme::Bearer("tok".to_string()));
 
-        let resp = transport.fetch(&mock_request("https://example.com/")).await.unwrap();
+        let resp = transport
+            .fetch(&mock_request("https://example.com/"))
+            .await
+            .unwrap();
 
         assert_eq!(resp.status, 401);
-        assert_eq!(mock.call_count(), 1, "a static scheme has nothing to refresh, so must not retry");
+        assert_eq!(
+            mock.call_count(),
+            1,
+            "a static scheme has nothing to refresh, so must not retry"
+        );
     }
 }

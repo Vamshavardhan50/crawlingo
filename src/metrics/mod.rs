@@ -147,9 +147,10 @@ impl Transport for MetricsTransport {
             let result = self.inner.fetch(request).await;
             let elapsed = start.elapsed();
             match &result {
-                Ok(resp) => self
-                    .metrics
-                    .record_success(&host, resp.status, resp.body.len() as u64, elapsed),
+                Ok(resp) => {
+                    self.metrics
+                        .record_success(&host, resp.status, resp.body.len() as u64, elapsed)
+                }
                 Err(_) => self.metrics.record_failure(&host, elapsed),
             }
             result

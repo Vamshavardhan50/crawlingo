@@ -158,8 +158,7 @@ mod tests {
     #[test]
     fn retries_transport_errors_regardless_of_status_set() {
         let policy = RetryPolicy::status_retries_disabled();
-        let res: Result<NormalizedResponse> =
-            Err(CrawlingoError::FetchError("boom".to_string()));
+        let res: Result<NormalizedResponse> = Err(CrawlingoError::FetchError("boom".to_string()));
         assert_eq!(
             policy.decide(0, 3, &res),
             RetryDecision::Retry(policy.backoff_for(0))

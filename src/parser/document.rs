@@ -97,10 +97,10 @@ impl DomTree {
     fn render_node_html(&self, idx: usize, buf: &mut String) {
         if let Some(node) = self.nodes.get(idx) {
             let tag = node.tag.to_lowercase();
-            
+
             buf.push('<');
             buf.push_str(&tag);
-            
+
             let mut attrs: Vec<(&String, &String)> = node.attrs.iter().collect();
             attrs.sort_by_key(|&(k, _)| k);
             for (k, v) in attrs {
@@ -111,13 +111,13 @@ impl DomTree {
                 buf.push('"');
             }
             buf.push('>');
-            
+
             let self_closing_tags = [
-                "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param",
-                "source", "track", "wbr", "path", "rect", "circle", "line", "polygon", "polyline",
-                "ellipse", "use", "stop", "image",
+                "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta",
+                "param", "source", "track", "wbr", "path", "rect", "circle", "line", "polygon",
+                "polyline", "ellipse", "use", "stop", "image",
             ];
-            
+
             if !self_closing_tags.contains(&tag.as_str()) {
                 buf.push_str(&node.text);
                 for &child_idx in &node.children {
@@ -678,7 +678,11 @@ impl Page {
         let meta_matches = crate::selector::css::query(&self.tree, "meta");
         for &meta_idx in &meta_matches {
             let node = &self.tree.nodes[meta_idx];
-            if let Some(name) = node.attrs.get("name").or_else(|| node.attrs.get("property")) {
+            if let Some(name) = node
+                .attrs
+                .get("name")
+                .or_else(|| node.attrs.get("property"))
+            {
                 if let Some(content) = node.attrs.get("content") {
                     meta.insert(name.to_lowercase().replace(':', "_"), content.clone());
                 }
