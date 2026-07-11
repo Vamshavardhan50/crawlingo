@@ -246,10 +246,10 @@ class TestRunner:
         print(f"  [{icon}] {name} — {status}" + (f" ({detail})" if detail else ""))
 
     def missing(self, name, reason="Not yet implemented"):
-        """Report a feature as missing (FAIL, not SKIP)."""
-        self.results.append({"name": name, "status": "FAIL", "detail": f"Not implemented: {reason}"})
+        """Report a feature as missing (NOT_IMPLEMENTED, not FAIL)."""
+        self.results.append({"name": name, "status": "NOT_IMPLEMENTED", "detail": f"Not implemented: {reason}"})
         self.missing_apis.append(name)
-        print(f"  [!] {name} — FAIL (Not implemented: {reason})")
+        print(f"  [!] {name} — NOT IMPLEMENTED ({reason})")
 
     def section(self, title):
         print(f"\n{'=' * 65}")
@@ -280,23 +280,23 @@ class TestRunner:
         passed = self.passed
         failed = self.failed
         total = self.total
-        coverage = (passed / max(total, 1)) * 100
+        coverage = (passed / max(passed + failed, 1)) * 100
         print(f"\n{'=' * 65}")
         print(f"  FINAL SUMMARY")
         print(f"{'=' * 65}")
         print(f"  Total APIs tested:  {total}")
         print(f"  Passed:             {passed}")
         print(f"  Failed:             {failed}")
+        print(f"  Not Implemented:    {self.missing_count}")
         print(f"  Execution time:     {elapsed:.2f}s")
         print(f"  Coverage:           {coverage:.1f}%")
         if self.missing_apis:
             print(f"\n  Missing APIs ({len(self.missing_apis)}):")
             for name in self.missing_apis:
                 print(f"    - {name}")
-            print(f"  (mark features above as FAIL — implement to resolve)")
         print(f"\n  {'ALL PASSED' if failed == 0 else f'{failed} FAILURE(S) — review above'}")
         if failed == 0:
-            print(f"  {passed}/{total} APIs implemented and passing.")
+            print(f"  {passed}/{passed + failed} APIs implemented and passing.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

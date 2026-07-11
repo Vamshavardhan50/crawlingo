@@ -267,7 +267,7 @@ pub fn extract_filename(
         .ok()
         .and_then(|u| {
             u.path_segments()
-                .and_then(|segs| segs.last().map(|s| s.to_string()))
+                .and_then(|mut segs| segs.next_back().map(|s| s.to_string()))
         })
         .filter(|s| !s.is_empty())
 }

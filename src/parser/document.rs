@@ -423,12 +423,12 @@ impl Page {
     pub fn render_markdown(tree: &DomTree) -> String {
         let mut md = String::new();
         if let Some(root) = tree.nodes.first() {
-            Self::dom_to_markdown(tree, root.index, &mut md, 0);
+            Self::dom_to_markdown(tree, root.index, &mut md);
         }
         md
     }
 
-    fn dom_to_markdown(tree: &DomTree, idx: usize, buf: &mut String, depth: usize) {
+    fn dom_to_markdown(tree: &DomTree, idx: usize, buf: &mut String) {
         if let Some(node) = tree.nodes.get(idx) {
             let tag = node.tag.to_lowercase();
             let text = node.text.trim();
@@ -471,7 +471,7 @@ impl Page {
                 }
             }
             for &child_idx in &node.children {
-                Self::dom_to_markdown(tree, child_idx, buf, depth + 1);
+                Self::dom_to_markdown(tree, child_idx, buf);
             }
         }
     }

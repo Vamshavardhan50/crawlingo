@@ -1,15 +1,15 @@
 {
   "summary": {
-    "total": 171,
-    "passed": 137,
+    "total": 173,
+    "passed": 141,
     "failed": 0,
     "skipped": 0,
-    "notImplemented": 34,
+    "notImplemented": 32,
     "partial": 0,
-    "coveragePercent": 80.1,
-    "sdkHealthScore": 80,
-    "elapsedSeconds": 24.01,
-    "timestamp": "2026-07-11T13:52:15.044Z"
+    "coveragePercent": 81.5,
+    "sdkHealthScore": 82,
+    "elapsedSeconds": 26.95,
+    "timestamp": "2026-07-11T14:36:30.892Z"
   },
   "results": [
     {
@@ -23,14 +23,14 @@
       "detail": ""
     },
     {
-      "name": "Session.prototype.clone()",
-      "status": "NOT_IMPLEMENTED",
-      "detail": "clone method is missing"
+      "name": "Session successfully cloned",
+      "status": "PASS",
+      "detail": ""
     },
     {
-      "name": "Session.prototype.destroy()",
-      "status": "NOT_IMPLEMENTED",
-      "detail": "destroy method is missing"
+      "name": "Session successfully destroyed",
+      "status": "PASS",
+      "detail": ""
     },
     {
       "name": "Standard tier page fetch success",
@@ -674,6 +674,16 @@
     },
     {
       "name": "Method parity: Session.proxyProvider (JS) <-> proxy_provider (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Session.clone (JS) <-> clone (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Session.destroy (JS) <-> destroy (Python)",
       "status": "PASS",
       "detail": "Synchronized"
     },

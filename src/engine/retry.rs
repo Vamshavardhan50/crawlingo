@@ -179,8 +179,10 @@ mod tests {
 
     #[test]
     fn ignores_retry_after_when_disabled() {
-        let mut policy = RetryPolicy::default();
-        policy.respect_retry_after = false;
+        let policy = RetryPolicy {
+            respect_retry_after: false,
+            ..Default::default()
+        };
         let mut headers = HashMap::new();
         headers.insert("retry-after".to_string(), "7".to_string());
         let res: Result<NormalizedResponse> = Ok(response_with(429, headers));

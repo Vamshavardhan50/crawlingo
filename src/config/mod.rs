@@ -229,7 +229,7 @@ mod tests {
             retry.base_delay,
             crate::engine::retry::RetryPolicy::default().base_delay
         );
-        assert_eq!(retry.retryable_statuses.contains(&429), true);
+        assert!(retry.retryable_statuses.contains(&429));
     }
 
     #[test]

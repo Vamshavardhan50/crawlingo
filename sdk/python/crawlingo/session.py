@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from ._crawlingo_core import Session as _CoreSession
 
 if TYPE_CHECKING:
@@ -129,7 +129,7 @@ class Session:
         return self
 
     @classmethod
-    def from_config(cls, path: str | None = None) -> "Session":
+    def from_config(cls, path: Optional[str] = None) -> "Session":
         """Build a Session from a config file (`.toml`/`.json`), layered with `CRAWLINGO_*`
         environment variable overrides. Pass no path to load from defaults + environment only.
 

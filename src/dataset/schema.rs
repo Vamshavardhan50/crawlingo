@@ -84,7 +84,7 @@ impl FieldConstraint {
 }
 
 /// A dataset schema defining expected fields and their constraints.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct DatasetSchema {
     pub fields: Vec<FieldConstraint>,
 }
@@ -123,8 +123,3 @@ impl DatasetSchema {
     }
 }
 
-impl Default for DatasetSchema {
-    fn default() -> Self {
-        Self { fields: Vec::new() }
-    }
-}

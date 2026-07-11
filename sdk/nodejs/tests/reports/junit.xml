@@ -1,14 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="Crawlingo Node.js SDK Test Suite" tests="171" failures="0" skipped="34" time="24.01">
-  <testsuite name="SDK API Capabilities" tests="171" failures="0" errors="0" skipped="34" time="24.01">
+<testsuites name="Crawlingo Node.js SDK Test Suite" tests="173" failures="0" skipped="32" time="26.95">
+  <testsuite name="SDK API Capabilities" tests="173" failures="0" errors="0" skipped="32" time="26.95">
     <testcase classname="crawlingo.sdk.Node" name="Session instance created successfully" />
     <testcase classname="crawlingo.sdk.Node" name="All config methods exist and chain correctly" />
-    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.clone()">
-      <skipped message="Not Implemented: clone method is missing" />
-    </testcase>
-    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.destroy()">
-      <skipped message="Not Implemented: destroy method is missing" />
-    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Session successfully cloned" />
+    <testcase classname="crawlingo.sdk.Node" name="Session successfully destroyed" />
     <testcase classname="crawlingo.sdk.Node" name="Standard tier page fetch success" />
     <testcase classname="crawlingo.sdk.Node" name="Standard tier page content match" />
     <testcase classname="crawlingo.sdk.Node" name="Stealthy tier page fetch success" />
@@ -202,6 +198,8 @@
     <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.autoMatchWeights (JS) &lt;-&gt; auto_match_weights (Python)" />
     <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.proxyPool (JS) &lt;-&gt; proxy_pool (Python)" />
     <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.proxyProvider (JS) &lt;-&gt; proxy_provider (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.clone (JS) &lt;-&gt; clone (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.destroy (JS) &lt;-&gt; destroy (Python)" />
     <testcase classname="crawlingo.sdk.Node" name="JS Class Page exists" />
     <testcase classname="crawlingo.sdk.Node" name="Method parity: Page.create (JS) &lt;-&gt; create (Python)" />
     <testcase classname="crawlingo.sdk.Node" name="Method parity: Page.url (JS) &lt;-&gt; url (Python)" />

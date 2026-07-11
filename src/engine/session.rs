@@ -670,7 +670,8 @@ impl PySession {
     }
 
     /// Clone the session (returns a new Session)
-    pub fn clone(&self) -> PyResult<Self> {
+    #[pyo3(name = "clone")]
+    pub fn clone_session(&self) -> PyResult<Self> {
         let cloned = Session::new();
         *cloned.headers.write().unwrap() = self.inner.headers.read().unwrap().clone();
         *cloned.cookies.write().unwrap() = self.inner.cookies.read().unwrap().clone();
