@@ -4,3 +4,7 @@ export { Session } from './session';
 export { Dataset, DatasetResult } from './dataset';
 export { Crawl } from './crawl';
 export { Watch, WatchChangeEvent } from './watch';
+export { Sitemap, parseSitemapXml, sitemapUrlForOrigin } from './sitemap';
+export type { SitemapEntry, SitemapIndexEntry, ParsedSitemap } from './sitemap';
+export { Downloader } from './download';
+export type { DownloadResult } from './download';

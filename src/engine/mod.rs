@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod cache;
+pub mod download;
 pub mod fetcher;
 pub mod middleware;
 pub mod pool;

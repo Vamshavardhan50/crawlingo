@@ -376,7 +376,9 @@ impl PyCrawl {
     }
 
     pub fn build(self_: PyRef<'_, Self>) -> PyResult<Vec<PyDatasetResult>> {
-        let res = self_.inner.crawl()?;
+        let py = self_.py();
+        let inner = self_.inner.clone();
+        let res = py.allow_threads(move || inner.crawl())?;
         let py_res = res
             .into_iter()
             .map(|r| PyDatasetResult { inner: r })

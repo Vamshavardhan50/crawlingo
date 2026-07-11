@@ -8,6 +8,11 @@ license = "MIT"
 name = "crawlingo"
 crate-type = ["cdylib", "rlib"]
 
+[[bin]]
+name = "crawlingo"
+path = "src/bin/crawlingo.rs"
+required-features = ["cli"]
+
 [dependencies]
 # Async runtime
 tokio = { version = "1", features = ["full"] }
@@ -75,9 +80,13 @@ time = ">=0.3, <0.3.52"
 # Python bindings
 pyo3 = { version = "0.23", features = ["extension-module", "py-clone"], optional = true }
 
+# CLI argument parsing
+clap = { version = "4", features = ["derive", "env"], optional = true }
+
 [features]
 default = []
 python = ["pyo3"]
+cli = ["clap"]
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

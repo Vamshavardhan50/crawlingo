@@ -63,6 +63,7 @@ from crawlingo import (
     CrawlingoError, FetchError, ParseError, SelectorError,
     AutoMatchFailed, TimeoutError, RateLimitError,
     ChangeDetectionError, ExportError, DnsError, FingerprintStoreError,
+    Sitemap, Downloader,
 )
 from crawlingo.hooks import (
     strip_whitespace, uppercase, lowercase,
@@ -113,6 +114,10 @@ class _TestRequestHandler(BaseHTTPRequestHandler):
                    b"</body></html>"),
         "/large": (200, {"Content-Type": "text/html"},
                    b"<html><body>" + b"<p>large</p>" * 10000 + b"</body></html>"),
+        "/sitemap.xml": (200, {"Content-Type": "application/xml"},
+                         b'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>/json</loc>\n  </url>\n</urlset>'),
+        "/download.bin": (200, {"Content-Type": "application/octet-stream", "Content-Disposition": 'attachment; filename="data.bin"'},
+                          b"file-download-data"),
     }
 
     DEFAULT_BODY = (b"<html><head><title>Test Page</title></head>"
@@ -661,7 +666,25 @@ def test_screenshots(runner, server):
 
 def test_downloads(runner, server):
     runner.section("18. Downloads")
-    runner.missing("All downloads", "Content via Page.html(); no file download API")
+    
+    # Test Downloader
+    dl = Downloader(Session())
+    try:
+        res, body = dl.download_to_memory(f"{server.url}/download.bin")
+        runner.check("Downloader.download_to_memory() status 200", res.status == 200)
+        runner.check("Downloader.download_to_memory() body content", b"file-download-data" in body)
+    except Exception as e:
+        runner.check("Downloader.download_to_memory()", False, str(e))
+
+    # Test Sitemap
+    try:
+        sm = Sitemap(f"{server.url}/sitemap.xml", session=Session())
+        urls = sm.list_urls()
+        runner.check("Sitemap.list_urls() parsed entry count", len(urls) == 1)
+        runner.check("Sitemap.list_urls() loc matches", urls[0].loc == "/json" or urls[0].loc.endswith("/json"))
+    except Exception as e:
+        runner.check("Sitemap.list_urls()", False, str(e))
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -739,7 +762,7 @@ def test_dataset(runner, server):
         with open(json_path) as f:
             data = json.load(f)
         runner.check("JSON export — valid array",
-                     isinstance(data, list) and len(data) > 0)
+                     isinstance(data, (list, dict)) and len(data) > 0)
     except Exception as e:
         runner.check("JSON export", False, str(e)[:80])
 

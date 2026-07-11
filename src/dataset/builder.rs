@@ -29,6 +29,7 @@ pub struct DatasetField {
 }
 
 /// A fluent builder for structured data extraction.
+#[derive(Clone)]
 pub struct Dataset {
     pub url: String,
     pub fields: Vec<DatasetField>,
@@ -331,7 +332,8 @@ impl PyDataset {
     /// Sync build method
     pub fn build(self_: PyRef<'_, Self>) -> PyResult<PyDatasetResult> {
         let py = self_.py();
-        let res = self_.inner.build()?;
+        let inner = self_.inner.clone();
+        let res = py.allow_threads(move || inner.build())?;
 
         // Apply python transforms if present
         let mut final_fields = res.fields.clone();
@@ -358,7 +360,8 @@ impl PyDataset {
     /// Async build method returning coroutine/future
     pub fn build_async(self_: PyRef<'_, Self>) -> PyResult<PyObject> {
         let py = self_.py();
-        let result = self_.inner.build()?;
+        let inner = self_.inner.clone();
+        let result = py.allow_threads(move || inner.build())?;
         Py::new(py, PyDatasetResult { inner: result }).map(|py_res| py_res.into_any())
     }
 }
