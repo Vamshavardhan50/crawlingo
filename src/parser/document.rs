@@ -86,6 +86,49 @@ impl DomTree {
             }
         }
     }
+
+    /// Gets the outer HTML content of a node and all of its descendants recursively.
+    pub fn get_outer_html(&self, idx: usize) -> String {
+        let mut result = String::new();
+        self.render_node_html(idx, &mut result);
+        result
+    }
+
+    fn render_node_html(&self, idx: usize, buf: &mut String) {
+        if let Some(node) = self.nodes.get(idx) {
+            let tag = node.tag.to_lowercase();
+            
+            buf.push('<');
+            buf.push_str(&tag);
+            
+            let mut attrs: Vec<(&String, &String)> = node.attrs.iter().collect();
+            attrs.sort_by_key(|&(k, _)| k);
+            for (k, v) in attrs {
+                buf.push(' ');
+                buf.push_str(k);
+                buf.push_str("=\"");
+                buf.push_str(v);
+                buf.push('"');
+            }
+            buf.push('>');
+            
+            let self_closing_tags = [
+                "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param",
+                "source", "track", "wbr", "path", "rect", "circle", "line", "polygon", "polyline",
+                "ellipse", "use", "stop", "image",
+            ];
+            
+            if !self_closing_tags.contains(&tag.as_str()) {
+                buf.push_str(&node.text);
+                for &child_idx in &node.children {
+                    self.render_node_html(child_idx, buf);
+                }
+                buf.push_str("</");
+                buf.push_str(&tag);
+                buf.push('>');
+            }
+        }
+    }
 }
 
 impl Default for DomTree {
@@ -116,11 +159,7 @@ impl PyElement {
 
     /// Get the HTML snippet of the element.
     pub fn html(&self) -> String {
-        self.tree
-            .nodes
-            .get(self.node_index)
-            .map(|n| n.html_snippet.clone())
-            .unwrap_or_default()
+        self.tree.get_outer_html(self.node_index)
     }
 
     /// Get an attribute value.

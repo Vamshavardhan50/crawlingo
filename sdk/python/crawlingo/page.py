@@ -7,6 +7,31 @@ class Page:
     """
     Core page extraction class. Implements lazy-loading fetching and hook lifecycles.
     """
+    @classmethod
+    def create(
+        cls,
+        url: str,
+        auto_match: bool = False,
+        timeout: int = 30,
+        retries: int = 3,
+        headers: dict = None,
+        cookies: dict = None,
+        proxy: str = None,
+        session: Optional["Session"] = None,
+    ) -> "Page":
+        page = cls(
+            url=url,
+            auto_match=auto_match,
+            timeout=timeout,
+            retries=retries,
+            headers=headers,
+            cookies=cookies,
+            proxy=proxy,
+            session=session,
+        )
+        page._ensure_loaded()
+        return page
+
     def __init__(
         self,
         url: str,

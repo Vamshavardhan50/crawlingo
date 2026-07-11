@@ -77,6 +77,74 @@ impl Dataset {
         crate::TOKIO_RUNTIME.block_on(self.build_async())
     }
 
+    /// Core logic: zip selector matches from an already-parsed DomTree into structured records.
+    pub fn extract_from_tree(&self, tree: &crate::parser::document::DomTree) -> Vec<HashMap<String, String>> {
+        use crate::selector::{css, xpath, text_anchor, regex_selector};
+
+        // Collect all match index lists per field
+        let collections: Vec<Vec<usize>> = self.fields.iter().map(|f| {
+            match f.selector_type.as_str() {
+                "xpath"       => xpath::query(tree, &f.selector),
+                "text"        => text_anchor::find(tree, &f.selector),
+                "after_text"  => text_anchor::after(tree, &f.selector),
+                "before_text" => text_anchor::before(tree, &f.selector),
+                "regex"       => regex_selector::query(tree, &f.selector).unwrap_or_default(),
+                _             => css::query(tree, &f.selector),
+            }
+        }).collect();
+
+        let max_len = collections.iter().map(|c| c.len()).max().unwrap_or(0);
+        let mut records = Vec::with_capacity(max_len);
+
+        for row_idx in 0..max_len {
+            let mut record = HashMap::new();
+            for (field_idx, field) in self.fields.iter().enumerate() {
+                let text = collections[field_idx]
+                    .get(row_idx)
+                    .map(|&node_idx| tree.get_text(node_idx).trim().to_string())
+                    .unwrap_or_default();
+                record.insert(field.name.clone(), text);
+            }
+            records.push(record);
+        }
+
+        records
+    }
+
+
+    pub async fn build_structured(&self) -> Result<Vec<HashMap<String, String>>> {
+        use crate::engine::fetcher::{FetchRequest, FetchManager};
+        use crate::engine::pool::ConnectionPoolConfig;
+        use crate::parser::streaming::HtmlParser;
+
+        let headers = self.session.headers.read().unwrap().clone();
+        let cookies = self.session.cookies.read().unwrap().clone();
+        let proxy = self.session.get_next_proxy();
+        let rate_limit_rps = *self.session.rate_limit_rps.read().unwrap();
+        let timeout_secs = *self.session.timeout_seconds.read().unwrap();
+        let fetcher_tier = *self.session.fetcher_tier.read().unwrap();
+        let browser_profile = self.session.browser_profile.read().unwrap().clone();
+
+        let req = FetchRequest {
+            url: self.url.clone(),
+            tier: fetcher_tier,
+            browser_profile,
+            headers,
+            cookies,
+            proxy,
+            timeout: std::time::Duration::from_secs(timeout_secs),
+            retries: 3,
+            rate_limit_rps,
+        };
+
+        let rate_limiter = std::sync::Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
+        let manager = FetchManager::new(rate_limiter, ConnectionPoolConfig::default());
+        let resp = manager.dispatch(req).await?;
+        let page = HtmlParser::parse(resp)?;
+
+        Ok(self.extract_from_tree(page.dom_tree()))
+    }
+
     /// Asynchronous core of the dataset build operation.
     pub async fn build_async(&self) -> Result<DatasetResult> {
         // 1. Gather config from Session
@@ -364,7 +432,50 @@ impl PyDataset {
         let result = py.allow_threads(move || inner.build())?;
         Py::new(py, PyDatasetResult { inner: result }).map(|py_res| py_res.into_any())
     }
+
+    #[pyo3(signature = (page))]
+    pub fn extract_structured(&self, page: &crate::PyPage) -> Vec<HashMap<String, String>> {
+        self.inner.extract_from_tree(&page.tree)
+    }
+
+    pub fn build_structured(&self, py: Python<'_>) -> PyResult<Vec<HashMap<String, String>>> {
+        let inner = self.inner.clone();
+        let res = py.allow_threads(move || {
+            crate::TOKIO_RUNTIME.block_on(async {
+                inner.build_structured().await
+            })
+        }).map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+        Ok(res)
+    }
+
+
+    #[staticmethod]
+    pub fn save_json(records: Vec<HashMap<String, String>>, path: &str) -> PyResult<()> {
+        let json = serde_json::to_string_pretty(&records)
+            .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
+        std::fs::write(path, json)?;
+        Ok(())
+    }
+
+    #[staticmethod]
+    pub fn save_csv(records: Vec<HashMap<String, String>>, path: &str) -> PyResult<()> {
+        let mut writer = csv::Writer::from_path(path)
+            .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
+        if let Some(first) = records.first() {
+            let keys: Vec<&str> = first.keys().map(|k| k.as_str()).collect();
+            writer.write_record(&keys)
+                .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
+            for r in &records {
+                let values: Vec<&str> = keys.iter().map(|k| r.get(*k).map(|s| s.as_str()).unwrap_or("")).collect();
+                writer.write_record(&values)
+                    .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
+            }
+        }
+        writer.flush()?;
+        Ok(())
+    }
 }
+
 
 #[cfg(feature = "python")]
 #[pyclass(name = "DatasetResult")]

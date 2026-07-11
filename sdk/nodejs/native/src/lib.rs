@@ -150,10 +150,53 @@ impl JsSession {
 
     #[napi]
     pub fn proxy_provider(&self, url: Option<String>) -> napi::Result<()> {
-        let mut u = self.inner.proxy_provider_url.write()
-            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-        *u = url;
+        {
+            let mut u = self.inner.proxy_provider_url.write()
+                .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+            *u = url;
+        }
         let _ = self.inner.fetch_provider_proxies();
+        Ok(())
+    }
+
+    #[napi]
+    pub fn clone(&self) -> napi::Result<JsSession> {
+        let cloned = Session::new();
+        *cloned.headers.write().unwrap() = self.inner.headers.read().unwrap().clone();
+        *cloned.cookies.write().unwrap() = self.inner.cookies.read().unwrap().clone();
+        *cloned.proxy.write().unwrap() = self.inner.proxy.read().unwrap().clone();
+        *cloned.rate_limit_rps.write().unwrap() = *self.inner.rate_limit_rps.read().unwrap();
+        *cloned.auto_match.write().unwrap() = *self.inner.auto_match.read().unwrap();
+        *cloned.timeout_seconds.write().unwrap() = *self.inner.timeout_seconds.read().unwrap();
+        *cloned.fingerprint_path.write().unwrap() = self.inner.fingerprint_path.read().unwrap().clone();
+        *cloned.fetcher_tier.write().unwrap() = *self.inner.fetcher_tier.read().unwrap();
+        *cloned.browser_profile.write().unwrap() = self.inner.browser_profile.read().unwrap().clone();
+        *cloned.similarity_weights.write().unwrap() = self.inner.similarity_weights.read().unwrap().clone();
+        *cloned.proxy_pool.write().unwrap() = self.inner.proxy_pool.read().unwrap().clone();
+        cloned.proxy_index.store(
+            self.inner.proxy_index.load(std::sync::atomic::Ordering::SeqCst),
+            std::sync::atomic::Ordering::SeqCst,
+        );
+        *cloned.proxy_provider_url.write().unwrap() = self.inner.proxy_provider_url.read().unwrap().clone();
+        *cloned.retries.write().unwrap() = *self.inner.retries.read().unwrap();
+        *cloned.retry_backoff.write().unwrap() = *self.inner.retry_backoff.read().unwrap();
+        *cloned.retry_delay.write().unwrap() = *self.inner.retry_delay.read().unwrap();
+        *cloned.proxy_username.write().unwrap() = self.inner.proxy_username.read().unwrap().clone();
+        *cloned.proxy_password.write().unwrap() = self.inner.proxy_password.read().unwrap().clone();
+        Ok(JsSession {
+            inner: Arc::new(cloned),
+        })
+    }
+
+    #[napi]
+    pub fn destroy(&self) -> napi::Result<()> {
+        self.inner.headers.write().unwrap().clear();
+        self.inner.cookies.write().unwrap().clear();
+        *self.inner.proxy.write().unwrap() = None;
+        self.inner.proxy_pool.write().unwrap().clear();
+        *self.inner.proxy_provider_url.write().unwrap() = None;
+        *self.inner.fingerprint_store.write().unwrap() = None;
+        *self.inner.fetch_manager.write().unwrap() = None;
         Ok(())
     }
 }
@@ -360,11 +403,7 @@ impl JsElementCollection {
     #[napi]
     pub fn html(&self) -> Vec<String> {
         self.node_indices.iter().map(|&idx| {
-            if let Some(node) = self.tree.nodes.get(idx) {
-                node.html_snippet.clone()
-            } else {
-                String::new()
-            }
+            self.tree.get_outer_html(idx)
         }).collect()
     }
 
@@ -399,11 +438,7 @@ impl JsElement {
 
     #[napi]
     pub fn html(&self) -> String {
-        if let Some(node) = self.tree.nodes.get(self.node_idx) {
-            node.html_snippet.clone()
-        } else {
-            String::new()
-        }
+        self.tree.get_outer_html(self.node_idx)
     }
 
     #[napi]
@@ -466,42 +501,6 @@ pub struct JsDataset {
     pub(crate) session: Arc<Session>,
 }
 
-impl JsDataset {
-    /// Core logic: zip selector matches from an already-parsed DomTree into structured records.
-    fn extract_from_tree(&self, tree: &crawlingo::parser::document::DomTree) -> Vec<HashMap<String, String>> {
-        use crawlingo::selector::{css, xpath, text_anchor, regex_selector};
-
-        // Collect all match index lists per field
-        let collections: Vec<Vec<usize>> = self.fields.iter().map(|f| {
-            match f.selector_type.as_str() {
-                "xpath"       => xpath::query(tree, &f.selector),
-                "text"        => text_anchor::find(tree, &f.selector),
-                "after_text"  => text_anchor::after(tree, &f.selector),
-                "before_text" => text_anchor::before(tree, &f.selector),
-                "regex"       => regex_selector::query(tree, &f.selector).unwrap_or_default(),
-                _             => css::query(tree, &f.selector),  // default: css
-            }
-        }).collect();
-
-        let max_len = collections.iter().map(|c| c.len()).max().unwrap_or(0);
-        let mut records = Vec::with_capacity(max_len);
-
-        for row_idx in 0..max_len {
-            let mut record = HashMap::new();
-            for (field_idx, field) in self.fields.iter().enumerate() {
-                let text = collections[field_idx]
-                    .get(row_idx)
-                    .map(|&node_idx| tree.get_text(node_idx).trim().to_string())
-                    .unwrap_or_default();
-                record.insert(field.name.clone(), text);
-            }
-            records.push(record);
-        }
-
-        records
-    }
-}
-
 #[napi]
 impl JsDataset {
     #[napi(constructor)]
@@ -520,6 +519,7 @@ impl JsDataset {
             selector,
             selector_type: selector_type.unwrap_or("css".to_string()),
             default: default_val,
+            extract_type: Default::default(),
         };
         self.fields.push(field);
     }
@@ -537,44 +537,18 @@ impl JsDataset {
     /// Returns a Vec of HashMaps, one per row, zipped by element index across all selectors.
     #[napi]
     pub fn extract_structured(&self, page: &JsPage) -> Vec<HashMap<String, String>> {
-        self.extract_from_tree(&page.tree)
+        let mut dataset = Dataset::new(&self.url, self.session.clone());
+        dataset.fields = self.fields.clone();
+        dataset.extract_from_tree(&page.tree)
     }
 
     /// Fetch the URL, parse the page, and extract structured multi-row records entirely in Rust.
     #[napi]
     pub async fn build_structured(&self) -> napi::Result<Vec<HashMap<String, String>>> {
-        use crawlingo::engine::fetcher::{FetchRequest, FetchManager};
-        use crawlingo::engine::pool::ConnectionPoolConfig;
-        use crawlingo::parser::streaming::HtmlParser;
-
-        let headers = self.session.headers.read().unwrap().clone();
-        let cookies = self.session.cookies.read().unwrap().clone();
-        let proxy   = self.session.get_next_proxy();
-        let rate_limit_rps = *self.session.rate_limit_rps.read().unwrap();
-        let timeout_secs   = *self.session.timeout_seconds.read().unwrap();
-        let fetcher_tier   = *self.session.fetcher_tier.read().unwrap();
-        let browser_profile = self.session.browser_profile.read().unwrap().clone();
-
-        let req = FetchRequest {
-            url: self.url.clone(),
-            tier: fetcher_tier,
-            browser_profile,
-            headers,
-            cookies,
-            proxy,
-            timeout: std::time::Duration::from_secs(timeout_secs),
-            retries: 3,
-            rate_limit_rps,
-        };
-
-        let rate_limiter = Arc::new(crawlingo::engine::rate_limiter::HostRateLimiter::new());
-        let manager = FetchManager::new(rate_limiter, ConnectionPoolConfig::default());
-        let resp  = manager.dispatch(req).await
-            .map_err(|e| to_napi_error(e, &self.url, "network"))?;
-        let page = HtmlParser::parse(resp)
-            .map_err(|e| to_napi_error(e, &self.url, "parser"))?;
-
-        Ok(self.extract_from_tree(page.dom_tree()))
+        let mut dataset = Dataset::new(&self.url, self.session.clone());
+        dataset.fields = self.fields.clone();
+        dataset.build_structured().await
+            .map_err(|e| to_napi_error(e, &self.url, "dataset"))
     }
 }
 
@@ -667,6 +641,7 @@ impl JsCrawl {
             selector,
             selector_type: selector_type.unwrap_or("css".to_string()),
             default: default_val,
+            extract_type: Default::default(),
         };
         self.crawler.fields.push(field);
     }
@@ -721,6 +696,7 @@ impl JsWatch {
             selector,
             selector_type: selector_type.unwrap_or("css".to_string()),
             default: default_val,
+            extract_type: Default::default(),
         };
         self.fields.push(field);
     }
@@ -788,4 +764,272 @@ impl JsWatch {
     pub fn stop(&self) {
         self.cancellation_token.cancel();
     }
+}
+
+#[napi(object)]
+pub struct JsDownloadResult {
+    pub url: String,
+    pub status: u16,
+    pub bytes_written: f64,
+    pub content_type: String,
+    pub suggested_filename: Option<String>,
+    pub resumed: bool,
+}
+
+impl From<crawlingo::engine::download::DownloadResult> for JsDownloadResult {
+    fn from(res: crawlingo::engine::download::DownloadResult) -> Self {
+        Self {
+            url: res.url,
+            status: res.status,
+            bytes_written: res.bytes_written as f64,
+            content_type: res.content_type,
+            suggested_filename: res.suggested_filename,
+            resumed: res.resumed,
+        }
+    }
+}
+
+#[napi(object)]
+pub struct JsMemoryDownloadResult {
+    pub result: JsDownloadResult,
+    pub data: Buffer,
+}
+
+#[napi]
+pub struct JsDownloader {
+    session: Arc<Session>,
+    chunk_size: usize,
+    allow_resume: bool,
+    max_bytes: Option<u64>,
+}
+
+#[napi]
+impl JsDownloader {
+    #[napi(constructor)]
+    pub fn new(session: Option<&JsSession>) -> Self {
+        let session = match session {
+            Some(s) => s.inner.clone(),
+            None => Arc::new(Session::new()),
+        };
+        Self {
+            session,
+            chunk_size: 65536,
+            allow_resume: true,
+            max_bytes: None,
+        }
+    }
+
+    #[napi]
+    pub fn chunk_size(&mut self, size: u32) {
+        self.chunk_size = size as usize;
+    }
+
+    #[napi]
+    pub fn allow_resume(&mut self, enabled: bool) {
+        self.allow_resume = enabled;
+    }
+
+    #[napi]
+    pub fn max_bytes(&mut self, n: u32) {
+        self.max_bytes = Some(n as u64);
+    }
+
+    #[napi]
+    pub async fn download(&self, url: String, dest: String) -> napi::Result<JsDownloadResult> {
+        let downloader = crawlingo::engine::download::Downloader::new(self.session.clone())
+            .with_chunk_size(self.chunk_size)
+            .with_resume(self.allow_resume);
+        let downloader = if let Some(max) = self.max_bytes {
+            downloader.with_max_bytes(max)
+        } else {
+            downloader
+        };
+
+        let dest_path = std::path::PathBuf::from(dest);
+        let res = downloader.download_to_file_async(&url, &dest_path).await
+            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+        Ok(JsDownloadResult::from(res))
+    }
+
+    #[napi]
+    pub async fn download_to_memory(&self, url: String) -> napi::Result<JsMemoryDownloadResult> {
+        let downloader = crawlingo::engine::download::Downloader::new(self.session.clone())
+            .with_chunk_size(self.chunk_size)
+            .with_resume(self.allow_resume);
+        let downloader = if let Some(max) = self.max_bytes {
+            downloader.with_max_bytes(max)
+        } else {
+            downloader
+        };
+
+        let (res, body) = downloader.download_to_memory_async(&url).await
+            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+        Ok(JsMemoryDownloadResult {
+            result: JsDownloadResult::from(res),
+            data: Buffer::from(body),
+        })
+    }
+}
+
+#[napi(object)]
+pub struct JsSitemapEntry {
+    pub loc: String,
+    pub lastmod: Option<String>,
+    pub changefreq: Option<String>,
+    pub priority: Option<String>,
+}
+
+#[napi]
+pub struct JsSitemap {
+    sitemap_url: String,
+    session: Arc<Session>,
+    max_depth: usize,
+    crawler_template: Crawler,
+}
+
+#[napi]
+impl JsSitemap {
+    #[napi(constructor)]
+    pub fn new(sitemap_url: String, session: Option<&JsSession>) -> Self {
+        let session = match session {
+            Some(s) => s.inner.clone(),
+            None => Arc::new(Session::new()),
+        };
+        let crawler_template = Crawler::new(&sitemap_url, session.clone());
+        Self {
+            sitemap_url,
+            session,
+            max_depth: 5,
+            crawler_template,
+        }
+    }
+
+    #[napi]
+    pub fn max_depth(&mut self, depth: u32) {
+        self.max_depth = depth as usize;
+    }
+
+    #[napi]
+    pub fn follow(&mut self, selector: String) {
+        self.crawler_template.follow_selector = selector;
+    }
+
+    #[napi]
+    pub fn limit(&mut self, limit: u32) {
+        self.crawler_template.limit = limit as usize;
+    }
+
+    #[napi]
+    pub fn depth(&mut self, max_depth: u32) {
+        self.crawler_template.max_depth = max_depth as usize;
+    }
+
+    #[napi]
+    pub fn concurrency(&mut self, n: u32) {
+        self.crawler_template.concurrency = n as usize;
+    }
+
+    #[napi]
+    pub fn delay(&mut self, seconds: f64) {
+        self.crawler_template.delay_seconds = seconds;
+    }
+
+    #[napi]
+    pub fn field(&mut self, name: String, selector: String, selector_type: Option<String>, default_val: Option<String>) {
+        let field = DatasetField {
+            name,
+            selector,
+            selector_type: selector_type.unwrap_or("css".to_string()),
+            default: default_val,
+            extract_type: Default::default(),
+        };
+        self.crawler_template.fields.push(field);
+    }
+
+    #[napi]
+    pub fn webhook(&mut self, url: String) {
+        self.crawler_template.webhook_url = Some(url);
+    }
+
+    #[napi]
+    pub async fn list_urls(&self) -> napi::Result<Vec<JsSitemapEntry>> {
+        let sitemap_url = self.sitemap_url.clone();
+        let session = self.session.clone();
+        let max_depth = self.max_depth;
+
+        let entries = tokio::spawn(async move {
+            let crawler = crawlingo::crawl::sitemap::SitemapCrawler::new(&sitemap_url, session)
+                .with_max_depth(max_depth);
+            
+            let mut results = Vec::new();
+            let mut queue = vec![(sitemap_url.clone(), 0)];
+            let mut visited_urls = std::collections::HashSet::new();
+
+            while let Some((url, depth)) = queue.pop() {
+                if depth > max_depth || visited_urls.contains(&url) {
+                    continue;
+                }
+                visited_urls.insert(url.clone());
+
+                let manager = crawler.session.fetch_manager();
+                let req = FetchRequest {
+                    url: url.clone(),
+                    tier: FetcherTier::Standard,
+                    browser_profile: None,
+                    headers: crawler.session.headers.read().unwrap().clone(),
+                    cookies: crawler.session.cookies.read().unwrap().clone(),
+                    proxy: crawler.session.get_next_proxy(),
+                    timeout: std::time::Duration::from_secs(*crawler.session.timeout_seconds.read().unwrap()),
+                    retries: 2,
+                    rate_limit_rps: 0.0,
+                };
+                if let Ok(resp) = manager.dispatch(req).await {
+                    if let Ok(parsed) = crawlingo::crawl::sitemap::parse_sitemap(&resp.body) {
+                        match parsed {
+                            crawlingo::crawl::sitemap::ParsedSitemap::Urlset(entries) => {
+                                results.extend(entries.into_iter().map(|e| JsSitemapEntry {
+                                    loc: e.loc,
+                                    lastmod: e.lastmod,
+                                    changefreq: e.changefreq,
+                                    priority: e.priority,
+                                }));
+                            }
+                            crawlingo::crawl::sitemap::ParsedSitemap::Index(entries) => {
+                                for entry in entries {
+                                    queue.push((entry.loc, depth + 1));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            results
+        }).await.map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+        Ok(entries)
+    }
+
+    #[napi]
+    pub async fn run(&self) -> napi::Result<Vec<JsDatasetResult>> {
+        let sitemap_url = self.sitemap_url.clone();
+        let session = self.session.clone();
+        let max_depth = self.max_depth;
+        let crawler_template = self.crawler_template.clone();
+
+        let res = tokio::spawn(async move {
+            let crawler = crawlingo::crawl::sitemap::SitemapCrawler::new(&sitemap_url, session)
+                .with_max_depth(max_depth)
+                .with_crawler_template(crawler_template);
+            crawler.fetch_async().await
+        }).await.map_err(|e| napi::Error::from_reason(e.to_string()))?
+        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+        let results = res.into_iter().map(|item| JsDatasetResult { inner: item }).collect();
+        Ok(results)
+    }
+}
+
+#[napi]
+pub fn sitemap_url_for_origin(origin: String) -> String {
+    crawlingo::crawl::sitemap::sitemap_url_for_origin(&origin)
 }

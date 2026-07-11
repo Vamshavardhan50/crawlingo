@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Crawlingo Node.js SDK Test Report</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --glass: rgba(30, 41, 59, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --pass: #10b981;
+      --fail: #ef4444;
+      --skip: #64748b;
+      --not-impl: #a855f7;
+      --partial: #f59e0b;
+      --experimental: #ec4899;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
+      margin: 0;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    h1 {
+      font-size: 2.2rem;
+      margin: 0;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .meta-time {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .card {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+    .card-title {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+    .card-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+    .card-value.pass { color: var(--pass); }
+    .card-value.fail { color: var(--fail); }
+    .card-value.health { color: var(--primary); }
+    .test-list {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+    .test-list-header {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    .test-row {
+      display: grid;
+      grid-template-columns: 2fr 1.2fr 2fr;
+      padding: 0.8rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      align-items: center;
+    }
+    .test-row:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .test-name {
+      font-weight: 500;
+    }
+    .test-status {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-align: center;
+      padding: 0.3rem 0.6rem;
+      border-radius: 8px;
+      max-width: fit-content;
+    }
+    .status-pass { background: rgba(16, 185, 129, 0.15); color: var(--pass); }
+    .status-fail { background: rgba(239, 68, 68, 0.15); color: var(--fail); }
+    .status-not-implemented { background: rgba(168, 85, 247, 0.15); color: var(--not-impl); }
+    .status-skipped { background: rgba(100, 116, 139, 0.15); color: var(--skip); }
+    .status-partial { background: rgba(245, 158, 11, 0.15); color: var(--partial); }
+    .status-experimental { background: rgba(236, 72, 153, 0.15); color: var(--experimental); }
+    .test-detail {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Crawlingo SDK Health Dashboard</h1>
+        <div class="meta-time">Generated: 11/7/2026, 7:22:15 pm | Duration: 24.01s</div>
+      </div>
+    </header>
+
+    <div class="dashboard">
+      <div class="card">
+        <div class="card-title">SDK Health Score</div>
+        <div class="card-value health">80%</div>
+      </div>
+      <div class="card">
+        <div class="card-title">API Coverage</div>
+        <div class="card-value">80.1%</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Total Tests</div>
+        <div class="card-value">171</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Passed</div>
+        <div class="card-value pass">137</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Failed</div>
+        <div class="card-value fail">0</div>
+      </div>
+    </div>
+
+    <div class="test-list">
+      <div class="test-list-header">API Capability Matrix</div>
+      
+      <div class="test-row">
+        <div class="test-name">Session instance created successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">All config methods exist and chain correctly</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Session.prototype.clone()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">clone method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Session.prototype.destroy()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">destroy method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Standard tier page fetch success</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Standard tier page content match</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Stealthy tier page fetch success</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Stealthy tier page content match</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Browser tier page fetch success</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Auto tier page fetch success</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page.create() returns Page instance</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page url matches requested url</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page status matches expected code 200</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page html content loaded successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page title matches expected value</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page.prototype.navigate()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">navigate method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page.prototype.reload()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">reload method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page.prototype.back()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">back method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page.prototype.forward()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">forward method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page.prototype.close()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">close method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">CSS table selector matched</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">CSS table rows matched count</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">CSS first row text matched headers</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">CSS attr check returns array</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">XPath th selector matched count</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">XPath th texts extracted correctly</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">findText matches element</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">afterText matches correctly</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">beforeText matches correctly</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">regex matches correctly</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">ElementCollection.at(1) returns Element instance</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Element text extracted successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Element html extracted successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">extractStructured returns expected array format</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">extractStructured correct rows length</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">extractStructured field matching</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">extractStructured second row matching</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Dataset.saveJson() file generated</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Dataset.saveJson() output matches format</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Dataset.saveCsv() file generated</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Dataset.saveCsv() output matches format</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Dataset.build() returns DatasetResult instance</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">toDict() maps single row correctly</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">DatasetResult.toJson() outputs file</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">DatasetResult.toCsv() outputs file</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">DatasetResult.toParquet() outputs file</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Dataset.prototype.toArrow()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">toArrow method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Dataset.prototype.toDataFrame()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">toDataFrame method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Dataset.prototype.df()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">df method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Dataset.prototype.stream()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">stream method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Dataset.prototype.update()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">update method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Dataset.prototype.delete()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">delete method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Profile 'chrome' loaded successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Profile 'firefox' loaded successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Profile 'safari' loaded successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Profile 'edge' loaded successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Single proxy config set successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Proxy pool set successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Proxy provider set successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Session.prototype.proxyAuth()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">proxyAuth method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Session.prototype.proxyRotate()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">proxyRotate method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page fetch with Session headers successful</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page fetch with request headers successful</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Session.prototype.removeHeader()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">removeHeader method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Session.prototype.mergeHeaders()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">mergeHeaders method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page fetch with Session cookies successful</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Session cookies authenticated successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page fetch with request cookies successful</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Request cookies authenticated successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Session.prototype.deleteCookie()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">deleteCookie method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Session.prototype.clearCookies()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">clearCookies method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Session.prototype.getCookies()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">getCookies method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Page fetch with default retries successful</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Session.prototype.retries()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">retries method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Session.prototype.retryBackoff()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">retryBackoff method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Session.prototype.retryDelay()</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">retryDelay method is missing</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Downloader instance created successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">downloadToMemory response code matches</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">downloadToMemory bytes matches content length</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">downloadToMemory data buffer contains payload</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">downloadToMemory content type is binary</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">downloadToMemory suggested filename matched header hint</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">download to disk response code matches</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">download to disk file generated</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">download to disk file payload matches</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">resumed download completes successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">maxBytes limits content length of buffer</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">maxBytes buffer content trimmed correctly</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Sitemap instance created successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">listUrls returns array</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">listUrls returns correct size of entries</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">listUrls entry contains correct loc</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">listUrls entry contains lastmod date</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">listUrls entry contains changefreq</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">listUrls entry contains priority score</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Sitemap.build() run completed successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">sitemapUrlForOrigin utility works</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">All 50 concurrent requests completed successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Average request speed matches high throughput (> 15 req/sec)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">All separate session requests completed successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">404 request returns status code 404</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">500 request returns status code 500</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">403 request returns status code 403</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Conn refused throws error successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">DNS failure throws error successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Invalid URL throws error successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">CrawlingoError</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">Custom error class is not exported in Node SDK</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">FetchError</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">Custom error class is not exported in Node SDK</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">ParseError</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">Custom error class is not exported in Node SDK</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">SelectorError</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">Custom error class is not exported in Node SDK</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">AutoMatchFailed</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">Custom error class is not exported in Node SDK</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">TimeoutError</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">Custom error class is not exported in Node SDK</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">RateLimitError</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">Custom error class is not exported in Node SDK</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">ChangeDetectionError</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">Custom error class is not exported in Node SDK</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">ExportError</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">Custom error class is not exported in Node SDK</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">DnsError</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">Custom error class is not exported in Node SDK</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">FingerprintStoreError</div>
+        <div class="test-status status-not-implemented">🚧 NOT IMPLEMENTED</div>
+        <div class="test-detail">Custom error class is not exported in Node SDK</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Watch class created successfully</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Watch query polling and stop works cleanly</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Python SDK directory exists for auditing</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">JS Class Session exists</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Session.headers (JS) <-> headers (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Session.cookies (JS) <-> cookies (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Session.proxy (JS) <-> proxy (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Session.rateLimit (JS) <-> rate_limit (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Session.autoMatch (JS) <-> auto_match (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Session.timeout (JS) <-> timeout (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Session.fingerprintPath (JS) <-> fingerprint_path (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Session.fetcherTier (JS) <-> fetcher_tier (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Session.browserProfile (JS) <-> browser_profile (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Session.autoMatchWeights (JS) <-> auto_match_weights (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Session.proxyPool (JS) <-> proxy_pool (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Session.proxyProvider (JS) <-> proxy_provider (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">JS Class Page exists</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Page.create (JS) <-> create (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Page.url (JS) <-> url (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Page.status (JS) <-> status (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Page.html (JS) <-> html (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Page.title (JS) <-> title (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Page.css (JS) <-> css (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Page.xpath (JS) <-> xpath (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Page.findText (JS) <-> find_text (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Page.afterText (JS) <-> after_text (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Page.beforeText (JS) <-> before_text (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Page.regex (JS) <-> regex (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">JS Class Dataset exists</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Dataset.field (JS) <-> field (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Dataset.autoMatch (JS) <-> auto_match (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Dataset.timeout (JS) <-> timeout (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Dataset.headers (JS) <-> headers (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Dataset.build (JS) <-> build (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Dataset.extractStructured (JS) <-> extract_structured (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Dataset.buildStructured (JS) <-> build_structured (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Dataset.saveJson (JS) <-> save_json (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Dataset.saveCsv (JS) <-> save_csv (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">JS Class Downloader exists</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Downloader.allowResume (JS) <-> allow_resume (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Downloader.maxBytes (JS) <-> max_bytes (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Downloader.download (JS) <-> download (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Downloader.downloadToMemory (JS) <-> download_to_memory (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">JS Class Sitemap exists</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail"></div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Sitemap.maxDepth (JS) <-> max_depth (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Sitemap.follow (JS) <-> follow (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Sitemap.limit (JS) <-> limit (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Sitemap.depth (JS) <-> depth (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Sitemap.concurrency (JS) <-> concurrency (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Sitemap.delay (JS) <-> delay (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Sitemap.field (JS) <-> field (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Sitemap.webhook (JS) <-> webhook (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Sitemap.listUrls (JS) <-> list_urls (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+      <div class="test-row">
+        <div class="test-name">Method parity: Sitemap.build (JS) <-> build (Python)</div>
+        <div class="test-status status-pass">✔ PASS</div>
+        <div class="test-detail">Synchronized</div>
+      </div>
+    
+    </div>
+  </div>
+</body>
+</html>

@@ -66,4 +66,14 @@ export class Session {
     this.inner.proxyProvider(url);
     return this;
   }
+
+  public clone(): Session {
+    const cloned = new Session();
+    (cloned as any).inner = this.inner.clone();
+    return cloned;
+  }
+
+  public destroy(): void {
+    this.inner.destroy();
+  }
 }

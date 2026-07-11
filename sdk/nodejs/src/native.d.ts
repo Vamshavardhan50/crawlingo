@@ -21,6 +21,25 @@ export declare function saveStructuredJson(records: Array<Record<string, string>
  * The first row is the header (field names); subsequent rows contain values.
  */
 export declare function saveStructuredCsv(records: Array<Record<string, string>>, path: string): void
+export interface JsDownloadResult {
+  url: string
+  status: number
+  bytesWritten: number
+  contentType: string
+  suggestedFilename?: string
+  resumed: boolean
+}
+export interface JsMemoryDownloadResult {
+  result: JsDownloadResult
+  data: Buffer
+}
+export interface JsSitemapEntry {
+  loc: string
+  lastmod?: string
+  changefreq?: string
+  priority?: string
+}
+export declare function sitemapUrlForOrigin(origin: string): string
 export declare class JsSession {
   constructor()
   headers(headers: Record<string, string>): void
@@ -35,6 +54,8 @@ export declare class JsSession {
   autoMatchWeights(weights: Record<string, number>): void
   proxyPool(proxies: Array<string>): void
   proxyProvider(url?: string | undefined | null): void
+  clone(): JsSession
+  destroy(): void
 }
 export declare class JsPage {
   url: string
@@ -96,4 +117,25 @@ export declare class JsWatch {
   interval(seconds: number): void
   run(callback: (err: Error | null, event: JsChangeEvent) => void): void
   stop(): void
+}
+export declare class JsDownloader {
+  constructor(session?: JsSession | undefined | null)
+  chunkSize(size: number): void
+  allowResume(enabled: boolean): void
+  maxBytes(n: number): void
+  download(url: string, dest: string): Promise<JsDownloadResult>
+  downloadToMemory(url: string): Promise<JsMemoryDownloadResult>
+}
+export declare class JsSitemap {
+  constructor(sitemapUrl: string, session?: JsSession | undefined | null)
+  maxDepth(depth: number): void
+  follow(selector: string): void
+  limit(limit: number): void
+  depth(maxDepth: number): void
+  concurrency(n: number): void
+  delay(seconds: number): void
+  field(name: string, selector: string, selectorType?: string | undefined | null, defaultVal?: string | undefined | null): void
+  webhook(url: string): void
+  listUrls(): Promise<Array<JsSitemapEntry>>
+  run(): Promise<Array<JsDatasetResult>>
 }

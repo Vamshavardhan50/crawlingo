@@ -179,6 +179,33 @@ class Session:
         from .crawl import Crawl
         return Crawl(url, session=self)
 
+    def clone(self) -> "Session":
+        """Clone this session and all its configurations."""
+        cloned = Session()
+        cloned._core_session = self._core_session.clone()
+        cloned._headers = self._headers.copy()
+        cloned._cookies = self._cookies.copy()
+        cloned._proxy = self._proxy
+        cloned._rate_limit_rps = self._rate_limit_rps
+        cloned._auto_match = self._auto_match
+        cloned._timeout = self._timeout
+        cloned._fingerprint_path = self._fingerprint_path
+        cloned._fetcher_tier = self._fetcher_tier
+        cloned._browser_profile = self._browser_profile
+        cloned._auto_match_weights = self._auto_match_weights.copy()
+        cloned._proxy_pool = self._proxy_pool.copy()
+        cloned._proxy_provider = self._proxy_provider
+        return cloned
+
+    def destroy(self) -> None:
+        """Destroy the session and release its resources."""
+        self._core_session.destroy()
+        self._headers.clear()
+        self._cookies.clear()
+        self._proxy = None
+        self._proxy_pool.clear()
+        self._proxy_provider = None
+
     def __enter__(self) -> "Session":
         return self
 

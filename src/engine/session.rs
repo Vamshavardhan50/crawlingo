@@ -41,6 +41,11 @@ pub struct Session {
     /// middleware layer in [`Session::new`], so no opt-in is required. Read via
     /// [`Session::metrics`].
     pub metrics: Arc<crate::metrics::Metrics>,
+    pub retries: RwLock<Option<u32>>,
+    pub retry_backoff: RwLock<Option<f64>>,
+    pub retry_delay: RwLock<Option<u32>>,
+    pub proxy_username: RwLock<Option<String>>,
+    pub proxy_password: RwLock<Option<String>>,
 }
 
 impl Session {
@@ -107,6 +112,11 @@ impl Session {
             fetch_manager: RwLock::new(None),
             middleware: RwLock::new(middleware),
             metrics,
+            retries: RwLock::new(None),
+            retry_backoff: RwLock::new(None),
+            retry_delay: RwLock::new(None),
+            proxy_username: RwLock::new(None),
+            proxy_password: RwLock::new(None),
         }
     }
 
@@ -646,8 +656,173 @@ impl PySession {
         Ok(parsed.into())
     }
 
+    /// Clone the session (returns a new Session)
+    pub fn clone(&self) -> PyResult<Self> {
+        let cloned = Session::new();
+        *cloned.headers.write().unwrap() = self.inner.headers.read().unwrap().clone();
+        *cloned.cookies.write().unwrap() = self.inner.cookies.read().unwrap().clone();
+        *cloned.proxy.write().unwrap() = self.inner.proxy.read().unwrap().clone();
+        *cloned.rate_limit_rps.write().unwrap() = *self.inner.rate_limit_rps.read().unwrap();
+        *cloned.auto_match.write().unwrap() = *self.inner.auto_match.read().unwrap();
+        *cloned.timeout_seconds.write().unwrap() = *self.inner.timeout_seconds.read().unwrap();
+        *cloned.fingerprint_path.write().unwrap() = self.inner.fingerprint_path.read().unwrap().clone();
+        *cloned.fetcher_tier.write().unwrap() = *self.inner.fetcher_tier.read().unwrap();
+        *cloned.browser_profile.write().unwrap() = self.inner.browser_profile.read().unwrap().clone();
+        *cloned.similarity_weights.write().unwrap() = self.inner.similarity_weights.read().unwrap().clone();
+        *cloned.proxy_pool.write().unwrap() = self.inner.proxy_pool.read().unwrap().clone();
+        cloned.proxy_index.store(
+            self.inner.proxy_index.load(std::sync::atomic::Ordering::SeqCst),
+            std::sync::atomic::Ordering::SeqCst,
+        );
+        *cloned.proxy_provider_url.write().unwrap() = self.inner.proxy_provider_url.read().unwrap().clone();
+        *cloned.retries.write().unwrap() = *self.inner.retries.read().unwrap();
+        *cloned.retry_backoff.write().unwrap() = *self.inner.retry_backoff.read().unwrap();
+        *cloned.retry_delay.write().unwrap() = *self.inner.retry_delay.read().unwrap();
+        *cloned.proxy_username.write().unwrap() = self.inner.proxy_username.read().unwrap().clone();
+        *cloned.proxy_password.write().unwrap() = self.inner.proxy_password.read().unwrap().clone();
+        Ok(Self {
+            inner: Arc::new(cloned),
+        })
+    }
+
+    /// Destroy/invalidate the session resources
+    pub fn destroy(&self) -> PyResult<()> {
+        self.inner.headers.write().unwrap().clear();
+        self.inner.cookies.write().unwrap().clear();
+        *self.inner.proxy.write().unwrap() = None;
+        self.inner.proxy_pool.write().unwrap().clear();
+        *self.inner.proxy_provider_url.write().unwrap() = None;
+        *self.inner.fingerprint_store.write().unwrap() = None;
+        *self.inner.fetch_manager.write().unwrap() = None;
+        Ok(())
+    }
+
+    /// Remove a header from session headers
+    pub fn remove_header(self_: PyRef<'_, Self>, name: &str) -> PyResult<Py<Self>> {
+        {
+            let mut h = self_
+                .inner
+                .headers
+                .write()
+                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+            h.remove(name);
+        }
+        Ok(self_.into())
+    }
+
+    /// Merge headers into session headers
+    pub fn merge_headers(self_: PyRef<'_, Self>, headers: HashMap<String, String>) -> PyResult<Py<Self>> {
+        {
+            let mut h = self_
+                .inner
+                .headers
+                .write()
+                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+            h.extend(headers);
+        }
+        Ok(self_.into())
+    }
+
+    /// Get cookies
+    pub fn get_cookies(&self) -> PyResult<HashMap<String, String>> {
+        let c = self.inner.cookies.read()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+        Ok(c.clone())
+    }
+
+    /// Clear cookies
+    pub fn clear_cookies(self_: PyRef<'_, Self>) -> PyResult<Py<Self>> {
+        {
+            let mut c = self_
+                .inner
+                .cookies
+                .write()
+                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+            c.clear();
+        }
+        Ok(self_.into())
+    }
+
+    /// Delete a cookie
+    pub fn delete_cookie(self_: PyRef<'_, Self>, name: &str) -> PyResult<Py<Self>> {
+        {
+            let mut c = self_
+                .inner
+                .cookies
+                .write()
+                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+            c.remove(name);
+        }
+        Ok(self_.into())
+    }
+
+    /// Set retries
+    pub fn retries(self_: PyRef<'_, Self>, count: u32) -> PyResult<Py<Self>> {
+        {
+            let mut r = self_
+                .inner
+                .retries
+                .write()
+                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+            *r = Some(count);
+        }
+        Ok(self_.into())
+    }
+
+    /// Set retry backoff
+    pub fn retry_backoff(self_: PyRef<'_, Self>, factor: f64) -> PyResult<Py<Self>> {
+        {
+            let mut r = self_
+                .inner
+                .retry_backoff
+                .write()
+                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+            *r = Some(factor);
+        }
+        Ok(self_.into())
+    }
+
+    /// Set retry delay
+    pub fn retry_delay(self_: PyRef<'_, Self>, seconds: u32) -> PyResult<Py<Self>> {
+        {
+            let mut r = self_
+                .inner
+                .retry_delay
+                .write()
+                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+            *r = Some(seconds);
+        }
+        Ok(self_.into())
+    }
+
+    /// Set proxy authentication
+    #[pyo3(signature = (username=None, password=None))]
+    pub fn proxy_auth(self_: PyRef<'_, Self>, username: Option<String>, password: Option<String>) -> PyResult<Py<Self>> {
+        {
+            let mut u = self_
+                .inner
+                .proxy_username
+                .write()
+                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+            *u = username;
+            let mut p = self_
+                .inner
+                .proxy_password
+                .write()
+                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+            *p = password;
+        }
+        Ok(self_.into())
+    }
+
+    /// Rotate to next proxy
+    pub fn proxy_rotate(&self) -> PyResult<Option<String>> {
+        Ok(self.inner.get_next_proxy())
+    }
+
     // Support Context Manager (with Session() as session:)
     fn __enter__(self_: PyRef<'_, Self>) -> PyResult<PyRef<'_, Self>> {
+
         Ok(self_)
     }
 

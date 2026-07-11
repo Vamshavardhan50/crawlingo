@@ -66,6 +66,38 @@ class Dataset:
         except Exception as e:
             raise handle_core_exception(e)
 
+    def extract_structured(self, page: "Page") -> list[dict[str, str]]:
+        """Extract structured multi-row records from a pre-parsed Page object."""
+        try:
+            page._ensure_loaded()
+            return self._core_dataset.extract_structured(page._core_page)
+        except Exception as e:
+            raise handle_core_exception(e)
+
+    def build_structured(self) -> list[dict[str, str]]:
+        """Fetch the page URL and extract structured multi-row records entirely in Rust."""
+        try:
+            return self._core_dataset.build_structured()
+        except Exception as e:
+            raise handle_core_exception(e)
+
+    @staticmethod
+    def save_json(records: list[dict[str, str]], path: str):
+        """Write structured records to a pretty-printed JSON file."""
+        try:
+            _CoreDataset.save_json(records, path)
+        except Exception as e:
+            raise handle_core_exception(e)
+
+    @staticmethod
+    def save_csv(records: list[dict[str, str]], path: str):
+        """Write structured records to a clean CSV file."""
+        try:
+            _CoreDataset.save_csv(records, path)
+        except Exception as e:
+            raise handle_core_exception(e)
+
+
 
 class DatasetResult:
     """

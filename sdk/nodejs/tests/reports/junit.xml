@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Crawlingo Node.js SDK Test Suite" tests="171" failures="0" skipped="34" time="24.01">
+  <testsuite name="SDK API Capabilities" tests="171" failures="0" errors="0" skipped="34" time="24.01">
+    <testcase classname="crawlingo.sdk.Node" name="Session instance created successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="All config methods exist and chain correctly" />
+    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.clone()">
+      <skipped message="Not Implemented: clone method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.destroy()">
+      <skipped message="Not Implemented: destroy method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Standard tier page fetch success" />
+    <testcase classname="crawlingo.sdk.Node" name="Standard tier page content match" />
+    <testcase classname="crawlingo.sdk.Node" name="Stealthy tier page fetch success" />
+    <testcase classname="crawlingo.sdk.Node" name="Stealthy tier page content match" />
+    <testcase classname="crawlingo.sdk.Node" name="Browser tier page fetch success" />
+    <testcase classname="crawlingo.sdk.Node" name="Auto tier page fetch success" />
+    <testcase classname="crawlingo.sdk.Node" name="Page.create() returns Page instance" />
+    <testcase classname="crawlingo.sdk.Node" name="Page url matches requested url" />
+    <testcase classname="crawlingo.sdk.Node" name="Page status matches expected code 200" />
+    <testcase classname="crawlingo.sdk.Node" name="Page html content loaded successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Page title matches expected value" />
+    <testcase classname="crawlingo.sdk.Node" name="Page.prototype.navigate()">
+      <skipped message="Not Implemented: navigate method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Page.prototype.reload()">
+      <skipped message="Not Implemented: reload method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Page.prototype.back()">
+      <skipped message="Not Implemented: back method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Page.prototype.forward()">
+      <skipped message="Not Implemented: forward method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Page.prototype.close()">
+      <skipped message="Not Implemented: close method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="CSS table selector matched" />
+    <testcase classname="crawlingo.sdk.Node" name="CSS table rows matched count" />
+    <testcase classname="crawlingo.sdk.Node" name="CSS first row text matched headers" />
+    <testcase classname="crawlingo.sdk.Node" name="CSS attr check returns array" />
+    <testcase classname="crawlingo.sdk.Node" name="XPath th selector matched count" />
+    <testcase classname="crawlingo.sdk.Node" name="XPath th texts extracted correctly" />
+    <testcase classname="crawlingo.sdk.Node" name="findText matches element" />
+    <testcase classname="crawlingo.sdk.Node" name="afterText matches correctly" />
+    <testcase classname="crawlingo.sdk.Node" name="beforeText matches correctly" />
+    <testcase classname="crawlingo.sdk.Node" name="regex matches correctly" />
+    <testcase classname="crawlingo.sdk.Node" name="ElementCollection.at(1) returns Element instance" />
+    <testcase classname="crawlingo.sdk.Node" name="Element text extracted successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Element html extracted successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="extractStructured returns expected array format" />
+    <testcase classname="crawlingo.sdk.Node" name="extractStructured correct rows length" />
+    <testcase classname="crawlingo.sdk.Node" name="extractStructured field matching" />
+    <testcase classname="crawlingo.sdk.Node" name="extractStructured second row matching" />
+    <testcase classname="crawlingo.sdk.Node" name="Dataset.saveJson() file generated" />
+    <testcase classname="crawlingo.sdk.Node" name="Dataset.saveJson() output matches format" />
+    <testcase classname="crawlingo.sdk.Node" name="Dataset.saveCsv() file generated" />
+    <testcase classname="crawlingo.sdk.Node" name="Dataset.saveCsv() output matches format" />
+    <testcase classname="crawlingo.sdk.Node" name="Dataset.build() returns DatasetResult instance" />
+    <testcase classname="crawlingo.sdk.Node" name="toDict() maps single row correctly" />
+    <testcase classname="crawlingo.sdk.Node" name="DatasetResult.toJson() outputs file" />
+    <testcase classname="crawlingo.sdk.Node" name="DatasetResult.toCsv() outputs file" />
+    <testcase classname="crawlingo.sdk.Node" name="DatasetResult.toParquet() outputs file" />
+    <testcase classname="crawlingo.sdk.Node" name="Dataset.prototype.toArrow()">
+      <skipped message="Not Implemented: toArrow method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Dataset.prototype.toDataFrame()">
+      <skipped message="Not Implemented: toDataFrame method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Dataset.prototype.df()">
+      <skipped message="Not Implemented: df method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Dataset.prototype.stream()">
+      <skipped message="Not Implemented: stream method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Dataset.prototype.update()">
+      <skipped message="Not Implemented: update method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Dataset.prototype.delete()">
+      <skipped message="Not Implemented: delete method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Profile &apos;chrome&apos; loaded successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Profile &apos;firefox&apos; loaded successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Profile &apos;safari&apos; loaded successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Profile &apos;edge&apos; loaded successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Single proxy config set successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Proxy pool set successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Proxy provider set successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.proxyAuth()">
+      <skipped message="Not Implemented: proxyAuth method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.proxyRotate()">
+      <skipped message="Not Implemented: proxyRotate method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Page fetch with Session headers successful" />
+    <testcase classname="crawlingo.sdk.Node" name="Page fetch with request headers successful" />
+    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.removeHeader()">
+      <skipped message="Not Implemented: removeHeader method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.mergeHeaders()">
+      <skipped message="Not Implemented: mergeHeaders method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Page fetch with Session cookies successful" />
+    <testcase classname="crawlingo.sdk.Node" name="Session cookies authenticated successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Page fetch with request cookies successful" />
+    <testcase classname="crawlingo.sdk.Node" name="Request cookies authenticated successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.deleteCookie()">
+      <skipped message="Not Implemented: deleteCookie method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.clearCookies()">
+      <skipped message="Not Implemented: clearCookies method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.getCookies()">
+      <skipped message="Not Implemented: getCookies method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Page fetch with default retries successful" />
+    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.retries()">
+      <skipped message="Not Implemented: retries method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.retryBackoff()">
+      <skipped message="Not Implemented: retryBackoff method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Session.prototype.retryDelay()">
+      <skipped message="Not Implemented: retryDelay method is missing" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Downloader instance created successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="downloadToMemory response code matches" />
+    <testcase classname="crawlingo.sdk.Node" name="downloadToMemory bytes matches content length" />
+    <testcase classname="crawlingo.sdk.Node" name="downloadToMemory data buffer contains payload" />
+    <testcase classname="crawlingo.sdk.Node" name="downloadToMemory content type is binary" />
+    <testcase classname="crawlingo.sdk.Node" name="downloadToMemory suggested filename matched header hint" />
+    <testcase classname="crawlingo.sdk.Node" name="download to disk response code matches" />
+    <testcase classname="crawlingo.sdk.Node" name="download to disk file generated" />
+    <testcase classname="crawlingo.sdk.Node" name="download to disk file payload matches" />
+    <testcase classname="crawlingo.sdk.Node" name="resumed download completes successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="maxBytes limits content length of buffer" />
+    <testcase classname="crawlingo.sdk.Node" name="maxBytes buffer content trimmed correctly" />
+    <testcase classname="crawlingo.sdk.Node" name="Sitemap instance created successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="listUrls returns array" />
+    <testcase classname="crawlingo.sdk.Node" name="listUrls returns correct size of entries" />
+    <testcase classname="crawlingo.sdk.Node" name="listUrls entry contains correct loc" />
+    <testcase classname="crawlingo.sdk.Node" name="listUrls entry contains lastmod date" />
+    <testcase classname="crawlingo.sdk.Node" name="listUrls entry contains changefreq" />
+    <testcase classname="crawlingo.sdk.Node" name="listUrls entry contains priority score" />
+    <testcase classname="crawlingo.sdk.Node" name="Sitemap.build() run completed successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="sitemapUrlForOrigin utility works" />
+    <testcase classname="crawlingo.sdk.Node" name="All 50 concurrent requests completed successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Average request speed matches high throughput (&gt; 15 req/sec)" />
+    <testcase classname="crawlingo.sdk.Node" name="All separate session requests completed successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="404 request returns status code 404" />
+    <testcase classname="crawlingo.sdk.Node" name="500 request returns status code 500" />
+    <testcase classname="crawlingo.sdk.Node" name="403 request returns status code 403" />
+    <testcase classname="crawlingo.sdk.Node" name="Conn refused throws error successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="DNS failure throws error successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Invalid URL throws error successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="CrawlingoError">
+      <skipped message="Not Implemented: Custom error class is not exported in Node SDK" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="FetchError">
+      <skipped message="Not Implemented: Custom error class is not exported in Node SDK" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="ParseError">
+      <skipped message="Not Implemented: Custom error class is not exported in Node SDK" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="SelectorError">
+      <skipped message="Not Implemented: Custom error class is not exported in Node SDK" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="AutoMatchFailed">
+      <skipped message="Not Implemented: Custom error class is not exported in Node SDK" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="TimeoutError">
+      <skipped message="Not Implemented: Custom error class is not exported in Node SDK" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="RateLimitError">
+      <skipped message="Not Implemented: Custom error class is not exported in Node SDK" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="ChangeDetectionError">
+      <skipped message="Not Implemented: Custom error class is not exported in Node SDK" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="ExportError">
+      <skipped message="Not Implemented: Custom error class is not exported in Node SDK" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="DnsError">
+      <skipped message="Not Implemented: Custom error class is not exported in Node SDK" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="FingerprintStoreError">
+      <skipped message="Not Implemented: Custom error class is not exported in Node SDK" />
+    </testcase>
+    <testcase classname="crawlingo.sdk.Node" name="Watch class created successfully" />
+    <testcase classname="crawlingo.sdk.Node" name="Watch query polling and stop works cleanly" />
+    <testcase classname="crawlingo.sdk.Node" name="Python SDK directory exists for auditing" />
+    <testcase classname="crawlingo.sdk.Node" name="JS Class Session exists" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.headers (JS) &lt;-&gt; headers (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.cookies (JS) &lt;-&gt; cookies (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.proxy (JS) &lt;-&gt; proxy (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.rateLimit (JS) &lt;-&gt; rate_limit (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.autoMatch (JS) &lt;-&gt; auto_match (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.timeout (JS) &lt;-&gt; timeout (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.fingerprintPath (JS) &lt;-&gt; fingerprint_path (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.fetcherTier (JS) &lt;-&gt; fetcher_tier (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.browserProfile (JS) &lt;-&gt; browser_profile (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.autoMatchWeights (JS) &lt;-&gt; auto_match_weights (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.proxyPool (JS) &lt;-&gt; proxy_pool (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Session.proxyProvider (JS) &lt;-&gt; proxy_provider (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="JS Class Page exists" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Page.create (JS) &lt;-&gt; create (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Page.url (JS) &lt;-&gt; url (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Page.status (JS) &lt;-&gt; status (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Page.html (JS) &lt;-&gt; html (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Page.title (JS) &lt;-&gt; title (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Page.css (JS) &lt;-&gt; css (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Page.xpath (JS) &lt;-&gt; xpath (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Page.findText (JS) &lt;-&gt; find_text (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Page.afterText (JS) &lt;-&gt; after_text (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Page.beforeText (JS) &lt;-&gt; before_text (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Page.regex (JS) &lt;-&gt; regex (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="JS Class Dataset exists" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Dataset.field (JS) &lt;-&gt; field (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Dataset.autoMatch (JS) &lt;-&gt; auto_match (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Dataset.timeout (JS) &lt;-&gt; timeout (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Dataset.headers (JS) &lt;-&gt; headers (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Dataset.build (JS) &lt;-&gt; build (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Dataset.extractStructured (JS) &lt;-&gt; extract_structured (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Dataset.buildStructured (JS) &lt;-&gt; build_structured (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Dataset.saveJson (JS) &lt;-&gt; save_json (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Dataset.saveCsv (JS) &lt;-&gt; save_csv (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="JS Class Downloader exists" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Downloader.allowResume (JS) &lt;-&gt; allow_resume (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Downloader.maxBytes (JS) &lt;-&gt; max_bytes (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Downloader.download (JS) &lt;-&gt; download (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Downloader.downloadToMemory (JS) &lt;-&gt; download_to_memory (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="JS Class Sitemap exists" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Sitemap.maxDepth (JS) &lt;-&gt; max_depth (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Sitemap.follow (JS) &lt;-&gt; follow (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Sitemap.limit (JS) &lt;-&gt; limit (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Sitemap.depth (JS) &lt;-&gt; depth (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Sitemap.concurrency (JS) &lt;-&gt; concurrency (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Sitemap.delay (JS) &lt;-&gt; delay (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Sitemap.field (JS) &lt;-&gt; field (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Sitemap.webhook (JS) &lt;-&gt; webhook (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Sitemap.listUrls (JS) &lt;-&gt; list_urls (Python)" />
+    <testcase classname="crawlingo.sdk.Node" name="Method parity: Sitemap.build (JS) &lt;-&gt; build (Python)" />
+  </testsuite>
+</testsuites>

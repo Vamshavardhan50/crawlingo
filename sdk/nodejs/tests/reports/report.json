@@ -1,0 +1,871 @@
+{
+  "summary": {
+    "total": 171,
+    "passed": 137,
+    "failed": 0,
+    "skipped": 0,
+    "notImplemented": 34,
+    "partial": 0,
+    "coveragePercent": 80.1,
+    "sdkHealthScore": 80,
+    "elapsedSeconds": 24.01,
+    "timestamp": "2026-07-11T13:52:15.044Z"
+  },
+  "results": [
+    {
+      "name": "Session instance created successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "All config methods exist and chain correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Session.prototype.clone()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "clone method is missing"
+    },
+    {
+      "name": "Session.prototype.destroy()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "destroy method is missing"
+    },
+    {
+      "name": "Standard tier page fetch success",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Standard tier page content match",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Stealthy tier page fetch success",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Stealthy tier page content match",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Browser tier page fetch success",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Auto tier page fetch success",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Page.create() returns Page instance",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Page url matches requested url",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Page status matches expected code 200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Page html content loaded successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Page title matches expected value",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Page.prototype.navigate()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "navigate method is missing"
+    },
+    {
+      "name": "Page.prototype.reload()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "reload method is missing"
+    },
+    {
+      "name": "Page.prototype.back()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "back method is missing"
+    },
+    {
+      "name": "Page.prototype.forward()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "forward method is missing"
+    },
+    {
+      "name": "Page.prototype.close()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "close method is missing"
+    },
+    {
+      "name": "CSS table selector matched",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "CSS table rows matched count",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "CSS first row text matched headers",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "CSS attr check returns array",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "XPath th selector matched count",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "XPath th texts extracted correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "findText matches element",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "afterText matches correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "beforeText matches correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "regex matches correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "ElementCollection.at(1) returns Element instance",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Element text extracted successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Element html extracted successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "extractStructured returns expected array format",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "extractStructured correct rows length",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "extractStructured field matching",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "extractStructured second row matching",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Dataset.saveJson() file generated",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Dataset.saveJson() output matches format",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Dataset.saveCsv() file generated",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Dataset.saveCsv() output matches format",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Dataset.build() returns DatasetResult instance",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "toDict() maps single row correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "DatasetResult.toJson() outputs file",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "DatasetResult.toCsv() outputs file",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "DatasetResult.toParquet() outputs file",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Dataset.prototype.toArrow()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "toArrow method is missing"
+    },
+    {
+      "name": "Dataset.prototype.toDataFrame()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "toDataFrame method is missing"
+    },
+    {
+      "name": "Dataset.prototype.df()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "df method is missing"
+    },
+    {
+      "name": "Dataset.prototype.stream()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "stream method is missing"
+    },
+    {
+      "name": "Dataset.prototype.update()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "update method is missing"
+    },
+    {
+      "name": "Dataset.prototype.delete()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "delete method is missing"
+    },
+    {
+      "name": "Profile 'chrome' loaded successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Profile 'firefox' loaded successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Profile 'safari' loaded successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Profile 'edge' loaded successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Single proxy config set successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Proxy pool set successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Proxy provider set successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Session.prototype.proxyAuth()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "proxyAuth method is missing"
+    },
+    {
+      "name": "Session.prototype.proxyRotate()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "proxyRotate method is missing"
+    },
+    {
+      "name": "Page fetch with Session headers successful",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Page fetch with request headers successful",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Session.prototype.removeHeader()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "removeHeader method is missing"
+    },
+    {
+      "name": "Session.prototype.mergeHeaders()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "mergeHeaders method is missing"
+    },
+    {
+      "name": "Page fetch with Session cookies successful",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Session cookies authenticated successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Page fetch with request cookies successful",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Request cookies authenticated successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Session.prototype.deleteCookie()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "deleteCookie method is missing"
+    },
+    {
+      "name": "Session.prototype.clearCookies()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "clearCookies method is missing"
+    },
+    {
+      "name": "Session.prototype.getCookies()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "getCookies method is missing"
+    },
+    {
+      "name": "Page fetch with default retries successful",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Session.prototype.retries()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "retries method is missing"
+    },
+    {
+      "name": "Session.prototype.retryBackoff()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "retryBackoff method is missing"
+    },
+    {
+      "name": "Session.prototype.retryDelay()",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "retryDelay method is missing"
+    },
+    {
+      "name": "Downloader instance created successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "downloadToMemory response code matches",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "downloadToMemory bytes matches content length",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "downloadToMemory data buffer contains payload",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "downloadToMemory content type is binary",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "downloadToMemory suggested filename matched header hint",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "download to disk response code matches",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "download to disk file generated",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "download to disk file payload matches",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "resumed download completes successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "maxBytes limits content length of buffer",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "maxBytes buffer content trimmed correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Sitemap instance created successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "listUrls returns array",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "listUrls returns correct size of entries",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "listUrls entry contains correct loc",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "listUrls entry contains lastmod date",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "listUrls entry contains changefreq",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "listUrls entry contains priority score",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Sitemap.build() run completed successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "sitemapUrlForOrigin utility works",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "All 50 concurrent requests completed successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Average request speed matches high throughput (> 15 req/sec)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "All separate session requests completed successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "404 request returns status code 404",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "500 request returns status code 500",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "403 request returns status code 403",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Conn refused throws error successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "DNS failure throws error successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Invalid URL throws error successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "CrawlingoError",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "Custom error class is not exported in Node SDK"
+    },
+    {
+      "name": "FetchError",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "Custom error class is not exported in Node SDK"
+    },
+    {
+      "name": "ParseError",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "Custom error class is not exported in Node SDK"
+    },
+    {
+      "name": "SelectorError",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "Custom error class is not exported in Node SDK"
+    },
+    {
+      "name": "AutoMatchFailed",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "Custom error class is not exported in Node SDK"
+    },
+    {
+      "name": "TimeoutError",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "Custom error class is not exported in Node SDK"
+    },
+    {
+      "name": "RateLimitError",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "Custom error class is not exported in Node SDK"
+    },
+    {
+      "name": "ChangeDetectionError",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "Custom error class is not exported in Node SDK"
+    },
+    {
+      "name": "ExportError",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "Custom error class is not exported in Node SDK"
+    },
+    {
+      "name": "DnsError",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "Custom error class is not exported in Node SDK"
+    },
+    {
+      "name": "FingerprintStoreError",
+      "status": "NOT_IMPLEMENTED",
+      "detail": "Custom error class is not exported in Node SDK"
+    },
+    {
+      "name": "Watch class created successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Watch query polling and stop works cleanly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Python SDK directory exists for auditing",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "JS Class Session exists",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Method parity: Session.headers (JS) <-> headers (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Session.cookies (JS) <-> cookies (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Session.proxy (JS) <-> proxy (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Session.rateLimit (JS) <-> rate_limit (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Session.autoMatch (JS) <-> auto_match (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Session.timeout (JS) <-> timeout (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Session.fingerprintPath (JS) <-> fingerprint_path (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Session.fetcherTier (JS) <-> fetcher_tier (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Session.browserProfile (JS) <-> browser_profile (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Session.autoMatchWeights (JS) <-> auto_match_weights (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Session.proxyPool (JS) <-> proxy_pool (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Session.proxyProvider (JS) <-> proxy_provider (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "JS Class Page exists",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Method parity: Page.create (JS) <-> create (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Page.url (JS) <-> url (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Page.status (JS) <-> status (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Page.html (JS) <-> html (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Page.title (JS) <-> title (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Page.css (JS) <-> css (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Page.xpath (JS) <-> xpath (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Page.findText (JS) <-> find_text (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Page.afterText (JS) <-> after_text (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Page.beforeText (JS) <-> before_text (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Page.regex (JS) <-> regex (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "JS Class Dataset exists",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Method parity: Dataset.field (JS) <-> field (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Dataset.autoMatch (JS) <-> auto_match (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Dataset.timeout (JS) <-> timeout (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Dataset.headers (JS) <-> headers (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Dataset.build (JS) <-> build (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Dataset.extractStructured (JS) <-> extract_structured (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Dataset.buildStructured (JS) <-> build_structured (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Dataset.saveJson (JS) <-> save_json (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Dataset.saveCsv (JS) <-> save_csv (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "JS Class Downloader exists",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Method parity: Downloader.allowResume (JS) <-> allow_resume (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Downloader.maxBytes (JS) <-> max_bytes (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Downloader.download (JS) <-> download (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Downloader.downloadToMemory (JS) <-> download_to_memory (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "JS Class Sitemap exists",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Method parity: Sitemap.maxDepth (JS) <-> max_depth (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Sitemap.follow (JS) <-> follow (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Sitemap.limit (JS) <-> limit (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Sitemap.depth (JS) <-> depth (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Sitemap.concurrency (JS) <-> concurrency (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Sitemap.delay (JS) <-> delay (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Sitemap.field (JS) <-> field (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Sitemap.webhook (JS) <-> webhook (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Sitemap.listUrls (JS) <-> list_urls (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    },
+    {
+      "name": "Method parity: Sitemap.build (JS) <-> build (Python)",
+      "status": "PASS",
+      "detail": "Synchronized"
+    }
+  ]
+}

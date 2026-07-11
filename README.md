@@ -664,6 +664,8 @@ All config options available via `CRAWLINGO_*` environment variables:
 | `.auth_*(...)` | Self | Auth config (basic, bearer, header, api_key, oauth2) |
 | `.page(url)` | Page | Create bound Page |
 | `.metrics()` | dict | Metrics snapshot |
+| `.clone()` | Session | Clone the session and its config |
+| `.destroy()` | None | Destroy the session and release resources |
 
 ### Page
 | Method | Returns | Description |
