@@ -820,21 +820,21 @@ cd examples/node && npm install crawlingo && npx ts-node simple_fetch.ts
 cd examples/rust && cargo run --example simple_fetch
 ```
 
-**Documentation:**
+**Documentation:** [github.com/Vamshavardhan50/crawlingo-docs](https://github.com/Vamshavardhan50/crawlingo-docs)
 | Guide | Description |
 |-------|-------------|
-| [Getting Started](docs/getting-started.md) | Install and run your first extraction |
-| [Page API](docs/page.md) | Page fetching and selectors |
-| [Session API](docs/session.md) | Shared configuration |
-| [Dataset API](docs/dataset.md) | Structured data extraction |
-| [Crawl API](docs/crawl.md) | Multi-page crawling |
-| [Watch API](docs/watch.md) | Change monitoring |
-| [Selectors](docs/selectors.md) | CSS, XPath, Regex, Text anchors |
-| [Auto-Match](docs/auto-match.md) | Self-healing selectors |
-| [Authentication](docs/authentication.md) | Auth helpers |
-| [Configuration](docs/configuration.md) | TOML, env vars, programmatic |
-| [Advanced](docs/advanced.md) | Hooks, middleware, streaming |
-| [FAQ](docs/faq.md) | Troubleshooting |
+| [Getting Started](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/getting-started.md) | Install and run your first extraction |
+| [Page API](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/page.md) | Page fetching and selectors |
+| [Session API](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/session.md) | Shared configuration |
+| [Dataset API](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/dataset.md) | Structured data extraction |
+| [Crawl API](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/crawl.md) | Multi-page crawling |
+| [Watch API](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/watch.md) | Change monitoring |
+| [Selectors](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/selectors.md) | CSS, XPath, Regex, Text anchors |
+| [Auto-Match](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/auto-match.md) | Self-healing selectors |
+| [Authentication](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/authentication.md) | Auth helpers |
+| [Configuration](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/configuration.md) | TOML, env vars, programmatic |
+| [Advanced](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/advanced.md) | Hooks, middleware, streaming |
+| [FAQ](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/faq.md) | Troubleshooting |
 
 **SDK docs:** `sdk/python/README.md`, `sdk/nodejs/README.md`, `cargo doc --open`
 
@@ -943,7 +943,7 @@ Examples:
 ## 🔗 Related Projects
 - [Crawlingo Python SDK](sdk/python/) — PyPI package details
 - [Crawlingo Node.js SDK](sdk/nodejs/) — npm package details
-- [Documentation](docs/) — Comprehensive user docs
+- [Documentation](https://github.com/Vamshavardhan50/crawlingo-docs) — Comprehensive user docs
 - [Dev Docs](document/) — Technical deep-dives (contributors)
 - [Issues](https://github.com/Vamshavardhan50/crawlingo/issues) — Bug reports & feature requests
 

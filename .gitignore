@@ -64,6 +64,9 @@ dist/
 api/
 *.tsbuildinfo
 
+# Public docs (moved to separate repo)
+docs/
+
 # Windows reserved names
 nul
 /nul
