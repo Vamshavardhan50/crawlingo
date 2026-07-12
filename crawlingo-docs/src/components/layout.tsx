@@ -1,9 +1,4 @@
-"""Shared UI components for docs.
-
-This file contains the foundational components that make up the Stripe-like
-docs experience: theme provider, sidebar navigation, breadcrumb, tabs, and
-other shared UI elements.
-"""
+"use client";
 
 import React from 'react';
 import { cn } from '@/lib/utils';
@@ -15,6 +10,7 @@ import { useTheme } from 'next-themes';
 export function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const { theme, setTheme } = useTheme();
+  const pathname = usePathname();
 
   return (
     <div className="relative min-h-screen bg-background text-foreground antialiased selection:bg-indigo-500 selection:text-white">
