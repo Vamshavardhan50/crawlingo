@@ -64,8 +64,9 @@ dist/
 api/
 *.tsbuildinfo
 
-# Public docs (moved to separate repo)
+# Separate repos (moved out)
 docs/
+crawlingo-docs/
 
 # Windows reserved names
 nul

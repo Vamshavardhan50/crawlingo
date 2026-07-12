@@ -820,21 +820,7 @@ cd examples/node && npm install crawlingo && npx ts-node simple_fetch.ts
 cd examples/rust && cargo run --example simple_fetch
 ```
 
-**Documentation:** [github.com/Vamshavardhan50/crawlingo-docs](https://github.com/Vamshavardhan50/crawlingo-docs)
-| Guide | Description |
-|-------|-------------|
-| [Getting Started](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/getting-started.md) | Install and run your first extraction |
-| [Page API](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/page.md) | Page fetching and selectors |
-| [Session API](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/session.md) | Shared configuration |
-| [Dataset API](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/dataset.md) | Structured data extraction |
-| [Crawl API](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/crawl.md) | Multi-page crawling |
-| [Watch API](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/watch.md) | Change monitoring |
-| [Selectors](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/selectors.md) | CSS, XPath, Regex, Text anchors |
-| [Auto-Match](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/auto-match.md) | Self-healing selectors |
-| [Authentication](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/authentication.md) | Auth helpers |
-| [Configuration](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/configuration.md) | TOML, env vars, programmatic |
-| [Advanced](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/advanced.md) | Hooks, middleware, streaming |
-| [FAQ](https://github.com/Vamshavardhan50/crawlingo-docs/blob/main/faq.md) | Troubleshooting |
+**Documentation website:** [crawlingo-docs.vercel.app](https://crawlingo-docs.vercel.app) · [GitHub](https://github.com/Vamshavardhan50/crawlingo-docs)
 
 **SDK docs:** `sdk/python/README.md`, `sdk/nodejs/README.md`, `cargo doc --open`
 
@@ -943,7 +929,8 @@ Examples:
 ## 🔗 Related Projects
 - [Crawlingo Python SDK](sdk/python/) — PyPI package details
 - [Crawlingo Node.js SDK](sdk/nodejs/) — npm package details
-- [Documentation](https://github.com/Vamshavardhan50/crawlingo-docs) — Comprehensive user docs
+- [Documentation](https://crawlingo-docs.vercel.app) — Docs website
+- [Docs Repo](https://github.com/Vamshavardhan50/crawlingo-docs) — Docs site source
 - [Dev Docs](document/) — Technical deep-dives (contributors)
 - [Issues](https://github.com/Vamshavardhan50/crawlingo/issues) — Bug reports & feature requests
 
