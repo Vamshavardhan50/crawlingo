@@ -1,7 +1,11 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 from ._crawlingo_core import Dataset as _CoreDataset, DatasetResult as _CoreDatasetResult
 from .session import Session
 from .exceptions import handle_core_exception
+from .schema import DatasetSchema
+
+if TYPE_CHECKING:
+    from .page import Page
 
 class Dataset:
     """
@@ -35,6 +39,14 @@ class Dataset:
             raise handle_core_exception(e)
         return self
 
+    def with_schema(self, schema: DatasetSchema) -> "Dataset":
+        """Apply schema validation constraints to the dataset extraction."""
+        try:
+            self._core_dataset.with_schema(schema._core_schema)
+        except Exception as e:
+            raise handle_core_exception(e)
+        return self
+
     def auto_match(self, enabled: bool) -> "Dataset":
         """Enable or disable auto-selector self-healing."""
         self._session.auto_match(enabled)
@@ -60,8 +72,10 @@ class Dataset:
 
     async def build_async(self) -> "DatasetResult":
         """Build and run the dataset query asynchronously."""
+        import asyncio
         try:
-            res = await self._core_dataset.build_async()
+            loop = asyncio.get_running_loop()
+            res = await loop.run_in_executor(None, self._core_dataset.build_async)
             return DatasetResult(res)
         except Exception as e:
             raise handle_core_exception(e)

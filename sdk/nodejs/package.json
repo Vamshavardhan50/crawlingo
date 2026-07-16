@@ -1,7 +1,11 @@
 {
   "name": "crawlingo",
-  "version": "0.1.2",
+  "version": "1.0.0-alpha.1",
   "license": "MIT",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/Vamshavardhan50"
+  },
   "description": "Crawlingo - next-generation web scraping and monitoring framework",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

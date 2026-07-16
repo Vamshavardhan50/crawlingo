@@ -67,3 +67,29 @@ impl ConnectionPoolConfig {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_connection_pool_config_defaults_round_trip() {
+        let default_cfg = ConnectionPoolConfig::default();
+        assert_eq!(default_cfg.max_idle_per_host, 100);
+        assert_eq!(default_cfg.idle_timeout, Duration::from_secs(90));
+        assert_eq!(default_cfg.tcp_keepalive, Duration::from_secs(30));
+        assert_eq!(default_cfg.max_clients, DEFAULT_MAX_CLIENTS);
+
+        let new_cfg = ConnectionPoolConfig::new(50, 60, 15);
+        assert_eq!(new_cfg.max_idle_per_host, 50);
+        assert_eq!(new_cfg.idle_timeout, Duration::from_secs(60));
+        assert_eq!(new_cfg.tcp_keepalive, Duration::from_secs(15));
+        assert_eq!(new_cfg.max_clients, DEFAULT_MAX_CLIENTS);
+
+        let chained_cfg = new_cfg.with_max_clients(10);
+        assert_eq!(chained_cfg.max_clients, 10);
+
+        let no_ka = ConnectionPoolConfig::no_keepalive();
+        assert_eq!(no_ka.max_idle_per_host, 0);
+    }
+}

@@ -92,8 +92,9 @@ pub struct PersistentFrontier {
     db: sled::Db,
 }
 
-const PENDING_KEY: &[u8] = b"__frontier_pending__";
 const VISITED_PREFIX: &str = "visited:";
+const PENDING_PREFIX: &[u8] = b"pending:";
+const COUNTER_KEY: &[u8] = b"pending_counter";
 
 impl PersistentFrontier {
     /// Opens (or creates) the frontier database at `path`. Reopening the same path resumes
@@ -111,19 +112,25 @@ impl PersistentFrontier {
         self.pending_len() == 0 && self.visited_len() == 0
     }
 
-    fn load_pending(&self) -> Vec<(String, usize)> {
-        self.db
-            .get(PENDING_KEY)
+    fn get_and_increment_counter(&self) -> u64 {
+        let current = self
+            .db
+            .get(COUNTER_KEY)
             .ok()
             .flatten()
-            .and_then(|ivec| bincode::deserialize(&ivec).ok())
-            .unwrap_or_default()
-    }
-
-    fn save_pending(&self, pending: &[(String, usize)]) {
-        if let Ok(bytes) = bincode::serialize(pending) {
-            let _ = self.db.insert(PENDING_KEY, bytes);
-        }
+            .and_then(|bytes| {
+                let mut buf = [0u8; 8];
+                if bytes.len() == 8 {
+                    buf.copy_from_slice(&bytes);
+                    Some(u64::from_le_bytes(buf))
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0);
+        let next = current + 1;
+        let _ = self.db.insert(COUNTER_KEY, &next.to_le_bytes());
+        current
     }
 }
 
@@ -132,16 +139,23 @@ impl Frontier for PersistentFrontier {
         if self.is_visited(&url) {
             return;
         }
-        let mut pending = self.load_pending();
-        pending.push((url, depth));
-        self.save_pending(&pending);
+        let counter = self.get_and_increment_counter();
+        let key = format!("pending:{:016}", counter);
+        if let Ok(bytes) = bincode::serialize(&(url, depth)) {
+            let _ = self.db.insert(key.as_bytes(), bytes);
+        }
     }
 
     fn dequeue(&self) -> Option<(String, usize)> {
-        let mut pending = self.load_pending();
-        let item = pending.pop();
-        self.save_pending(&pending);
-        item
+        // We use LIFO order to match MemoryFrontier and test expectations.
+        // next_back() retrieves the last key-value pair under "pending:" prefix in O(log n).
+        let mut iter = self.db.scan_prefix(PENDING_PREFIX);
+        if let Some(Ok((key, value))) = iter.next_back() {
+            let _ = self.db.remove(&key);
+            bincode::deserialize(&value).ok()
+        } else {
+            None
+        }
     }
 
     fn mark_visited(&self, url: &str) {
@@ -155,7 +169,7 @@ impl Frontier for PersistentFrontier {
     }
 
     fn pending_len(&self) -> usize {
-        self.load_pending().len()
+        self.db.scan_prefix(PENDING_PREFIX).count()
     }
 
     fn visited_len(&self) -> usize {

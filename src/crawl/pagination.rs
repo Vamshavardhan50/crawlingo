@@ -99,6 +99,7 @@ pub struct Paginator {
     config: PaginationConfig,
     /// For `PageNumber`: tracks which page we're currently generating.
     page_counter: std::sync::atomic::AtomicUsize,
+    compiled_regex: Option<Arc<Regex>>,
 }
 
 impl Paginator {
@@ -108,9 +109,16 @@ impl Paginator {
         } else {
             1
         };
+        let compiled_regex = if let PaginationScheme::UrlPattern { page_regex, .. } = &config.scheme
+        {
+            Regex::new(page_regex).ok().map(Arc::new)
+        } else {
+            None
+        };
         Self {
             config,
             page_counter: std::sync::atomic::AtomicUsize::new(start),
+            compiled_regex,
         }
     }
 
@@ -149,11 +157,11 @@ impl Paginator {
             }
 
             PaginationScheme::UrlPattern {
-                page_regex,
+                page_regex: _,
                 max_page,
             } => {
-                let re = Regex::new(page_regex).map_err(|e| {
-                    CrawlingoError::FetchError(format!("invalid pagination regex: {e}"))
+                let re = self.compiled_regex.as_ref().ok_or_else(|| {
+                    CrawlingoError::FetchError("invalid or uncompiled pagination regex".to_string())
                 })?;
                 if let Some(caps) = re.captures(url) {
                     let matched = caps.get(1).map(|m| m.as_str()).unwrap_or("");
@@ -199,11 +207,7 @@ impl Paginator {
 
 /// Resolves `href` (possibly relative) against `base_url`.
 fn resolve_url(base: &str, href: &str) -> Option<String> {
-    if href.starts_with("http://") || href.starts_with("https://") {
-        return Some(href.to_string());
-    }
-    let base_url = url::Url::parse(base).ok()?;
-    base_url.join(href).ok().map(|u| u.to_string())
+    crate::util::url::resolve_url(base, href)
 }
 
 /// Wraps a [`Paginator`] so the [`crate::crawl::crawler::Crawler`] can optionally call it during
@@ -216,6 +220,42 @@ pub fn generate_page_urls(url_template: &str, start_page: usize, max_pages: usiz
     (start_page..=max_pages)
         .map(|n| url_template.replace("{page}", &n.to_string()))
         .collect()
+}
+
+// PyO3 Bindings
+#[cfg(feature = "python")]
+use pyo3::prelude::*;
+
+#[cfg(feature = "python")]
+#[pyclass(name = "PaginationConfig")]
+#[derive(Clone)]
+pub struct PyPaginationConfig {
+    pub inner: PaginationConfig,
+}
+
+#[cfg(feature = "python")]
+#[pymethods]
+impl PyPaginationConfig {
+    #[staticmethod]
+    pub fn next_link(selector: &str) -> Self {
+        Self {
+            inner: PaginationConfig::next_link(selector),
+        }
+    }
+
+    #[staticmethod]
+    pub fn page_number(url_template: &str, start_page: usize, max_pages: usize) -> Self {
+        Self {
+            inner: PaginationConfig::page_number(url_template, start_page, max_pages),
+        }
+    }
+
+    #[staticmethod]
+    pub fn url_pattern(page_regex: &str, max_page: usize) -> Self {
+        Self {
+            inner: PaginationConfig::url_pattern(page_regex, max_page),
+        }
+    }
 }
 
 #[cfg(test)]

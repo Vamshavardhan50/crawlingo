@@ -188,12 +188,11 @@ fn main() {
                     FetcherTier::Standard
                 },
                 browser_profile: None,
-                headers: session.headers.read().unwrap().clone(),
-                cookies: session.cookies.read().unwrap().clone(),
+                headers: session.read_headers(),
+                cookies: session.read_cookies(),
                 proxy: session.get_next_proxy(),
                 timeout: std::time::Duration::from_secs(cli.timeout),
                 retries: 2,
-                rate_limit_rps: config.rate_limit_rps,
             };
 
             let rt = tokio::runtime::Builder::new_current_thread()
@@ -338,12 +337,11 @@ fn main() {
                     url: sitemap_url.clone(),
                     tier: crawlingo::engine::fetcher::FetcherTier::Standard,
                     browser_profile: None,
-                    headers: session.headers.read().unwrap().clone(),
-                    cookies: session.cookies.read().unwrap().clone(),
+                    headers: session.read_headers(),
+                    cookies: session.read_cookies(),
                     proxy: session.get_next_proxy(),
                     timeout: std::time::Duration::from_secs(cli.timeout),
                     retries: 2,
-                    rate_limit_rps: 0.0,
                 };
                 let resp = manager.dispatch(req).await?;
                 Ok::<_, crawlingo::error::CrawlingoError>(resp.body.to_vec())

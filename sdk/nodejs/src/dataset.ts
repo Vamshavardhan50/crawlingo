@@ -1,6 +1,7 @@
 import { JsDataset, JsDatasetResult, JsPage, saveStructuredJson, saveStructuredCsv } from './native.js';
 import { Session } from './session';
 import type { Page } from './page';
+import { DatasetSchema } from './schema';
 
 export class DatasetResult {
   constructor(private readonly inner: JsDatasetResult) {}
@@ -47,6 +48,11 @@ export class Dataset {
   ): this {
     const selType = options?.selectorType ?? 'css';
     this.inner.field(name, selector, selType, options?.defaultVal);
+    return this;
+  }
+
+  public withSchema(schema: DatasetSchema): this {
+    this.inner.withSchema(schema.inner);
     return this;
   }
 

@@ -8,3 +8,5 @@ export { Sitemap, sitemapUrlForOrigin } from './sitemap';
 export type { SitemapEntry } from './sitemap';
 export { Downloader } from './download';
 export type { DownloadResult } from './download';
+export { PaginationConfig } from './pagination';
+export { DatasetSchema, FieldType, FieldConstraint } from './schema';

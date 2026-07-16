@@ -25,7 +25,10 @@ jobs:
           echo "Cargo version: $cargo_version"
           echo "Python version: $python_version"
           echo "Node.js version: $node_version"
-          if [ "$cargo_version" != "$python_version" ] || [ "$cargo_version" != "$node_version" ]; then
+          # Normalize python version if it contains PEP 440 prerelease format
+          python_norm=$(echo "$python_version" | sed -e 's/a\([0-9]\)/-alpha.\1/')
+
+          if [ "$cargo_version" != "$python_norm" ] || [ "$cargo_version" != "$node_version" ]; then
             echo "Version mismatch!"
             exit 1
           fi

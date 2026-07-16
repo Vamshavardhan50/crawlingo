@@ -124,7 +124,6 @@ impl Dataset {
         let headers = self.session.headers.read().unwrap().clone();
         let cookies = self.session.cookies.read().unwrap().clone();
         let proxy = self.session.get_next_proxy();
-        let rate_limit_rps = *self.session.rate_limit_rps.read().unwrap();
         let timeout_secs = *self.session.timeout_seconds.read().unwrap();
         let fetcher_tier = *self.session.fetcher_tier.read().unwrap();
         let browser_profile = self.session.browser_profile.read().unwrap().clone();
@@ -138,7 +137,6 @@ impl Dataset {
             proxy,
             timeout: std::time::Duration::from_secs(timeout_secs),
             retries: 3,
-            rate_limit_rps,
         };
 
         let rate_limiter = std::sync::Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
@@ -155,7 +153,6 @@ impl Dataset {
         let headers = self.session.headers.read().unwrap().clone();
         let cookies = self.session.cookies.read().unwrap().clone();
         let proxy = self.session.get_next_proxy();
-        let rate_limit_rps = *self.session.rate_limit_rps.read().unwrap();
         let timeout_secs = *self.session.timeout_seconds.read().unwrap();
         let fetcher_tier = *self.session.fetcher_tier.read().unwrap();
         let browser_profile = self.session.browser_profile.read().unwrap().clone();
@@ -170,7 +167,6 @@ impl Dataset {
             proxy,
             timeout: std::time::Duration::from_secs(timeout_secs),
             retries: 3,
-            rate_limit_rps,
         };
 
         // 3. Fetch using the session-wide manager so connection state and host rate limits
@@ -355,6 +351,7 @@ impl Dataset {
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 
+/// Structured field data extraction builder wrapper.
 #[cfg(feature = "python")]
 #[pyclass(name = "Dataset")]
 pub struct PyDataset {
@@ -364,6 +361,7 @@ pub struct PyDataset {
 #[cfg(feature = "python")]
 #[pymethods]
 impl PyDataset {
+    /// Create a new Dataset extraction builder for the URL.
     #[new]
     pub fn new_py(url: &str, session: &PySession) -> Self {
         Self {
@@ -401,7 +399,16 @@ impl PyDataset {
         Ok(self_.into())
     }
 
-    /// Sync build method
+    /// Apply schema validation constraints to the dataset extraction.
+    pub fn with_schema(
+        mut self_: PyRefMut<'_, Self>,
+        schema: crate::dataset::schema::PyDatasetSchema,
+    ) -> PyResult<Py<Self>> {
+        self_.inner = self_.inner.clone().with_schema(schema.inner);
+        Ok(self_.into())
+    }
+
+    /// Build and run the dataset query synchronously.
     pub fn build(self_: PyRef<'_, Self>) -> PyResult<PyDatasetResult> {
         let py = self_.py();
         let inner = self_.inner.clone();
@@ -429,12 +436,33 @@ impl PyDataset {
         })
     }
 
-    /// Async build method returning coroutine/future
+    /// Build and run the dataset query asynchronously in background.
     pub fn build_async(self_: PyRef<'_, Self>) -> PyResult<PyObject> {
         let py = self_.py();
         let inner = self_.inner.clone();
-        let result = py.allow_threads(move || inner.build())?;
-        Py::new(py, PyDatasetResult { inner: result }).map(|py_res| py_res.into_any())
+        let res = py.allow_threads(move || inner.build())?;
+
+        // Apply python transforms if present
+        let mut final_fields = res.fields.clone();
+        for field_def in &self_.inner.fields {
+            if let Some(ref trans_fn) = field_def.transform {
+                if let Some(val) = final_fields.get_mut(&field_def.name) {
+                    let py_val = val.as_str().into_pyobject(py)?;
+                    let py_res = trans_fn.call1(py, (py_val,))?;
+                    let new_val: String = py_res.extract(py)?;
+                    *val = new_val;
+                }
+            }
+        }
+
+        let py_res_obj = PyDatasetResult {
+            inner: DatasetResult {
+                url: res.url,
+                fields: final_fields,
+                timestamp: res.timestamp,
+            },
+        };
+        Py::new(py, py_res_obj).map(|py_res| py_res.into_any())
     }
 
     #[pyo3(signature = (page))]

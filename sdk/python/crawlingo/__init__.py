@@ -7,6 +7,8 @@ from .session import Session
 from .types import ChangeEvent
 from .sitemap import Sitemap, SitemapEntry, sitemap_url_for_origin
 from .download import Downloader, DownloadResult
+from .pagination import PaginationConfig
+from .schema import DatasetSchema, FieldType, FieldConstraint
 from . import hooks
 from .exceptions import (
     CrawlingoError,
@@ -33,6 +35,10 @@ __all__ = [
     "ChangeEvent",
     "Sitemap",
     "SitemapEntry",
+    "PaginationConfig",
+    "DatasetSchema",
+    "FieldType",
+    "FieldConstraint",
     "sitemap_url_for_origin",
     "Downloader",
     "DownloadResult",
@@ -50,4 +56,5 @@ __all__ = [
     "FingerprintStoreError",
 ]
 
-__version__ = "0.1.0"
+__version__ = "1.0.0a1"
+

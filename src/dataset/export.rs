@@ -51,7 +51,9 @@ pub async fn write_parquet(path: &str, fields: &HashMap<String, String>) -> Resu
 pub async fn write_parquet_stream(
     path: &str,
     receiver: tokio::sync::mpsc::Receiver<HashMap<String, String>>,
+    batch_size: Option<usize>,
 ) -> Result<()> {
+    let limit = batch_size.unwrap_or(1000).max(1);
     let path_str = path.to_string();
     tokio::task::spawn_blocking(move || {
         let mut receiver = receiver;
@@ -72,27 +74,43 @@ pub async fn write_parquet_stream(
         let props = WriterProperties::builder().build();
         let mut writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
 
-        let write_record = |w: &mut ArrowWriter<std::fs::File>,
-                            rec: &HashMap<String, String>,
-                            ks: &[String],
-                            sch: &Arc<Schema>|
+        let write_batch = |w: &mut ArrowWriter<std::fs::File>,
+                           records: &[HashMap<String, String>],
+                           ks: &[String],
+                           sch: &Arc<Schema>|
          -> Result<()> {
+            if records.is_empty() {
+                return Ok(());
+            }
             let mut arrays: Vec<ArrayRef> = Vec::new();
             for key in ks {
-                let val = rec.get(key).cloned().unwrap_or_default();
-                let array = StringArray::from(vec![val]);
+                let mut values = Vec::with_capacity(records.len());
+                for rec in records {
+                    values.push(rec.get(key).map(|s| s.as_str()).unwrap_or(""));
+                }
+                let array = StringArray::from(values);
                 arrays.push(Arc::new(array));
             }
-            let batch =
+            let record_batch =
                 RecordBatch::try_new(sch.clone(), arrays).map_err(CrawlingoError::ArrowError)?;
-            w.write(&batch).map_err(CrawlingoError::ParquetError)?;
+            w.write(&record_batch)
+                .map_err(CrawlingoError::ParquetError)?;
             Ok(())
         };
 
-        write_record(&mut writer, &first_record, &keys, &schema)?;
+        let mut batch = Vec::with_capacity(limit);
+        batch.push(first_record);
 
         while let Some(record) = receiver.blocking_recv() {
-            write_record(&mut writer, &record, &keys, &schema)?;
+            batch.push(record);
+            if batch.len() >= limit {
+                write_batch(&mut writer, &batch, &keys, &schema)?;
+                batch.clear();
+            }
+        }
+
+        if !batch.is_empty() {
+            write_batch(&mut writer, &batch, &keys, &schema)?;
         }
 
         writer.close()?;

@@ -3,6 +3,7 @@ use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 
+#[non_exhaustive]
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type")]
 pub enum ChangeType {
@@ -17,7 +18,6 @@ pub enum ChangeType {
     },
     ElementAdded,
     ElementRemoved,
-    LayoutChange,
 }
 
 /// A structured change event indicating modifications on a parsed field.
@@ -35,11 +35,7 @@ pub struct ChangeEvent {
 
 // Helper to strip currency and parse floats
 fn parse_price(val: &str) -> Option<f64> {
-    let clean: String = val
-        .chars()
-        .filter(|c| c.is_ascii_digit() || *c == '.' || *c == '-')
-        .collect();
-    clean.parse::<f64>().ok()
+    crate::util::price::parse_price_string(val).and_then(|s| s.parse::<f64>().ok())
 }
 
 // Helper to detect stock status
@@ -122,6 +118,7 @@ pub fn detect_changes(
                         };
 
                         let diff = format!("- {}\n+ {}", old_val, new_val);
+                        let similarity_score = strsim::jaro_winkler(old_val, new_val);
 
                         Some(ChangeEvent {
                             url: url.to_string(),
@@ -131,7 +128,7 @@ pub fn detect_changes(
                             new_value: new_val.clone(),
                             diff,
                             detected_at: Utc::now(),
-                            similarity_score: 1.0,
+                            similarity_score,
                         })
                     }
                 }
@@ -176,7 +173,6 @@ impl From<ChangeEvent> for PyChangeEvent {
             ChangeType::StockChange { .. } => "stock",
             ChangeType::ElementAdded => "added",
             ChangeType::ElementRemoved => "removed",
-            ChangeType::LayoutChange => "layout",
         };
 
         Self {
@@ -200,5 +196,120 @@ impl PyChangeEvent {
             "ChangeEvent(field='{}', type='{}', old='{}', new='{}')",
             self.field, self.change_type, self.old_value, self.new_value
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_similarity_score_jaro_winkler() {
+        let mut old = HashMap::new();
+        old.insert("title".to_string(), "Awesome Product".to_string());
+
+        let mut new = HashMap::new();
+        new.insert("title".to_string(), "Awesom Product!".to_string());
+
+        let changes = detect_changes("https://example.com", &old, &new);
+        assert_eq!(changes.len(), 1);
+        let score = changes[0].similarity_score;
+        assert!(
+            score > 0.8 && score < 1.0,
+            "Score should be Jaro-Winkler, got {}",
+            score
+        );
+
+        let mut new_diff = HashMap::new();
+        new_diff.insert(
+            "title".to_string(),
+            "Totally Different Title String".to_string(),
+        );
+        let changes_diff = detect_changes("https://example.com", &old, &new_diff);
+        assert_eq!(changes_diff.len(), 1);
+        let score_diff = changes_diff[0].similarity_score;
+        assert!(
+            score_diff < 0.6,
+            "Dissimilar score should be low, got {}",
+            score_diff
+        );
+    }
+
+    #[test]
+    fn test_change_detection_variants() {
+        // 1. ContentChange
+        let mut old = HashMap::new();
+        old.insert("title".to_string(), "Old Title".to_string());
+        let mut new = HashMap::new();
+        new.insert("title".to_string(), "New Title".to_string());
+        let changes = detect_changes("https://example.com", &old, &new);
+        assert_eq!(changes.len(), 1);
+        assert_eq!(changes[0].field, "title");
+        assert!(matches!(changes[0].change_type, ChangeType::ContentChange));
+
+        // 2. PriceChange
+        let mut old_price = HashMap::new();
+        old_price.insert("price".to_string(), "$100.00".to_string());
+        let mut new_price = HashMap::new();
+        new_price.insert("price".to_string(), "$120.00".to_string());
+        let changes_price = detect_changes("https://example.com", &old_price, &new_price);
+        assert_eq!(changes_price.len(), 1);
+        if let ChangeType::PriceChange {
+            old_price,
+            new_price,
+            diff_pct,
+        } = changes_price[0].change_type
+        {
+            assert_eq!(old_price, 100.0);
+            assert_eq!(new_price, 120.0);
+            assert!((diff_pct - 20.0).abs() < 1e-5);
+        } else {
+            panic!("Expected PriceChange");
+        }
+
+        // 3. StockChange
+        let mut old_stock = HashMap::new();
+        old_stock.insert("stock".to_string(), "In Stock".to_string());
+        let mut new_stock = HashMap::new();
+        new_stock.insert("stock".to_string(), "Out of Stock".to_string());
+        let changes_stock = detect_changes("https://example.com", &old_stock, &new_stock);
+        assert_eq!(changes_stock.len(), 1);
+        if let ChangeType::StockChange { in_stock } = changes_stock[0].change_type {
+            assert!(!in_stock);
+        } else {
+            panic!("Expected StockChange");
+        }
+
+        // 4. ElementAdded (None -> Some)
+        let mut old_add = HashMap::new();
+        let mut new_add = HashMap::new();
+        new_add.insert("extra".to_string(), "new element".to_string());
+        let changes_add = detect_changes("https://example.com", &old_add, &new_add);
+        assert_eq!(changes_add.len(), 1);
+        assert_eq!(changes_add[0].field, "extra");
+        assert!(matches!(
+            changes_add[0].change_type,
+            ChangeType::ElementAdded
+        ));
+
+        // 5. ElementRemoved (Some -> None)
+        let mut old_rem = HashMap::new();
+        old_rem.insert("extra".to_string(), "old element".to_string());
+        let mut new_rem = HashMap::new();
+        let changes_rem = detect_changes("https://example.com", &old_rem, &new_rem);
+        assert_eq!(changes_rem.len(), 1);
+        assert_eq!(changes_rem[0].field, "extra");
+        assert!(matches!(
+            changes_rem[0].change_type,
+            ChangeType::ElementRemoved
+        ));
+
+        // 6. NoChange
+        let mut old_no = HashMap::new();
+        old_no.insert("field".to_string(), "value".to_string());
+        let mut new_no = HashMap::new();
+        new_no.insert("field".to_string(), "value".to_string());
+        let changes_no = detect_changes("https://example.com", &old_no, &new_no);
+        assert!(changes_no.is_empty());
     }
 }

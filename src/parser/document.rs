@@ -482,13 +482,9 @@ impl Page {
             let matches = crate::selector::css::query(&self.tree, "a");
             for &idx in &matches {
                 if let Some(href) = self.tree.nodes[idx].attrs.get("href") {
-                    if let Ok(base) = url::Url::parse(&self.url) {
-                        if let Ok(abs_url) = base.join(href) {
-                            resolved.push(abs_url.to_string());
-                            continue;
-                        }
-                    }
-                    resolved.push(href.clone());
+                    let abs_url = crate::util::url::resolve_url(&self.url, href)
+                        .unwrap_or_else(|| href.clone());
+                    resolved.push(abs_url);
                 }
             }
             resolved
@@ -502,15 +498,8 @@ impl Page {
             for &idx in &matches {
                 if let Some(src) = self.tree.nodes[idx].attrs.get("src") {
                     let alt = self.tree.nodes[idx].attrs.get("alt").cloned();
-                    let resolved_src = if let Ok(base) = url::Url::parse(&self.url) {
-                        if let Ok(abs_url) = base.join(src) {
-                            abs_url.to_string()
-                        } else {
-                            src.clone()
-                        }
-                    } else {
-                        src.clone()
-                    };
+                    let resolved_src = crate::util::url::resolve_url(&self.url, src)
+                        .unwrap_or_else(|| src.clone());
                     imgs.push(ImageResource {
                         src: resolved_src,
                         alt,
@@ -633,13 +622,9 @@ impl Page {
             let matches = crate::selector::css::query(&self.tree, "script");
             for &idx in &matches {
                 if let Some(src) = self.tree.nodes[idx].attrs.get("src") {
-                    if let Ok(base) = url::Url::parse(&self.url) {
-                        if let Ok(abs_url) = base.join(src) {
-                            scripts.push(abs_url.to_string());
-                            continue;
-                        }
-                    }
-                    scripts.push(src.clone());
+                    let abs_url = crate::util::url::resolve_url(&self.url, src)
+                        .unwrap_or_else(|| src.clone());
+                    scripts.push(abs_url);
                 }
             }
             scripts
@@ -652,13 +637,9 @@ impl Page {
             let matches = crate::selector::css::query(&self.tree, "link[rel='stylesheet']");
             for &idx in &matches {
                 if let Some(href) = self.tree.nodes[idx].attrs.get("href") {
-                    if let Ok(base) = url::Url::parse(&self.url) {
-                        if let Ok(abs_url) = base.join(href) {
-                            styles.push(abs_url.to_string());
-                            continue;
-                        }
-                    }
-                    styles.push(href.clone());
+                    let abs_url = crate::util::url::resolve_url(&self.url, href)
+                        .unwrap_or_else(|| href.clone());
+                    styles.push(abs_url);
                 }
             }
             styles

@@ -53,6 +53,7 @@ pub struct PyWatch {
 #[cfg(feature = "python")]
 #[pymethods]
 impl PyWatch {
+    /// Create a new Watch monitor instance for the given URL.
     #[new]
     pub fn new_py(url: &str, session: &PySession) -> Self {
         Self {
@@ -65,51 +66,63 @@ impl PyWatch {
         }
     }
 
-    #[pyo3(signature = (name, selector, selector_type="css", default=None))]
+    /// Define a field selector to watch for change events.
+    #[pyo3(signature = (name, selector, selector_type=None, transform=None, default=None, extract_type=None))]
+    #[allow(clippy::too_many_arguments)]
     pub fn field(
         mut self_: PyRefMut<'_, Self>,
         name: &str,
         selector: &str,
-        selector_type: &str,
-        default: Option<String>,
+        selector_type: Option<&str>,
+        transform: Option<PyObject>,
+        default: Option<&str>,
+        extract_type: Option<&str>,
     ) -> PyResult<Py<Self>> {
         let field = DatasetField {
             name: name.to_string(),
             selector: selector.to_string(),
-            selector_type: selector_type.to_string(),
-            transform: None,
-            default,
-            extract_type: Default::default(),
+            selector_type: selector_type.unwrap_or("css").to_string(),
+            transform,
+            default: default.map(|s| s.to_string()),
+            extract_type: extract_type
+                .map(crate::extraction::ExtractionType::from_str_or_text)
+                .unwrap_or_default(),
         };
         self_.inner.fields.push(field);
         Ok(self_.into())
     }
 
+    /// Set the polling interval in seconds.
     pub fn interval(mut self_: PyRefMut<'_, Self>, seconds: u64) -> PyResult<Py<Self>> {
         self_.inner.interval_seconds = seconds;
         Ok(self_.into())
     }
 
+    /// Register callback function called on any change event.
     pub fn on_change(mut self_: PyRefMut<'_, Self>, cb: PyObject) -> PyResult<Py<Self>> {
         self_.on_change_cb = Some(cb);
         Ok(self_.into())
     }
 
+    /// Register callback function called on price changes.
     pub fn on_price_change(mut self_: PyRefMut<'_, Self>, cb: PyObject) -> PyResult<Py<Self>> {
         self_.on_price_change_cb = Some(cb);
         Ok(self_.into())
     }
 
+    /// Register callback function called on stock changes.
     pub fn on_stock_change(mut self_: PyRefMut<'_, Self>, cb: PyObject) -> PyResult<Py<Self>> {
         self_.on_stock_change_cb = Some(cb);
         Ok(self_.into())
     }
 
+    /// Register callback function called when element is added.
     pub fn on_element_added(mut self_: PyRefMut<'_, Self>, cb: PyObject) -> PyResult<Py<Self>> {
         self_.on_added_cb = Some(cb);
         Ok(self_.into())
     }
 
+    /// Register callback function called when element is removed.
     pub fn on_element_removed(mut self_: PyRefMut<'_, Self>, cb: PyObject) -> PyResult<Py<Self>> {
         self_.on_removed_cb = Some(cb);
         Ok(self_.into())
@@ -134,7 +147,7 @@ impl PyWatch {
                 name: f.name.clone(),
                 selector: f.selector.clone(),
                 selector_type: f.selector_type.clone(),
-                transform: None,
+                transform: f.transform.clone(),
                 default: f.default.clone(),
                 extract_type: f.extract_type.clone(),
             });
@@ -159,13 +172,28 @@ impl PyWatch {
                                     name: f.name.clone(),
                                     selector: f.selector.clone(),
                                     selector_type: f.selector_type.clone(),
-                                    transform: None,
+                                    transform: f.transform.clone(),
                                     default: f.default.clone(),
                                     extract_type: f.extract_type.clone(),
                                 });
                             }
 
-                            if let Ok(res) = dataset.build_async().await {
+                            if let Ok(mut res) = dataset.build_async().await {
+                                Python::with_gil(|py| {
+                                    for field_def in &fields {
+                                        if let Some(ref trans_fn) = field_def.transform {
+                                            if let Some(val) = res.fields.get_mut(&field_def.name) {
+                                                let py_val = val.as_str().into_pyobject(py).unwrap();
+                                                if let Ok(py_res) = trans_fn.call1(py, (py_val,)) {
+                                                    if let Ok(new_val) = py_res.extract::<String>(py) {
+                                                        *val = new_val;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+
                                 if !previous_data.is_empty() {
                                     let changes = detect_changes(&url, &previous_data, &res.fields);
                                     for change in changes {
@@ -210,7 +238,6 @@ impl PyWatch {
                 }
             });
         });
-
         Ok(())
     }
 

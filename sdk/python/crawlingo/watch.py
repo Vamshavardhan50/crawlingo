@@ -19,11 +19,18 @@ class Watch:
         name: str,
         selector: str,
         selector_type: str = "css",
+        transform: Optional[Callable[[str], str]] = None,
         default: Optional[str] = None,
     ) -> "Watch":
         """Define a selector field to monitor for changes."""
         try:
-            self._core_watch.field(name, selector, selector_type=selector_type, default=default)
+            self._core_watch.field(
+                name,
+                selector,
+                selector_type=selector_type,
+                transform=transform,
+                default=default,
+            )
         except Exception as e:
             raise handle_core_exception(e)
         return self

@@ -119,7 +119,9 @@ class Watch:
         name: str,
         selector: str,
         selector_type: str = "css",
+        transform: Callable[[str], str] | None = None,
         default: str | None = None,
+        extract_type: str | None = None,
     ) -> Watch: ...
     def interval(self, seconds: int) -> Watch: ...
     def on_change(self, fn: Callable[[ChangeEvent], None]) -> Watch: ...

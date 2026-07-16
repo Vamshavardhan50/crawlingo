@@ -22,9 +22,6 @@ impl FingerprintStore {
         self.db
             .insert(key.as_bytes(), bytes)
             .map_err(|e| CrawlingoError::FingerprintStoreError(e.to_string()))?;
-        self.db
-            .flush()
-            .map_err(|e| CrawlingoError::FingerprintStoreError(e.to_string()))?;
         Ok(())
     }
 
@@ -52,6 +49,11 @@ impl FingerprintStore {
         self.db
             .remove(key.as_bytes())
             .map_err(|e| CrawlingoError::FingerprintStoreError(e.to_string()))?;
+        Ok(())
+    }
+
+    /// Explicitly flushes all written fingerprint store operations to disk.
+    pub fn flush(&self) -> Result<()> {
         self.db
             .flush()
             .map_err(|e| CrawlingoError::FingerprintStoreError(e.to_string()))?;

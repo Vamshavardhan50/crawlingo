@@ -9,6 +9,8 @@ use crawlingo::engine::pool::ConnectionPoolConfig;
 use crawlingo::selector::{css, xpath, text_anchor, regex_selector};
 use crawlingo::dataset::builder::{Dataset, DatasetField, DatasetResult};
 use crawlingo::crawl::crawler::Crawler;
+use crawlingo::crawl::pagination::PaginationConfig;
+use crawlingo::dataset::schema::{DatasetSchema, FieldType, FieldConstraint};
 use crawlingo::change::detector::{detect_changes, ChangeType};
 
 #[napi(object)]
@@ -499,6 +501,7 @@ pub struct JsDataset {
     pub(crate) url: String,
     pub(crate) fields: Vec<DatasetField>,
     pub(crate) session: Arc<Session>,
+    pub(crate) schema: Option<DatasetSchema>,
 }
 
 #[napi]
@@ -509,6 +512,7 @@ impl JsDataset {
             url,
             fields: Vec::new(),
             session: session.inner.clone(),
+            schema: None,
         }
     }
 
@@ -525,9 +529,15 @@ impl JsDataset {
     }
 
     #[napi]
+    pub fn with_schema(&mut self, schema: &JsDatasetSchema) {
+        self.schema = Some(schema.inner.clone());
+    }
+
+    #[napi]
     pub async fn build(&self) -> napi::Result<JsDatasetResult> {
         let mut dataset = Dataset::new(&self.url, self.session.clone());
         dataset.fields = self.fields.clone();
+        dataset.schema = self.schema.clone();
         let res = dataset.build_async().await
             .map_err(|e| to_napi_error(e, &self.url, "dataset"))?;
         Ok(JsDatasetResult { inner: res })
@@ -539,6 +549,7 @@ impl JsDataset {
     pub fn extract_structured(&self, page: &JsPage) -> Vec<HashMap<String, String>> {
         let mut dataset = Dataset::new(&self.url, self.session.clone());
         dataset.fields = self.fields.clone();
+        dataset.schema = self.schema.clone();
         dataset.extract_from_tree(&page.tree)
     }
 
@@ -547,6 +558,7 @@ impl JsDataset {
     pub async fn build_structured(&self) -> napi::Result<Vec<HashMap<String, String>>> {
         let mut dataset = Dataset::new(&self.url, self.session.clone());
         dataset.fields = self.fields.clone();
+        dataset.schema = self.schema.clone();
         dataset.build_structured().await
             .map_err(|e| to_napi_error(e, &self.url, "dataset"))
     }
@@ -607,6 +619,18 @@ impl JsCrawl {
         Self {
             crawler: Crawler::new(&start_url, session.inner.clone()),
         }
+    }
+
+    #[napi(factory)]
+    pub fn resumable(start_url: String, session: &JsSession, path: String) -> napi::Result<Self> {
+        let crawler = Crawler::resumable(&start_url, session.inner.clone(), std::path::Path::new(&path))
+            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+        Ok(Self { crawler })
+    }
+
+    #[napi]
+    pub fn with_pagination(&mut self, config: &JsPaginationConfig) {
+        self.crawler.pagination = Some(config.inner.clone());
     }
 
     #[napi]
@@ -1032,4 +1056,100 @@ impl JsSitemap {
 #[napi]
 pub fn sitemap_url_for_origin(origin: String) -> String {
     crawlingo::crawl::sitemap::sitemap_url_for_origin(&origin)
+}
+
+#[napi]
+pub struct JsPaginationConfig {
+    pub(crate) inner: PaginationConfig,
+}
+
+#[napi]
+impl JsPaginationConfig {
+    #[napi(factory)]
+    pub fn next_link(selector: String) -> Self {
+        Self {
+            inner: PaginationConfig::next_link(&selector),
+        }
+    }
+
+    #[napi(factory)]
+    pub fn page_number(url_template: String, start_page: u32, max_pages: u32) -> Self {
+        Self {
+            inner: PaginationConfig::page_number(&url_template, start_page as usize, max_pages as usize),
+        }
+    }
+
+    #[napi(factory)]
+    pub fn url_pattern(page_regex: String, max_page: u32) -> Self {
+        Self {
+            inner: PaginationConfig::url_pattern(&page_regex, max_page as usize),
+        }
+    }
+}
+
+#[napi]
+pub enum JsFieldType {
+    String,
+    Integer,
+    Float,
+    Boolean,
+}
+
+impl From<JsFieldType> for FieldType {
+    fn from(ft: JsFieldType) -> Self {
+        match ft {
+            JsFieldType::String => FieldType::String,
+            JsFieldType::Integer => FieldType::Integer,
+            JsFieldType::Float => FieldType::Float,
+            JsFieldType::Boolean => FieldType::Boolean,
+        }
+    }
+}
+
+#[napi]
+pub struct JsFieldConstraint {
+    pub name: String,
+    pub field_type: JsFieldType,
+    pub required: bool,
+}
+
+#[napi]
+impl JsFieldConstraint {
+    #[napi(constructor)]
+    pub fn new(name: String, field_type: JsFieldType, required: bool) -> Self {
+        Self {
+            name,
+            field_type,
+            required,
+        }
+    }
+}
+
+#[napi]
+pub struct JsDatasetSchema {
+    pub(crate) inner: DatasetSchema,
+}
+
+#[napi]
+impl JsDatasetSchema {
+    #[napi(constructor)]
+    pub fn new() -> Self {
+        Self {
+            inner: DatasetSchema::default(),
+        }
+    }
+
+    #[napi]
+    pub fn add_field(&mut self, name: String, field_type: JsFieldType, required: bool) {
+        self.inner.fields.push(FieldConstraint {
+            name,
+            field_type: field_type.into(),
+            required,
+        });
+    }
+
+    #[napi]
+    pub fn validate(&self, record: HashMap<String, String>) -> napi::Result<HashMap<String, String>> {
+        self.inner.validate(&record).map_err(|e| napi::Error::from_reason(e.to_string()))
+    }
 }

@@ -93,7 +93,7 @@ impl From<&RetryConfigSpec> for crate::engine::retry::RetryPolicy {
 ///
 /// All fields are optional-with-defaults (`#[serde(default)]`) so a config file only needs to
 /// specify the values it wants to override.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(default)]
 pub struct CrawlingoConfig {
     pub headers: HashMap<String, String>,
@@ -208,6 +208,77 @@ impl CrawlingoConfig {
         if let Some(v) = lookup("CRAWLINGO_BROWSER_PROFILE") {
             self.browser_profile = Some(v);
         }
+
+        // --- Milestone 3 pool and retry environment overrides ---
+        if let Some(v) = lookup("CRAWLINGO_POOL_MAX_IDLE_PER_HOST") {
+            match v.parse() {
+                Ok(val) => self.pool.max_idle_per_host = val,
+                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_POOL_MAX_IDLE_PER_HOST={v:?}"),
+            }
+        }
+        if let Some(v) = lookup("CRAWLINGO_POOL_MAX_CLIENTS") {
+            match v.parse() {
+                Ok(val) => self.pool.max_clients = val,
+                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_POOL_MAX_CLIENTS={v:?}"),
+            }
+        }
+        if let Some(v) = lookup("CRAWLINGO_POOL_IDLE_TIMEOUT_SECS") {
+            match v.parse() {
+                Ok(val) => self.pool.idle_timeout_secs = val,
+                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_POOL_IDLE_TIMEOUT_SECS={v:?}"),
+            }
+        }
+        if let Some(v) = lookup("CRAWLINGO_RETRY_BASE_DELAY_MS") {
+            match v.parse() {
+                Ok(val) => self.retry.base_delay_ms = val,
+                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_RETRY_BASE_DELAY_MS={v:?}"),
+            }
+        }
+        if let Some(v) = lookup("CRAWLINGO_RETRY_MAX_DELAY_MS") {
+            match v.parse() {
+                Ok(val) => self.retry.max_delay_ms = val,
+                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_RETRY_MAX_DELAY_MS={v:?}"),
+            }
+        }
+        if let Some(v) = lookup("CRAWLINGO_RETRY_MULTIPLIER") {
+            match v.parse() {
+                Ok(val) => self.retry.multiplier = val,
+                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_RETRY_MULTIPLIER={v:?}"),
+            }
+        }
+    }
+}
+
+impl std::fmt::Debug for CrawlingoConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let sanitized_proxy = self
+            .proxy
+            .as_ref()
+            .map(|p| crate::util::url::sanitize_proxy_url(p));
+        let sanitized_proxy_pool: Vec<String> = self
+            .proxy_pool
+            .iter()
+            .map(|p| crate::util::url::sanitize_proxy_url(p))
+            .collect();
+        let sanitized_provider = self
+            .proxy_provider_url
+            .as_ref()
+            .map(|p| crate::util::url::sanitize_proxy_url(p));
+
+        f.debug_struct("CrawlingoConfig")
+            .field("headers", &self.headers)
+            .field("proxy", &sanitized_proxy)
+            .field("proxy_pool", &sanitized_proxy_pool)
+            .field("proxy_provider_url", &sanitized_provider)
+            .field("rate_limit_rps", &self.rate_limit_rps)
+            .field("auto_match", &self.auto_match)
+            .field("timeout_seconds", &self.timeout_seconds)
+            .field("fingerprint_path", &self.fingerprint_path)
+            .field("fetcher_tier", &self.fetcher_tier)
+            .field("browser_profile", &self.browser_profile)
+            .field("pool", &self.pool)
+            .field("retry", &self.retry)
+            .finish()
     }
 }
 
@@ -318,5 +389,27 @@ mod tests {
         config.apply_env_from(|key| env.get(key).map(|v| v.to_string()));
         // Invalid value is ignored; original default is preserved rather than the load failing.
         assert_eq!(config.rate_limit_rps, 1.0);
+    }
+
+    #[test]
+    fn test_milestone_3_new_env_variables() {
+        let mut config = CrawlingoConfig::default();
+
+        let mut env: StdHashMap<&str, &str> = StdHashMap::new();
+        env.insert("CRAWLINGO_POOL_MAX_IDLE_PER_HOST", "42");
+        env.insert("CRAWLINGO_POOL_MAX_CLIENTS", "99");
+        env.insert("CRAWLINGO_POOL_IDLE_TIMEOUT_SECS", "600");
+        env.insert("CRAWLINGO_RETRY_BASE_DELAY_MS", "500");
+        env.insert("CRAWLINGO_RETRY_MAX_DELAY_MS", "5000");
+        env.insert("CRAWLINGO_RETRY_MULTIPLIER", "3.14");
+
+        config.apply_env_from(|key| env.get(key).map(|v| v.to_string()));
+
+        assert_eq!(config.pool.max_idle_per_host, 42);
+        assert_eq!(config.pool.max_clients, 99);
+        assert_eq!(config.pool.idle_timeout_secs, 600);
+        assert_eq!(config.retry.base_delay_ms, 500);
+        assert_eq!(config.retry.max_delay_ms, 5000);
+        assert_eq!(config.retry.multiplier, 3.14);
     }
 }

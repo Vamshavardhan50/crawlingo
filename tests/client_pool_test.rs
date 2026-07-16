@@ -49,7 +49,6 @@ fn request(
         proxy: proxy.map(String::from),
         timeout: Duration::from_secs(10),
         retries: 0,
-        rate_limit_rps: 0.0,
     }
 }
 

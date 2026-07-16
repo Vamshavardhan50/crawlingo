@@ -90,6 +90,10 @@ class _TestRequestHandler(BaseHTTPRequestHandler):
     """Simple HTTP handler responding with test data for every method/path."""
 
     RESPONSES = {
+        "/page-1": (200, {"Content-Type": "text/html"},
+                    b"<html><body><h1>Page 1</h1><a class='next-btn' href='/page-2'>next</a></body></html>"),
+        "/page-2": (200, {"Content-Type": "text/html"},
+                    b"<html><body><h1>Page 2</h1></body></html>"),
         "/json": (200, {"Content-Type": "application/json"},
                   b'{"key":"value","nested":{"a":1}}'),
         "/xml": (200, {"Content-Type": "application/xml"},
@@ -647,8 +651,31 @@ def test_extraction(runner, server):
 
 def test_pagination(runner, server):
     runner.section("16. Pagination")
-    runner.missing("All pagination",
-                   "Use Crawl.follow() for link-based; no dedicated API")
+
+    runner.subsection("16.1 Constructors")
+    try:
+        cfg1 = crawlingo.PaginationConfig.next_link("a.next-btn")
+        runner.check("PaginationConfig.next_link()", isinstance(cfg1, crawlingo.PaginationConfig))
+
+        cfg2 = crawlingo.PaginationConfig.page_number("http://127.0.0.1/p/{page}", 1, 5)
+        runner.check("PaginationConfig.page_number()", isinstance(cfg2, crawlingo.PaginationConfig))
+
+        cfg3 = crawlingo.PaginationConfig.url_pattern(r"page=(\d+)", 5)
+        runner.check("PaginationConfig.url_pattern()", isinstance(cfg3, crawlingo.PaginationConfig))
+    except Exception as e:
+        runner.check("PaginationConfig constructors", False, str(e))
+
+    runner.subsection("16.2 Crawl with Pagination")
+    try:
+        config = crawlingo.PaginationConfig.next_link("a.next-btn")
+        c = Crawl(f"{server.url}/page-1", Session())
+        c.with_pagination(config).field("title", "h1").limit(5)
+        results = c.build()
+        runner.check("Crawl with pagination executes both pages", len(results) >= 2)
+        titles = [r["title"] for r in results]
+        runner.check("Crawl results contain both pages data", "Page 1" in titles and "Page 2" in titles)
+    except Exception as e:
+        runner.check("Crawl with pagination", False, str(e))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -794,8 +821,54 @@ def test_dataset(runner, server):
         r2 = d2.build()
         runner.check("Dataset with transform hooks — build succeeds",
                      isinstance(r2, DatasetResult))
+        runner.check("Dataset transform hook 'strip_whitespace' applied", r2["h"] == "OK")
+        runner.check("Dataset transform hook 'uppercase' applied", r2["p"] == "TEST PARAGRAPH")
     except Exception as e:
         runner.check("Dataset with transforms", False, str(e)[:80])
+
+    try:
+        import asyncio
+        d3 = Dataset(server.url, Session())
+        d3.field("p", "p", transform=uppercase)
+        r3 = asyncio.run(d3.build_async())
+        runner.check("Dataset build_async succeeds", isinstance(r3, DatasetResult))
+        runner.check("Dataset build_async transform applied", r3["p"] == "TEST PARAGRAPH")
+    except Exception as e:
+        runner.check("Dataset build_async", False, str(e)[:80])
+
+    runner.subsection("21.5 Schema Validation")
+    try:
+        from crawlingo import DatasetSchema, FieldType
+        schema = DatasetSchema()
+        schema.add_field("heading", FieldType.String, True)
+        schema.add_field("paragraph", FieldType.String, False)
+        
+        # Test validation success
+        d_schema = Dataset(server.url, Session())
+        d_schema.field("heading", "h1").field("paragraph", "p")
+        d_schema.with_schema(schema).timeout(10)
+        res_schema = d_schema.build()
+        runner.check("Dataset with schema validation success", isinstance(res_schema, DatasetResult))
+        runner.check("Dataset validated fields extracted", res_schema["heading"] == "OK")
+    except Exception as e:
+        runner.check("Dataset with schema validation", False, str(e))
+
+    try:
+        from crawlingo import DatasetSchema, FieldType
+        # Test validation failure (required field missing because we didn't define it in the dataset!)
+        schema_fail = DatasetSchema()
+        schema_fail.add_field("missing_required_field", FieldType.String, True)
+        
+        d_fail = Dataset(server.url, Session())
+        d_fail.field("heading", "h1")
+        d_fail.with_schema(schema_fail).timeout(10)
+        try:
+            d_fail.build()
+            runner.check("Dataset with schema failure raises exception", False, "No exception raised")
+        except Exception as e:
+            runner.check("Dataset with schema failure raises exception", True, f"Raised: {type(e).__name__} - {e}")
+    except Exception as e:
+        runner.check("Dataset schema failure test setup", False, str(e))
 
     runner.missing("Row update", "Dataset is read-only")
     runner.missing("Row delete", "Dataset is read-only")
@@ -979,6 +1052,27 @@ def test_cleanup(runner, server):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 28. Watch
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_watch(runner, server):
+    runner.section("28. Watch")
+
+    s = Session()
+    w = Watch(server.url, s)
+    w.field("h", "h1", transform=uppercase)
+    w.interval(1)
+
+    t = threading.Thread(target=w.run)
+    t.start()
+
+    time.sleep(1.5)
+    w.stop()
+    t.join(timeout=2)
+    runner.check("Watch runs and stops cleanly", not t.is_alive())
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Main
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1025,6 +1119,7 @@ def main():
             ("25. Logging / Hooks",    test_logging),
             ("26. Performance",        test_performance),
             ("27. Cleanup",            test_cleanup),
+            ("28. Watch",              test_watch),
         ]
 
         for name, fn in tests:

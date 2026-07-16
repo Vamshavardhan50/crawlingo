@@ -1,15 +1,21 @@
 import { JsCrawl } from './native.js';
 import { Session } from './session';
 import { DatasetResult } from './dataset';
+import { PaginationConfig } from './pagination';
 
 export class Crawl {
   private readonly inner: JsCrawl;
 
   private readonly session: Session;
 
-  constructor(startUrl: string, session?: Session) {
+  constructor(startUrl: string, session?: Session, inner?: JsCrawl) {
     this.session = session ?? new Session();
-    this.inner = new JsCrawl(startUrl, this.session.inner);
+    this.inner = inner ?? new JsCrawl(startUrl, this.session.inner);
+  }
+
+  public static resumable(startUrl: string, session: Session, path: string): Crawl {
+    const inner = JsCrawl.resumable(startUrl, session.inner, path);
+    return new Crawl(startUrl, session, inner);
   }
 
   public autoMatch(enabled: boolean): this {
@@ -19,6 +25,11 @@ export class Crawl {
 
   public follow(selector: string): this {
     this.inner.follow(selector);
+    return this;
+  }
+
+  public withPagination(config: PaginationConfig): this {
+    this.inner.withPagination(config.inner);
     return this;
   }
 

@@ -3,6 +3,7 @@ from ._crawlingo_core import Crawl as _CoreCrawl
 from .session import Session
 from .dataset import DatasetResult
 from .exceptions import handle_core_exception
+from .pagination import PaginationConfig
 
 class CrawlResults:
     """
@@ -83,6 +84,14 @@ class Crawl:
         """Set CSS selector pointing to links that crawler should queue and follow."""
         try:
             self._core_crawl.follow(selector)
+        except Exception as e:
+            raise handle_core_exception(e)
+        return self
+
+    def with_pagination(self, config: PaginationConfig) -> "Crawl":
+        """Configure automatic pagination for the crawl."""
+        try:
+            self._core_crawl.with_pagination(config._core_config)
         except Exception as e:
             raise handle_core_exception(e)
         return self

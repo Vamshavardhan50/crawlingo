@@ -1,6 +1,6 @@
 <h1 align="center">
     <a href="https://crawlingo.dev">
-        <img alt="Crawlingo Cover" src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/crawlingo.jpg" width="600">
+        <img alt="Crawlingo Cover" src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/crawlingo.jpg" width="600">
     </a>
     <br>
     <small>Crawlingo Node.js SDK - Self-Healing Web Scraping for JS/TS</small>
@@ -37,7 +37,7 @@
 
 Watch Crawlingo's self-healing DOM selector engine dynamically recover element references when a website's layout/DOM structure drifts:
 
-![Crawlingo Self-Healing Demo](../../crawlingo_demo.webp)
+![Crawlingo Self-Healing Demo](../../assets/crawlingo_demo.webp)
 
 ### How Self-Healing Works Under the Hood:
 1. **Drift Detection**: When the target element (e.g., `button#submit.btn-primary`) undergoes styling or structure updates (e.g., renamed to `button#send-btn.btn-primary-new`), traditional scrapers fail and return empty results.

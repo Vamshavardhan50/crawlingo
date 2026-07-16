@@ -17,6 +17,7 @@ pub mod matcher;
 pub mod metrics;
 pub mod parser;
 pub mod selector;
+pub mod util;
 pub mod watch;
 
 /// Convenience re-export of the core Page type.
@@ -92,7 +93,6 @@ impl PyPage {
                         proxy,
                         timeout: std::time::Duration::from_secs(timeout),
                         retries,
-                        rate_limit_rps: 0.0,
                     };
                     let rate_limiter =
                         Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
@@ -436,7 +436,6 @@ impl PySitemap {
                             *crawler.session.timeout_seconds.read().unwrap(),
                         ),
                         retries: 2,
-                        rate_limit_rps: 0.0,
                     };
                     if let Ok(resp) = manager.dispatch(req).await {
                         if let Ok(parsed) = crate::crawl::sitemap::parse_sitemap(&resp.body) {
@@ -504,7 +503,11 @@ fn _crawlingo_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<crate::parser::document::PyElementCollection>()?;
     m.add_class::<crate::dataset::builder::PyDataset>()?;
     m.add_class::<crate::dataset::builder::PyDatasetResult>()?;
+    m.add_class::<crate::dataset::schema::PyFieldType>()?;
+    m.add_class::<crate::dataset::schema::PyFieldConstraint>()?;
+    m.add_class::<crate::dataset::schema::PyDatasetSchema>()?;
     m.add_class::<crate::crawl::crawler::PyCrawl>()?;
+    m.add_class::<crate::crawl::pagination::PyPaginationConfig>()?;
     m.add_class::<crate::watch::monitor::PyWatch>()?;
     m.add_class::<crate::engine::session::PySession>()?;
     m.add_class::<crate::change::detector::PyChangeEvent>()?;

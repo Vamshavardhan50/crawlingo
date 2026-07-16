@@ -45,3 +45,7 @@ We follow [Coordinated Vulnerability Disclosure](https://vuls.cert.org/confluenc
 - Rate limiting or abuse by users of the library
 - Bypassing bot detection (that's a feature, not a bug)
 - Denial of service of third-party sites using Crawlingo
+
+## Trusted-Input Assumption
+
+Crawlingo assumes that target URLs, CSS/XPath selectors, and JSON schemas passed to the engine are trusted inputs. The library does not execute user-provided scripts in a sandbox, nor does it attempt to prevent denial of service from overly complex regular expressions (ReDoS) provided by the caller. Callers should ensure all inputs (especially regular expressions and user-supplied selectors) are validated and sanitized prior to execution.

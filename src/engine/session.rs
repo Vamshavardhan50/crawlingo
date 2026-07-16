@@ -12,7 +12,7 @@ pub struct Session {
     pub headers: RwLock<HashMap<String, String>>,
     pub cookies: RwLock<HashMap<String, String>>,
     pub proxy: RwLock<Option<String>>,
-    pub rate_limit_rps: RwLock<f64>,
+    pub rate_limit_rps: Arc<RwLock<f64>>,
     pub auto_match: RwLock<bool>,
     pub timeout_seconds: RwLock<u64>,
     pub fingerprint_path: RwLock<String>,
@@ -77,10 +77,8 @@ impl Session {
         }
         *session.browser_profile.write().unwrap() = config.browser_profile.clone();
 
-        // Pre-build the shared FetchManager using the config's pool/retry settings, rather than
-        // leaving fetch_manager() to lazily build one from ConnectionPoolConfig::default() and
-        // RetryPolicy::default() on first use.
         let manager = FetchManager::new(Arc::new(HostRateLimiter::new()), (&config.pool).into())
+            .with_rate_limit_rps(session.rate_limit_rps.clone())
             .with_retry_policy((&config.retry).into())
             .with_middleware(&session.middleware.read().unwrap());
         *session.fetch_manager.write().unwrap() = Some(Arc::new(manager));
@@ -98,7 +96,7 @@ impl Session {
             headers: RwLock::new(HashMap::new()),
             cookies: RwLock::new(HashMap::new()),
             proxy: RwLock::new(None),
-            rate_limit_rps: RwLock::new(0.0),
+            rate_limit_rps: Arc::new(RwLock::new(0.0)),
             auto_match: RwLock::new(false),
             timeout_seconds: RwLock::new(30),
             fingerprint_path: RwLock::new(".crawlingo".to_string()),
@@ -118,6 +116,16 @@ impl Session {
             proxy_username: RwLock::new(None),
             proxy_password: RwLock::new(None),
         }
+    }
+
+    /// Read session headers safely under a read lock.
+    pub fn read_headers(&self) -> HashMap<String, String> {
+        self.headers.read().unwrap().clone()
+    }
+
+    /// Read session cookies safely under a read lock.
+    pub fn read_cookies(&self) -> HashMap<String, String> {
+        self.cookies.read().unwrap().clone()
     }
 
     /// Adds a middleware layer around all fetches for this session (see
@@ -184,6 +192,7 @@ impl Session {
                 Arc::new(HostRateLimiter::new()),
                 ConnectionPoolConfig::default(),
             )
+            .with_rate_limit_rps(self.rate_limit_rps.clone())
             .with_middleware(&self.middleware.read().unwrap()),
         );
         *guard = Some(manager.clone());
@@ -197,6 +206,7 @@ impl Session {
     pub fn set_transport(&self, transport: Arc<dyn Transport>) {
         let manager = Arc::new(
             FetchManager::with_transport(Arc::new(HostRateLimiter::new()), transport)
+                .with_rate_limit_rps(self.rate_limit_rps.clone())
                 .with_middleware(&self.middleware.read().unwrap()),
         );
         *self.fetch_manager.write().unwrap() = Some(manager);
@@ -232,7 +242,6 @@ impl Session {
                     proxy: None,
                     timeout: std::time::Duration::from_secs(10),
                     retries: 1,
-                    rate_limit_rps: 0.0,
                 };
                 let resp = manager.dispatch(req).await.map_err(|e| e.to_string())?;
                 let text = String::from_utf8_lossy(&resp.body).to_string();
@@ -256,6 +265,17 @@ impl Session {
         &self,
     ) -> Result<Arc<FingerprintStore>, crate::error::CrawlingoError> {
         let path = self.fingerprint_path.read().unwrap().clone();
+
+        // Path traversal validation: ensure the path does not contain ".." segments
+        let path_obj = std::path::Path::new(&path);
+        for component in path_obj.components() {
+            if component == std::path::Component::ParentDir {
+                return Err(crate::error::CrawlingoError::ConfigError(format!(
+                    "security error: directory traversal detected in fingerprint_path {:?}",
+                    path
+                )));
+            }
+        }
 
         {
             let store_opt = self.fingerprint_store.read().unwrap();
@@ -282,6 +302,16 @@ impl Session {
 impl Default for Session {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Drop for Session {
+    fn drop(&mut self) {
+        if let Ok(store_opt) = self.fingerprint_store.read() {
+            if let Some((_, ref store)) = *store_opt {
+                let _ = store.flush();
+            }
+        }
     }
 }
 
@@ -375,7 +405,6 @@ mod tests {
             proxy: None,
             timeout: std::time::Duration::from_secs(5),
             retries: 0,
-            rate_limit_rps: 0.0,
         };
         manager
             .dispatch(req)

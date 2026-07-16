@@ -91,7 +91,7 @@ struct CacheControl {
 
 fn parse_cache_control(headers: &std::collections::HashMap<String, String>) -> CacheControl {
     let mut cc = CacheControl::default();
-    let Some(value) = headers.get("cache-control") else {
+    let Some(value) = crate::util::headers::get_header(headers, "cache-control") else {
         return cc;
     };
     for directive in value.split(',') {
@@ -143,8 +143,9 @@ impl CachingTransport {
             response: response.clone(),
             stored_at: Instant::now(),
             max_age: cc.max_age.unwrap_or(self.default_ttl),
-            etag: response.headers.get("etag").cloned(),
-            last_modified: response.headers.get("last-modified").cloned(),
+            etag: crate::util::headers::get_header(&response.headers, "etag").map(String::from),
+            last_modified: crate::util::headers::get_header(&response.headers, "last-modified")
+                .map(String::from),
             must_revalidate: cc.no_cache,
         };
         self.cache.put(url, entry).await;
@@ -214,24 +215,10 @@ impl Layer for CachingLayer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::fetcher::{FetcherTier, MockResponse, MockTransport};
+    use crate::engine::fetcher::{mock_request, FetcherTier, MockResponse, MockTransport};
     use crate::engine::middleware::MiddlewareStack;
     use std::collections::HashMap;
     use std::sync::atomic::{AtomicUsize, Ordering};
-
-    fn mock_request(url: &str) -> FetchRequest {
-        FetchRequest {
-            url: url.to_string(),
-            tier: FetcherTier::Standard,
-            browser_profile: None,
-            headers: HashMap::new(),
-            cookies: HashMap::new(),
-            proxy: None,
-            timeout: Duration::from_secs(5),
-            retries: 0,
-            rate_limit_rps: 0.0,
-        }
-    }
 
     fn wrap(inner: Arc<dyn Transport>, cache: Arc<dyn ResponseCache>) -> Arc<dyn Transport> {
         MiddlewareStack::new()

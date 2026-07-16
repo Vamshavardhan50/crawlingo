@@ -42,7 +42,10 @@ jobs:
           echo "Python:  $python_ver"
           echo "Node.js: $node_ver"
 
-          if [[ "$python_ver" != "SKIP" && "$cargo_ver" != "$python_ver" ]]; then
+          # Normalize python version if it contains PEP 440 prerelease format
+          python_norm=$(echo "$python_ver" | sed -e 's/a\([0-9]\)/-alpha.\1/')
+
+          if [[ "$python_ver" != "SKIP" && "$cargo_ver" != "$python_norm" ]]; then
             echo "::error::Cargo ($cargo_ver) and Python ($python_ver) versions differ"
             exit 1
           fi

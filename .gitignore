@@ -24,10 +24,9 @@ node_modules/
 crawlingo-docs/.next/
 crawlingo-docs/out/
 
-# Waitlist landing page
-waitlist/node_modules/
-waitlist/dist/
-waitlist/api/
+# Build artifacts
+dist/
+*.tsbuildinfo
 
 # Generated output data
 *.csv
@@ -59,14 +58,12 @@ Desktop.ini
 *.log
 *.pdb
 
-# Build artifacts
-dist/
-api/
-*.tsbuildinfo
-
 # Separate repos (moved out)
 docs/
 crawlingo-docs/
+
+# Local archives
+archive/
 
 # Windows reserved names
 nul

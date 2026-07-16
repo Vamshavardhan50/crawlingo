@@ -1,4 +1,5 @@
 use crate::crawl::frontier::{Frontier, MemoryFrontier};
+use crate::crawl::pagination::{PaginationConfig, Paginator};
 use crate::dataset::builder::{DatasetField, DatasetResult};
 use crate::engine::fetcher::FetchRequest;
 use crate::engine::session::Session;
@@ -28,6 +29,7 @@ pub struct Crawler {
     /// `crawl`/`crawl_async` call, seeded with `start_url` — the crawler's original behavior. Set
     /// via [`Crawler::with_frontier`] or [`Crawler::resumable`] to persist crawl state across runs.
     pub frontier: Option<Arc<dyn Frontier>>,
+    pub pagination: Option<PaginationConfig>,
 }
 
 impl Crawler {
@@ -44,7 +46,14 @@ impl Crawler {
             session,
             webhook_url: None,
             frontier: None,
+            pagination: None,
         }
+    }
+
+    /// Sets the crawler's pagination config. Chainable.
+    pub fn with_pagination(mut self, config: PaginationConfig) -> Self {
+        self.pagination = Some(config);
+        self
     }
 
     /// Uses `frontier` as the pending-URL queue/visited-set instead of an ephemeral per-run one.
@@ -124,6 +133,10 @@ impl Crawler {
             });
         }
         let fields_def_arc = Arc::new(fields_def);
+        let paginator = self
+            .pagination
+            .as_ref()
+            .map(|cfg| Arc::new(Paginator::new(cfg.clone())));
 
         let mut workers = JoinSet::new();
 
@@ -136,6 +149,7 @@ impl Crawler {
             let follow_sel = follow_sel.clone();
             let webhook_url = webhook_url.clone();
             let webhook_client = webhook_client.clone();
+            let paginator = paginator.clone();
 
             workers.spawn(async move {
                 loop {
@@ -161,7 +175,6 @@ impl Crawler {
                     let headers = session.headers.read().unwrap().clone();
                     let cookies = session.cookies.read().unwrap().clone();
                     let proxy = session.get_next_proxy();
-                    let rate_limit_rps = *session.rate_limit_rps.read().unwrap();
                     let timeout_secs = *session.timeout_seconds.read().unwrap();
                     let fetcher_tier = *session.fetcher_tier.read().unwrap();
                     let browser_profile = session.browser_profile.read().unwrap().clone();
@@ -175,7 +188,6 @@ impl Crawler {
                         proxy,
                         timeout: std::time::Duration::from_secs(timeout_secs),
                         retries: 2,
-                        rate_limit_rps,
                     };
 
                     // Politeness delay
@@ -237,6 +249,11 @@ impl Crawler {
                                         .json(&result)
                                         .send()
                                         .await;
+                                }
+
+                                // Automatic pagination: discovery and enqueueing of the next page
+                                if let Some(ref pag) = paginator {
+                                    let _ = pag.enqueue_next(&url_str, page.dom_tree(), &frontier);
                                 }
 
                                 // Discover links to follow if depth limit is not reached
@@ -305,6 +322,7 @@ pub struct PyCrawl {
 #[cfg(feature = "python")]
 #[pymethods]
 impl PyCrawl {
+    /// Create a new Crawl instance for the start URL.
     #[new]
     pub fn new_py(start_url: &str, session: &PySession) -> Self {
         Self {
@@ -322,21 +340,25 @@ impl PyCrawl {
         Ok(Self { inner })
     }
 
+    /// Set the CSS selector to discover links to follow on crawled pages.
     pub fn follow(mut self_: PyRefMut<'_, Self>, selector: &str) -> PyResult<Py<Self>> {
         self_.inner.follow_selector = selector.to_string();
         Ok(self_.into())
     }
 
+    /// Set the maximum page crawl limit.
     pub fn limit(mut self_: PyRefMut<'_, Self>, pages: usize) -> PyResult<Py<Self>> {
         self_.inner.limit = pages;
         Ok(self_.into())
     }
 
+    /// Set the maximum crawl recursion depth.
     pub fn depth(mut self_: PyRefMut<'_, Self>, max_depth: usize) -> PyResult<Py<Self>> {
         self_.inner.max_depth = max_depth;
         Ok(self_.into())
     }
 
+    /// Define a dataset extraction field selector.
     #[pyo3(signature = (name, selector, selector_type=None, default=None))]
     pub fn field(
         mut self_: PyRefMut<'_, Self>,
@@ -358,11 +380,22 @@ impl PyCrawl {
         Ok(self_.into())
     }
 
+    /// Configure automatic pagination settings for the crawl.
+    pub fn with_pagination(
+        mut self_: PyRefMut<'_, Self>,
+        config: crate::crawl::pagination::PyPaginationConfig,
+    ) -> PyResult<Py<Self>> {
+        self_.inner.pagination = Some(config.inner);
+        Ok(self_.into())
+    }
+
+    /// Set the crawl fetching concurrency count.
     pub fn concurrency(mut self_: PyRefMut<'_, Self>, n: usize) -> PyResult<Py<Self>> {
         self_.inner.concurrency = n;
         Ok(self_.into())
     }
 
+    /// Set the request pacing delays in seconds.
     pub fn delay(mut self_: PyRefMut<'_, Self>, seconds: f64) -> PyResult<Py<Self>> {
         self_.inner.delay_seconds = seconds;
         Ok(self_.into())

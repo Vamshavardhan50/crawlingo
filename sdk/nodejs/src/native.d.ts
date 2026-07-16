@@ -90,6 +90,7 @@ export declare class JsDatasetResult {
 export declare class JsDataset {
   constructor(url: string, session: JsSession)
   field(name: string, selector: string, selectorType?: string | undefined | null, defaultVal?: string | undefined | null): void
+  withSchema(schema: JsDatasetSchema): void
   build(): Promise<JsDatasetResult>
   /**
    * Synchronously extract structured multi-row records from an already-fetched JsPage.
@@ -101,6 +102,8 @@ export declare class JsDataset {
 }
 export declare class JsCrawl {
   constructor(startUrl: string, session: JsSession)
+  static resumable(startUrl: string, session: JsSession, path: string): JsCrawl
+  withPagination(config: JsPaginationConfig): void
   follow(selector: string): void
   limit(limit: number): void
   depth(depth: number): void
@@ -138,4 +141,26 @@ export declare class JsSitemap {
   webhook(url: string): void
   listUrls(): Promise<Array<JsSitemapEntry>>
   run(): Promise<Array<JsDatasetResult>>
+}
+export declare class JsPaginationConfig {
+  static nextLink(selector: string): JsPaginationConfig
+  static pageNumber(urlTemplate: string, startPage: number, maxPages: number): JsPaginationConfig
+  static urlPattern(pageRegex: string, maxPage: number): JsPaginationConfig
+}
+export declare enum JsFieldType {
+  String = 0,
+  Integer = 1,
+  Float = 2,
+  Boolean = 3
+}
+export declare class JsFieldConstraint {
+  name: string
+  fieldType: JsFieldType
+  required: boolean
+  constructor(name: string, fieldType: JsFieldType, required: boolean)
+}
+export declare class JsDatasetSchema {
+  constructor()
+  addField(name: string, fieldType: JsFieldType, required: boolean): void
+  validate(record: Record<string, string>): Record<string, string>
 }

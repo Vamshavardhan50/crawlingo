@@ -151,6 +151,15 @@ impl DatasetStream {
     /// exactly like [`DatasetStream::write_csv`]. See that method's doc comment for why `self`'s
     /// own sender must be dropped before draining.
     pub async fn write_parquet(self, path: &str) -> Result<usize> {
+        self.write_parquet_with_batch_size(path, 1000).await
+    }
+
+    /// Consume the stream and write all records to a Parquet file using a custom batch size.
+    pub async fn write_parquet_with_batch_size(
+        self,
+        path: &str,
+        batch_size: usize,
+    ) -> Result<usize> {
         let (tx, rx) = tokio::sync::mpsc::channel(100);
         let mut total = 0;
 
@@ -176,7 +185,7 @@ impl DatasetStream {
         }
         drop(tx);
 
-        crate::dataset::export::write_parquet_stream(path, rx).await?;
+        crate::dataset::export::write_parquet_stream(path, rx, Some(batch_size)).await?;
         Ok(total)
     }
 }

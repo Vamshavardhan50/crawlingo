@@ -28,7 +28,7 @@ pub enum FetcherTier {
 /// the client is *constructed* — proxy, tier, and browser/TLS emulation profile. Per-request
 /// concerns that do **not** affect client identity (timeout, headers, cookies, target URL) are
 /// deliberately excluded so that clients are shared as widely as possible.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 struct TransportKey {
     tier: FetcherTier,
     /// The browser/TLS fingerprint emulation profile ("chrome"/"firefox"/"safari"). Only
@@ -37,6 +37,20 @@ struct TransportKey {
     /// The proxy URL, if any. Proxy is a client-level setting in wreq, so distinct proxies
     /// require distinct clients.
     proxy: Option<String>,
+}
+
+impl std::fmt::Debug for TransportKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let sanitized_proxy = self
+            .proxy
+            .as_ref()
+            .map(|p| crate::util::url::sanitize_proxy_url(p));
+        f.debug_struct("TransportKey")
+            .field("tier", &self.tier)
+            .field("browser_profile", &self.browser_profile)
+            .field("proxy", &sanitized_proxy)
+            .finish()
+    }
 }
 
 impl TransportKey {
@@ -50,7 +64,7 @@ impl TransportKey {
 }
 
 /// Parameters for a single fetch request.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct FetchRequest {
     pub url: String,
     pub tier: FetcherTier,
@@ -60,7 +74,39 @@ pub struct FetchRequest {
     pub proxy: Option<String>,
     pub timeout: Duration,
     pub retries: usize,
-    pub rate_limit_rps: f64,
+}
+
+impl std::fmt::Debug for FetchRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let sanitized_proxy = self
+            .proxy
+            .as_ref()
+            .map(|p| crate::util::url::sanitize_proxy_url(p));
+        f.debug_struct("FetchRequest")
+            .field("url", &self.url)
+            .field("tier", &self.tier)
+            .field("browser_profile", &self.browser_profile)
+            .field("headers", &self.headers)
+            .field("cookies", &self.cookies)
+            .field("proxy", &sanitized_proxy)
+            .field("timeout", &self.timeout)
+            .field("retries", &self.retries)
+            .finish()
+    }
+}
+
+#[cfg(test)]
+pub fn mock_request(url: &str) -> FetchRequest {
+    FetchRequest {
+        url: url.to_string(),
+        tier: FetcherTier::Standard,
+        browser_profile: None,
+        headers: HashMap::new(),
+        cookies: HashMap::new(),
+        proxy: None,
+        timeout: Duration::from_secs(5),
+        retries: 0,
+    }
 }
 
 /// Normalized timing measurements for fetch operations.
@@ -195,14 +241,20 @@ impl HttpFetcher {
             .timeout(request.timeout);
 
         for (key, val) in &request.headers {
-            req_builder = req_builder.header(key, val);
+            let clean_key: String = key.chars().filter(|c| *c != '\r' && *c != '\n').collect();
+            let clean_val: String = val.chars().filter(|c| *c != '\r' && *c != '\n').collect();
+            req_builder = req_builder.header(clean_key, clean_val);
         }
 
         if !request.cookies.is_empty() {
             let cookie_str = request
                 .cookies
                 .iter()
-                .map(|(k, v)| format!("{}={}", k, v))
+                .map(|(k, v)| {
+                    let clean_k: String = k.chars().filter(|c| *c != '\r' && *c != '\n').collect();
+                    let clean_v: String = v.chars().filter(|c| *c != '\r' && *c != '\n').collect();
+                    format!("{}={}", clean_k, clean_v)
+                })
                 .collect::<Vec<String>>()
                 .join("; ");
             req_builder = req_builder.header("Cookie", cookie_str);
@@ -281,6 +333,9 @@ impl Transport for HttpFetcher {
 }
 
 /// Placeholder strategy for executing fetches in a headless stealth browser.
+///
+/// # ⚠️ Stub — No browser automation
+/// BrowserFetcher is a stub and delegates to the fallback HttpFetcher.
 pub struct BrowserFetcher {
     fallback: HttpFetcher,
 }
@@ -295,6 +350,11 @@ impl BrowserFetcher {
 
 impl Transport for BrowserFetcher {
     fn fetch<'a>(&'a self, request: &'a FetchRequest) -> BoxFuture<'a, Result<NormalizedResponse>> {
+        let profile = request.browser_profile.as_deref().unwrap_or("None");
+        tracing::warn!(
+            "BrowserFetcher is a stub; falling back to HTTP for profile={}",
+            profile
+        );
         // Delegates to fallback HTTP fetcher for Phase 3 (browser logic is placeholder for now)
         self.fallback.fetch(request)
     }
@@ -306,6 +366,7 @@ pub struct FetchManager {
     http_strategy: Arc<dyn Transport>,
     browser_strategy: Arc<dyn Transport>,
     retry_policy: RetryPolicy,
+    rate_limit_rps: Arc<std::sync::RwLock<f64>>,
 }
 
 impl FetchManager {
@@ -316,6 +377,7 @@ impl FetchManager {
             http_strategy: Arc::new(HttpFetcher::new(pool_config.clone())),
             browser_strategy: Arc::new(BrowserFetcher::new(pool_config)),
             retry_policy: RetryPolicy::default(),
+            rate_limit_rps: Arc::new(std::sync::RwLock::new(0.0)),
         }
     }
 
@@ -333,7 +395,14 @@ impl FetchManager {
             http_strategy: transport.clone(),
             browser_strategy: transport,
             retry_policy: RetryPolicy::default(),
+            rate_limit_rps: Arc::new(std::sync::RwLock::new(0.0)),
         }
+    }
+
+    /// Sets the dynamic rate limit reference. Chainable.
+    pub fn with_rate_limit_rps(mut self, rate_limit_rps: Arc<std::sync::RwLock<f64>>) -> Self {
+        self.rate_limit_rps = rate_limit_rps;
+        self
     }
 
     /// Overrides the manager's [`RetryPolicy`]. Chainable.
@@ -367,7 +436,8 @@ impl FetchManager {
             .map_err(|e| CrawlingoError::FetchError(format!("Invalid URL: {}", e)))?;
         let host = parsed_url.host_str().unwrap_or("");
 
-        self.rate_limiter.wait(host, request.rate_limit_rps).await;
+        let rps = *self.rate_limit_rps.read().unwrap();
+        self.rate_limiter.wait(host, rps).await;
 
         let mut attempt = 0;
 
@@ -591,7 +661,8 @@ mod tests {
 
         // Test through FetchManager
         let rl = Arc::new(HostRateLimiter::new());
-        let manager = FetchManager::new(rl, ConnectionPoolConfig::default());
+        let manager = FetchManager::new(rl, ConnectionPoolConfig::default())
+            .with_rate_limit_rps(Arc::new(std::sync::RwLock::new(0.0)));
         let req = FetchRequest {
             url,
             tier: FetcherTier::Standard,
@@ -601,7 +672,6 @@ mod tests {
             proxy: None,
             timeout: Duration::from_secs(10),
             retries: 2,
-            rate_limit_rps: 0.0,
         };
 
         let res = manager.dispatch(req).await;
@@ -626,7 +696,6 @@ mod tests {
             proxy: None,
             timeout: Duration::from_secs(5),
             retries: 0,
-            rate_limit_rps: 0.0,
         }
     }
 
@@ -796,7 +865,6 @@ mod tests {
             proxy: proxy.map(String::from),
             timeout: Duration::from_secs(5),
             retries: 0,
-            rate_limit_rps: 0.0,
         }
     }
 
@@ -918,5 +986,52 @@ mod tests {
             fetcher.cached_client_count().await <= 2,
             "cache must not exceed the configured max_clients bound"
         );
+    }
+
+    #[tokio::test]
+    async fn test_browser_fetcher_emits_warn_log() {
+        struct WarnCounter {
+            count: std::sync::atomic::AtomicUsize,
+        }
+        impl tracing::Subscriber for WarnCounter {
+            fn enabled(&self, metadata: &tracing::Metadata<'_>) -> bool {
+                metadata.level() == &tracing::Level::WARN
+            }
+            fn new_span(&self, _span: &tracing::span::Attributes<'_>) -> tracing::span::Id {
+                tracing::span::Id::from_u64(1)
+            }
+            fn record(&self, _span: &tracing::span::Id, _values: &tracing::span::Record<'_>) {}
+            fn record_follows_from(&self, _span: &tracing::span::Id, _follows: &tracing::span::Id) {
+            }
+            fn event(&self, event: &tracing::Event<'_>) {
+                if event.metadata().level() == &tracing::Level::WARN {
+                    self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                }
+            }
+            fn enter(&self, _span: &tracing::span::Id) {}
+            fn exit(&self, _span: &tracing::span::Id) {}
+        }
+
+        let counter = Arc::new(WarnCounter {
+            count: std::sync::atomic::AtomicUsize::new(0),
+        });
+        let dispatcher = tracing::Dispatch::new(counter.clone());
+        let url = spawn_test_server().await;
+
+        let client = BrowserFetcher::new(ConnectionPoolConfig::default());
+        let req = FetchRequest {
+            url,
+            tier: FetcherTier::Stealthy,
+            browser_profile: Some("chrome".to_string()),
+            headers: HashMap::new(),
+            cookies: HashMap::new(),
+            proxy: None,
+            timeout: Duration::from_secs(5),
+            retries: 0,
+        };
+
+        let _fut = tracing::dispatcher::with_default(&dispatcher, || client.fetch(&req));
+
+        assert!(counter.count.load(std::sync::atomic::Ordering::SeqCst) >= 1);
     }
 }

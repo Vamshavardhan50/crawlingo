@@ -133,3 +133,72 @@ impl DomFingerprint {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::engine::fetcher::NormalizedResponse;
+    use crate::parser::streaming::HtmlParser;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_dom_fingerprint_generate_success() {
+        let html = r#"
+            <div id="container" class="main">
+                <p class="text">Hello World</p>
+            </div>
+        "#;
+        let page = HtmlParser::parse(NormalizedResponse {
+            url: "https://example.com".to_string(),
+            status: 200,
+            headers: HashMap::new(),
+            cookies: HashMap::new(),
+            body: html.into(),
+            content_type: "text/html".to_string(),
+            encoding: "utf-8".to_string(),
+            timings: Default::default(),
+        })
+        .unwrap();
+
+        let tree = page.dom_tree();
+        let matched = page
+            .query(crate::selector::SelectorQuery::Css("p"))
+            .unwrap();
+        assert!(!matched.is_empty(), "should find p node");
+        let p_node_idx = matched[0];
+        let fp =
+            DomFingerprint::generate(tree, p_node_idx, "https://example.com", "p.text").unwrap();
+
+        assert_eq!(fp.tag, "p");
+        assert_eq!(fp.text, "Hello World");
+        assert_eq!(fp.parent_tag, "div");
+        assert_eq!(fp.parent_id, "container");
+        assert_eq!(fp.parent_class, "main");
+        assert_eq!(fp.depth, 1); // div (0) -> p (1) in fragment parsing
+        assert_eq!(fp.url, "https://example.com");
+        assert_eq!(fp.selector_used, "p.text");
+        assert_eq!(fp.similarity_score, 1.0);
+        assert!(!fp.ancestor_path.is_empty());
+        assert_eq!(fp.ancestor_path[0].tag, "div"); // First ancestor is parent
+    }
+
+    #[test]
+    fn test_dom_fingerprint_generate_out_of_bounds() {
+        let html = "<p>hello</p>";
+        let page = HtmlParser::parse(NormalizedResponse {
+            url: "https://example.com".to_string(),
+            status: 200,
+            headers: HashMap::new(),
+            cookies: HashMap::new(),
+            body: html.into(),
+            content_type: "text/html".to_string(),
+            encoding: "utf-8".to_string(),
+            timings: Default::default(),
+        })
+        .unwrap();
+
+        let tree = page.dom_tree();
+        let fp = DomFingerprint::generate(tree, 9999, "https://example.com", "p");
+        assert!(fp.is_none());
+    }
+}

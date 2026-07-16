@@ -302,15 +302,31 @@ impl SitemapCrawler {
             url: url.to_string(),
             tier: FetcherTier::Standard,
             browser_profile: None,
-            headers: self.session.headers.read().unwrap().clone(),
-            cookies: self.session.cookies.read().unwrap().clone(),
+            headers: self.session.read_headers(),
+            cookies: self.session.read_cookies(),
             proxy: self.session.get_next_proxy(),
             timeout: Duration::from_secs(*self.session.timeout_seconds.read().unwrap()),
             retries: 2,
-            rate_limit_rps: 0.0,
         };
         let resp = manager.dispatch(req).await?;
-        Ok(resp.body.to_vec())
+        let bytes = resp.body.to_vec();
+
+        let is_gzipped = url.to_lowercase().ends_with(".gz")
+            || (bytes.len() >= 2 && bytes[0] == 0x1F && bytes[1] == 0x8B);
+
+        if is_gzipped {
+            use std::io::Read;
+            let mut decoder = flate2::read::GzDecoder::new(&bytes[..]);
+            let mut decompressed = Vec::new();
+            decoder.read_to_end(&mut decompressed).map_err(|e| {
+                crate::error::CrawlingoError::FetchError(format!(
+                    "failed to decompress gzipped sitemap: {e}"
+                ))
+            })?;
+            Ok(decompressed)
+        } else {
+            Ok(bytes)
+        }
     }
 
     fn build_crawler(&self, frontier: Arc<dyn Frontier>) -> Crawler {
@@ -330,7 +346,7 @@ impl SitemapCrawler {
 }
 
 /// Returns the canonical `sitemap.xml` URL for a given origin (e.g. `https://example.com` →
-/// `https://example.com/sitemap.xml`). Also checks `robots.txt` for a `Sitemap:` directive.
+/// `https://example.com/sitemap.xml`).
 pub fn sitemap_url_for_origin(origin: &str) -> String {
     let base = origin.trim_end_matches('/');
     format!("{base}/sitemap.xml")
@@ -443,5 +459,120 @@ mod tests {
         let (url, depth) = frontier.dequeue().unwrap();
         assert_eq!(url, "https://example.com/blog");
         assert_eq!(depth, 0);
+    }
+
+    #[tokio::test]
+    async fn test_sitemap_crawler_fetch_async_urlset() {
+        use crate::engine::fetcher::{MockResponse, MockTransport};
+        use crate::engine::session::Session;
+
+        let mock_transport = Arc::new(
+            MockTransport::new()
+                .with_response(
+                    "https://example.com/sitemap.xml",
+                    MockResponse::html(URLSET_XML),
+                )
+                .with_response("https://example.com/", MockResponse::html("home"))
+                .with_response("https://example.com/about", MockResponse::html("about"))
+                .with_response("https://example.com/blog", MockResponse::html("blog")),
+        );
+
+        let session = Arc::new(Session::new());
+        session.set_transport(mock_transport);
+
+        let crawler = SitemapCrawler::new("https://example.com/sitemap.xml", session);
+        let results = crawler.fetch_async().await.unwrap();
+
+        assert_eq!(results.len(), 3);
+        let urls: std::collections::HashSet<String> = results.into_iter().map(|r| r.url).collect();
+        assert!(urls.contains("https://example.com/"));
+        assert!(urls.contains("https://example.com/about"));
+        assert!(urls.contains("https://example.com/blog"));
+    }
+
+    #[tokio::test]
+    async fn test_sitemap_crawler_fetch_async_index() {
+        use crate::engine::fetcher::{MockResponse, MockTransport};
+        use crate::engine::session::Session;
+
+        let child1_xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://example.com/page1</loc></url>
+</urlset>"#;
+
+        let child2_xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://example.com/page2</loc></url>
+</urlset>"#;
+
+        let mock_transport = Arc::new(
+            MockTransport::new()
+                .with_response(
+                    "https://example.com/sitemap-index.xml",
+                    MockResponse::html(INDEX_XML),
+                )
+                .with_response(
+                    "https://example.com/sitemap-pages.xml",
+                    MockResponse::html(child1_xml),
+                )
+                .with_response(
+                    "https://example.com/sitemap-posts.xml",
+                    MockResponse::html(child2_xml),
+                )
+                .with_response("https://example.com/page1", MockResponse::html("page1"))
+                .with_response("https://example.com/page2", MockResponse::html("page2")),
+        );
+
+        let session = Arc::new(Session::new());
+        session.set_transport(mock_transport);
+
+        let crawler = SitemapCrawler::new("https://example.com/sitemap-index.xml", session);
+        let results = crawler.fetch_async().await.unwrap();
+
+        assert_eq!(results.len(), 2);
+        let urls: std::collections::HashSet<String> = results.into_iter().map(|r| r.url).collect();
+        assert!(urls.contains("https://example.com/page1"));
+        assert!(urls.contains("https://example.com/page2"));
+    }
+
+    #[tokio::test]
+    async fn test_sitemap_crawler_gzip() {
+        use crate::engine::fetcher::{MockResponse, MockTransport};
+        use crate::engine::session::Session;
+        use std::io::Write;
+
+        // Gzip compress the URLSET_XML
+        let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        encoder.write_all(URLSET_XML.as_bytes()).unwrap();
+        let compressed_bytes = encoder.finish().unwrap();
+
+        let mock_transport = Arc::new(
+            MockTransport::new()
+                .with_response(
+                    "https://example.com/sitemap.xml.gz",
+                    MockResponse {
+                        status: 200,
+                        body: compressed_bytes.into(),
+                        content_type: "application/x-gzip".to_string(),
+                        headers: std::collections::HashMap::new(),
+                        cookies: std::collections::HashMap::new(),
+                    },
+                )
+                .with_response("https://example.com/", MockResponse::html("home"))
+                .with_response("https://example.com/about", MockResponse::html("about"))
+                .with_response("https://example.com/blog", MockResponse::html("blog")),
+        );
+
+        let session = Arc::new(Session::new());
+        session.set_transport(mock_transport);
+
+        let crawler = SitemapCrawler::new("https://example.com/sitemap.xml.gz", session);
+        let results = crawler.fetch_async().await.unwrap();
+
+        assert_eq!(results.len(), 3);
+        let urls: std::collections::HashSet<String> = results.into_iter().map(|r| r.url).collect();
+        assert!(urls.contains("https://example.com/"));
+        assert!(urls.contains("https://example.com/about"));
+        assert!(urls.contains("https://example.com/blog"));
     }
 }

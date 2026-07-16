@@ -36,14 +36,7 @@ impl ExtractionType {
 }
 
 /// A single extraction rule binding a field name to a selector + extraction type.
-#[derive(Debug, Clone)]
-pub struct ExtractionRule {
-    pub name: String,
-    pub selector: String,
-    pub selector_type: String,
-    pub extract_type: ExtractionType,
-    pub default_value: Option<String>,
-}
+pub type ExtractionRule = crate::dataset::builder::DatasetField;
 
 /// The Extraction Engine — converts DOM node queries into typed, clean values.
 ///
@@ -80,7 +73,7 @@ impl ExtractionEngine {
             };
 
             let final_val = extracted_val
-                .or_else(|| rule.default_value.clone())
+                .or_else(|| rule.default.clone())
                 .unwrap_or_default();
 
             fields.insert(rule.name.clone(), final_val);
@@ -94,20 +87,7 @@ impl ExtractionEngine {
         match extract_type {
             ExtractionType::Text => raw.trim().to_string(),
             ExtractionType::Price => {
-                // Strip currency markers, keep digits and decimal point
-                let cleaned: String = raw
-                    .chars()
-                    .filter(|c| c.is_ascii_digit() || *c == '.' || *c == '-')
-                    .collect();
-                // Remove duplicate dots
-                let mut parts: Vec<&str> = cleaned.split('.').collect();
-                if parts.len() > 2 {
-                    let decimal = parts.pop().unwrap_or("");
-                    let integer = parts.join("");
-                    format!("{}.{}", integer, decimal)
-                } else {
-                    cleaned
-                }
+                crate::util::price::parse_price_string(raw).unwrap_or_default()
             }
             ExtractionType::DateTime => {
                 // Normalize common date formats to YYYY-MM-DD
@@ -128,19 +108,207 @@ impl ExtractionEngine {
                 }
                 raw.trim().to_string()
             }
-            ExtractionType::NormalizedUrl => {
-                if let Ok(base) = url::Url::parse(base_url) {
-                    if let Ok(resolved) = base.join(raw.trim()) {
-                        return resolved.to_string();
-                    }
-                }
-                raw.trim().to_string()
-            }
+            ExtractionType::NormalizedUrl => crate::util::url::resolve_url(base_url, raw.trim())
+                .unwrap_or_else(|| raw.trim().to_string()),
             ExtractionType::Attribute(_attr_name) => {
                 // This type should be paired with attribute extraction at call site;
                 // here we just return the raw value as-is
                 raw.trim().to_string()
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_extraction_type_text() {
+        assert_eq!(
+            ExtractionEngine::normalize_value(
+                "  hello world  ",
+                &ExtractionType::Text,
+                "https://example.com"
+            ),
+            "hello world"
+        );
+        assert_eq!(
+            ExtractionEngine::normalize_value("", &ExtractionType::Text, "https://example.com"),
+            ""
+        );
+    }
+
+    #[test]
+    fn test_extraction_type_price() {
+        assert_eq!(
+            ExtractionEngine::normalize_value(
+                " $ 12.34 ",
+                &ExtractionType::Price,
+                "https://example.com"
+            ),
+            "12.34"
+        );
+        assert_eq!(
+            ExtractionEngine::normalize_value(
+                "1.234.56",
+                &ExtractionType::Price,
+                "https://example.com"
+            ),
+            "1234.56"
+        );
+        assert_eq!(
+            ExtractionEngine::normalize_value(
+                "no digits here",
+                &ExtractionType::Price,
+                "https://example.com"
+            ),
+            ""
+        );
+    }
+
+    #[test]
+    fn test_extraction_type_datetime() {
+        // Test Month DD, YYYY
+        assert_eq!(
+            ExtractionEngine::normalize_value(
+                "July 14, 2026",
+                &ExtractionType::DateTime,
+                "https://example.com"
+            ),
+            "2026-07-14"
+        );
+        // Test DD Month YYYY
+        assert_eq!(
+            ExtractionEngine::normalize_value(
+                "14 July 2026",
+                &ExtractionType::DateTime,
+                "https://example.com"
+            ),
+            "2026-07-14"
+        );
+        // Test YYYY-MM-DD
+        assert_eq!(
+            ExtractionEngine::normalize_value(
+                "2026-07-14",
+                &ExtractionType::DateTime,
+                "https://example.com"
+            ),
+            "2026-07-14"
+        );
+        // Test MM/DD/YYYY
+        assert_eq!(
+            ExtractionEngine::normalize_value(
+                "07/14/2026",
+                &ExtractionType::DateTime,
+                "https://example.com"
+            ),
+            "2026-07-14"
+        );
+    }
+
+    #[test]
+    fn test_extraction_type_normalized_url() {
+        assert_eq!(
+            ExtractionEngine::normalize_value(
+                " /path/to/page ",
+                &ExtractionType::NormalizedUrl,
+                "https://example.com/sub/"
+            ),
+            "https://example.com/path/to/page"
+        );
+        assert_eq!(
+            ExtractionEngine::normalize_value(
+                "https://google.com",
+                &ExtractionType::NormalizedUrl,
+                "https://example.com"
+            ),
+            "https://google.com"
+        );
+    }
+
+    #[test]
+    fn test_extraction_type_attribute() {
+        assert_eq!(
+            ExtractionEngine::normalize_value(
+                " raw value ",
+                &ExtractionType::Attribute("src".to_string()),
+                "https://example.com"
+            ),
+            "raw value"
+        );
+    }
+
+    #[test]
+    fn test_extraction_engine_extract() {
+        let html = r#"
+            <div class="product">
+                <h1 class="title">  Awesome Shoes  </h1>
+                <span class="price">$99.99</span>
+                <a class="link" href="/shoes/1">/shoes/1</a>
+            </div>
+        "#;
+        let page = crate::parser::streaming::HtmlParser::parse(
+            crate::engine::fetcher::NormalizedResponse {
+                url: "https://example.com/products".to_string(),
+                status: 200,
+                headers: HashMap::new(),
+                cookies: HashMap::new(),
+                body: html.into(),
+                content_type: "text/html".to_string(),
+                encoding: "utf-8".to_string(),
+                timings: Default::default(),
+            },
+        )
+        .unwrap();
+
+        let rules = vec![
+            ExtractionRule {
+                name: "title".to_string(),
+                selector: ".title".to_string(),
+                selector_type: "css".to_string(),
+                extract_type: ExtractionType::Text,
+                default: None,
+                #[cfg(feature = "python")]
+                transform: None,
+            },
+            ExtractionRule {
+                name: "price".to_string(),
+                selector: ".price".to_string(),
+                selector_type: "css".to_string(),
+                extract_type: ExtractionType::Price,
+                default: None,
+                #[cfg(feature = "python")]
+                transform: None,
+            },
+            ExtractionRule {
+                name: "link".to_string(),
+                selector: ".link".to_string(),
+                selector_type: "css".to_string(),
+                extract_type: ExtractionType::NormalizedUrl,
+                default: None,
+                #[cfg(feature = "python")]
+                transform: None,
+            },
+            ExtractionRule {
+                name: "missing".to_string(),
+                selector: ".missing".to_string(),
+                selector_type: "css".to_string(),
+                extract_type: ExtractionType::Text,
+                default: Some("default-value".to_string()),
+                #[cfg(feature = "python")]
+                transform: None,
+            },
+        ];
+
+        let extracted = ExtractionEngine::extract(&page, &rules).unwrap();
+        assert_eq!(extracted.get("title").unwrap(), "Awesome Shoes");
+        assert_eq!(extracted.get("price").unwrap(), "99.99");
+        assert_eq!(
+            extracted.get("link").unwrap(),
+            "https://example.com/shoes/1"
+        );
+        assert_eq!(extracted.get("missing").unwrap(), "default-value");
     }
 }

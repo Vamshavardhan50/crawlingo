@@ -121,6 +121,7 @@ class MCPRequestHandler(BaseHTTPRequestHandler):
 
         # Standard initialize handshake
         if method == "initialize":
+            from . import __version__
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
@@ -131,7 +132,7 @@ class MCPRequestHandler(BaseHTTPRequestHandler):
                     },
                     "serverInfo": {
                         "name": "crawlingo-mcp",
-                        "version": "0.1.0"
+                        "version": __version__
                     }
                 }
             }

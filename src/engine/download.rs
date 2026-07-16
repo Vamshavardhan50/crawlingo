@@ -99,7 +99,7 @@ impl Downloader {
         };
 
         // Build request, optionally with a Range header.
-        let mut headers = self.session.headers.read().unwrap().clone();
+        let mut headers = self.session.read_headers();
         if append && offset > 0 {
             headers.insert("Range".to_string(), format!("bytes={offset}-"));
         }
@@ -109,11 +109,10 @@ impl Downloader {
             tier: FetcherTier::Standard,
             browser_profile: None,
             headers,
-            cookies: self.session.cookies.read().unwrap().clone(),
+            cookies: self.session.read_cookies(),
             proxy: self.session.get_next_proxy(),
             timeout: Duration::from_secs(*self.session.timeout_seconds.read().unwrap()),
             retries: 2,
-            rate_limit_rps: 0.0,
         };
 
         let manager = self.session.fetch_manager();
@@ -187,17 +186,16 @@ impl Downloader {
     }
 
     pub async fn download_to_memory_async(&self, url: &str) -> Result<(DownloadResult, Vec<u8>)> {
-        let headers = self.session.headers.read().unwrap().clone();
+        let headers = self.session.read_headers();
         let req = FetchRequest {
             url: url.to_string(),
             tier: FetcherTier::Standard,
             browser_profile: None,
             headers,
-            cookies: self.session.cookies.read().unwrap().clone(),
+            cookies: self.session.read_cookies(),
             proxy: self.session.get_next_proxy(),
             timeout: Duration::from_secs(*self.session.timeout_seconds.read().unwrap()),
             retries: 2,
-            rate_limit_rps: 0.0,
         };
         let manager = self.session.fetch_manager();
         let resp = manager.dispatch(req).await?;
@@ -376,5 +374,79 @@ mod tests {
         assert_eq!(result.status, 200);
         let text = String::from_utf8(body).unwrap();
         assert!(text.contains("\"ok\":true"));
+    }
+
+    #[test]
+    fn downloader_206_resume_path() {
+        use crate::engine::fetcher::{BoxFuture, NormalizedResponse, Transport};
+        use crate::engine::session::Session;
+        use crate::error::Result;
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::Arc;
+
+        struct RangeCheckTransport {
+            has_range: AtomicBool,
+        }
+
+        impl Transport for RangeCheckTransport {
+            fn fetch<'a>(
+                &'a self,
+                request: &'a FetchRequest,
+            ) -> BoxFuture<'a, Result<NormalizedResponse>> {
+                Box::pin(async move {
+                    if let Some(range) = request.headers.get("Range") {
+                        assert_eq!(range, "bytes=5-");
+                        self.has_range.store(true, Ordering::SeqCst);
+                        Ok(NormalizedResponse {
+                            url: request.url.clone(),
+                            status: 206,
+                            headers: HashMap::new(),
+                            cookies: HashMap::new(),
+                            body: "world".into(),
+                            content_type: "text/plain".to_string(),
+                            encoding: "utf-8".to_string(),
+                            timings: Default::default(),
+                        })
+                    } else {
+                        Ok(NormalizedResponse {
+                            url: request.url.clone(),
+                            status: 200,
+                            headers: HashMap::new(),
+                            cookies: HashMap::new(),
+                            body: "hello".into(),
+                            content_type: "text/plain".to_string(),
+                            encoding: "utf-8".to_string(),
+                            timings: Default::default(),
+                        })
+                    }
+                })
+            }
+        }
+
+        let mock = Arc::new(RangeCheckTransport {
+            has_range: AtomicBool::new(false),
+        });
+        let session = Arc::new(Session::new());
+        session.set_transport(mock.clone());
+
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("resume.txt");
+
+        // 1. Write initial 5 bytes
+        std::fs::write(&dest, "hello").unwrap();
+
+        let downloader = Downloader::new(session).with_resume(true);
+        let result = downloader
+            .download_to_file("https://example.com/file", &dest)
+            .unwrap();
+
+        assert_eq!(result.status, 206);
+        assert!(mock.has_range.load(Ordering::SeqCst));
+        assert_eq!(result.bytes_written, 5); // 5 bytes appended
+        assert_eq!(result.resumed, true);
+
+        // Verify file contains both parts
+        let content = std::fs::read_to_string(&dest).unwrap();
+        assert_eq!(content, "helloworld");
     }
 }

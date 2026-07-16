@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://crawlingo.dev">
-    <img src="Logo and name.png" alt="Crawlingo Logo & Name" width="640" style="max-width: 100%;">
+    <img src="assets/Logo and name.png" alt="Crawlingo Logo & Name" width="640" style="max-width: 100%;">
   </a>
   <p align="center">
     <strong>Effortless, Self-Healing, Stealth Web Scraping for the Modern Web.</strong>
@@ -15,7 +15,7 @@
 <br>
 
 <p align="center">
-  <img src="LogoSvg.png" alt="Crawlingo Concentric Logo" width="180">
+  <img src="assets/Logo.png" alt="Crawlingo Concentric Logo" width="180">
 </p>
 
 ---

@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "crawlingo"
-version = "0.1.2"
+version = "1.0.0a1"
 description = "Crawlingo - next-generation web scraping and monitoring framework"
 readme = "README.md"
 license = {text = "MIT"}
@@ -18,6 +18,11 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = []
+
+[project.urls]
+Documentation = "https://crawlingo-docs.vercel.app"
+Repository = "https://github.com/Vamshavardhan50/crawlingo"
+Funding = "https://github.com/sponsors/Vamshavardhan50"
 
 [project.scripts]
 crawlingo = "crawlingo.cli:main"

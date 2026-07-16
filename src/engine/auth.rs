@@ -128,25 +128,11 @@ impl Layer for AuthLayer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::fetcher::{FetcherTier, MockResponse, MockTransport};
+    use crate::engine::fetcher::{mock_request, FetcherTier, MockResponse, MockTransport};
     use crate::engine::middleware::MiddlewareStack;
     use std::collections::HashMap;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::time::Duration;
-
-    fn mock_request(url: &str) -> FetchRequest {
-        FetchRequest {
-            url: url.to_string(),
-            tier: FetcherTier::Standard,
-            browser_profile: None,
-            headers: HashMap::new(),
-            cookies: HashMap::new(),
-            proxy: None,
-            timeout: Duration::from_secs(5),
-            retries: 0,
-            rate_limit_rps: 0.0,
-        }
-    }
 
     /// A `Transport` that echoes back the `Authorization` header (or the request URL, for the
     /// query-param scheme) as the response body, so tests can assert on exactly what was sent
