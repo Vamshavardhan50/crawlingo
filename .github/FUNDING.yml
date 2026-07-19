@@ -1,7 +1,9 @@
-# These are supported funding model platforms
+# GitHub Sponsors button configuration
+# This powers the ♥ Sponsor button at the top of the GitHub repo page.
 
 github: [Vamshavardhan50]
 patreon: crawlingo
 open_collective: crawlingo
 ko_fi: crawlingo
-custom: ['https://crawlingo-docs.vercel.app/sponsor']
+custom:
+  - 'https://crawlingo.dev/sponsor'

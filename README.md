@@ -15,6 +15,22 @@
   </p>
 </div>
 
+---
+
+## 💖 Sponsors
+
+<p align="center">
+  <a href="https://genzgrowth.com" title="Gen-Z Growth — Official Sponsor">
+    <img src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/genZgrowth.png" alt="Gen-Z Growth" width="220">
+  </a>
+</p>
+
+<p align="center">
+  <sub>Want your logo here? <a href="https://crawlingo.dev/sponsor">Become a sponsor →</a></sub>
+</p>
+
+---
+
 <br>
 
 <p align="center">
@@ -158,20 +174,6 @@ async fn main() -> anyhow::Result<()> {
 | 📋 **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
 | 🤝 **Contributing** | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | 🔐 **Security Policy** | [SECURITY.md](SECURITY.md) |
-
----
-
-## 💖 Sponsors
-
-Crawlingo is proudly sponsored by:
-
-<p align="center">
-  <a href="https://genzgrowth.com" title="Gen-Z Growth">
-    <img src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/genZgrowth.png" alt="Gen-Z Growth" width="200">
-  </a>
-</p>
-
-> Want to sponsor Crawlingo? See our [sponsorship page](https://crawlingo.dev/sponsor) or click the **Sponsor** button at the top of this page.
 
 ---
 
