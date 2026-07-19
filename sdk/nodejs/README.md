@@ -1,49 +1,46 @@
 <h1 align="center">
-    <a href="https://crawlingo.dev">
-        <img alt="Crawlingo Cover" src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/crawlingo.jpg" width="600">
-    </a>
-    <br>
-    <small>Crawlingo Node.js SDK - Self-Healing Web Scraping for JS/TS</small>
+  <a href="https://crawlingo.dev">
+    <img alt="Crawlingo" src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/Logo%20and%20name.png" width="560">
+  </a>
+  <br>
+  <small>Node.js SDK — Self-Healing Web Scraping for JavaScript &amp; TypeScript</small>
 </h1>
 
 <p align="center">
-    <a href="https://github.com/Vamshavardhan50/crawlingo/actions/workflows/ci.yml"><img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/Vamshavardhan50/crawlingo/ci.yml?branch=main&style=flat-square&logo=github&label=Build" /></a>
-    <a href="https://www.npmjs.com/package/crawlingo"><img src="https://img.shields.io/npm/v/crawlingo?style=flat-square&logo=nodedotjs&color=red&label=NPM" alt="NPM Version" /></a>
-    <a href="https://www.npmjs.com/package/crawlingo"><img src="https://img.shields.io/npm/dm/crawlingo?style=flat-square" alt="NPM Downloads" /></a>
-    <a href="https://github.com/Vamshavardhan50/crawlingo/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Vamshavardhan50/crawlingo?style=flat-square&label=License" alt="License" /></a>
+  <a href="https://github.com/Vamshavardhan50/crawlingo/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/Vamshavardhan50/crawlingo/ci.yml?branch=main&style=flat-square&logo=github&label=CI" /></a>
+  <a href="https://www.npmjs.com/package/crawlingo"><img src="https://img.shields.io/npm/v/crawlingo?style=flat-square&logo=nodedotjs&color=red&label=npm" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/crawlingo"><img src="https://img.shields.io/npm/dm/crawlingo?style=flat-square" alt="npm Downloads" /></a>
+  <a href="https://github.com/Vamshavardhan50/crawlingo/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Vamshavardhan50/crawlingo?style=flat-square&label=License" alt="License" /></a>
+  <a href="https://crawlingo.dev/docs"><img src="https://img.shields.io/badge/docs-crawlingo.dev-6366F1?style=flat-square" alt="Docs" /></a>
 </p>
 
 <p align="center">
-    <a href="#installation"><strong>Installation</strong></a>
-    &middot;
-    <a href="#why-crawlingo"><strong>Why Crawlingo</strong></a>
-    &middot;
-    <a href="#features"><strong>Core Features</strong></a>
-    &middot;
-    <a href="#quick-start"><strong>Quick Start</strong></a>
-    &middot;
-    <a href="#ai-benchmarks"><strong>LLM Benchmarks</strong></a>
+  <a href="#installation"><strong>Installation</strong></a> ·
+  <a href="#why-crawlingo"><strong>Why Crawlingo</strong></a> ·
+  <a href="#features"><strong>Features</strong></a> ·
+  <a href="#quick-start"><strong>Quick Start</strong></a> ·
+  <a href="#ai-benchmarks"><strong>LLM Benchmarks</strong></a>
 </p>
 
 ---
 
-**Crawlingo Node.js SDK** is a next-generation web data extraction, crawling, and website monitoring library. It wraps a high-performance Rust core in an elegant React-inspired developer-first Node.js API with complete TypeScript support, allowing you to build scraping workflows that survive page design shifts.
+**Crawlingo Node.js SDK** is a next-generation web data extraction, crawling, and website monitoring library. It wraps a high-performance Rust core in a TypeScript-first API — scraping workflows that survive page design shifts automatically.
 
-📚 **Read the full guide and API references at [crawlingo.dev/docs](https://crawlingo.dev/docs)**
+📚 **Full API reference and guides at [crawlingo.dev/docs](https://crawlingo.dev/docs)**
 
 ---
 
-## 🎥 30-Second Demo
+## 🎥 Demo
 
-Watch Crawlingo's self-healing DOM selector engine dynamically recover element references when a website's layout/DOM structure drifts:
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/crawlingo_demo.webp" alt="Crawlingo Self-Healing Demo" width="600">
+</p>
 
-![Crawlingo Self-Healing Demo](../../assets/crawlingo_demo.webp)
-
-### How Self-Healing Works Under the Hood:
-1. **Drift Detection**: When the target element (e.g., `button#submit.btn-primary`) undergoes styling or structure updates (e.g., renamed to `button#send-btn.btn-primary-new`), traditional scrapers fail and return empty results.
-2. **Dynamic DOM Parsing**: Crawlingo's Rust engine intercepts the mismatch, loads the active DOM, and isolates candidates within the parent node coordinates.
-3. **Jaro-Winkler Similarity Comparison**: The engine ranks candidates by checking tag names, surrounding attributes, text contents, and deep structural fingerprints.
-4. **Auto-Match Recovery**: The candidate with the highest similarity score exceeding the threshold (e.g., **94% confidence**) is automatically bound, updating the cache without breaking your production data pipeline.
+### How Self-Healing Works:
+1. **Drift Detection** — When `button#submit.btn-primary` renames to `button#send-btn.btn-primary-new`, traditional scrapers return empty.
+2. **DOM Parsing** — Crawlingo's Rust engine intercepts the mismatch and isolates candidates within the parent node.
+3. **Jaro-Winkler Matching** — Candidates ranked by tag, attributes, text content, and structural fingerprints.
+4. **Auto-Match Recovery** — Highest-scoring candidate (e.g. **94% confidence**) auto-bound and cached — zero downtime.
 
 ---
 
@@ -51,10 +48,15 @@ Watch Crawlingo's self-healing DOM selector engine dynamically recover element r
 
 <a id="installation"></a>
 
-Install the package directly from npm:
-
 ```bash
 npm install crawlingo
+```
+
+Or with yarn / pnpm:
+
+```bash
+yarn add crawlingo
+pnpm add crawlingo
 ```
 
 ---
@@ -63,19 +65,17 @@ npm install crawlingo
 
 <a id="why-crawlingo"></a>
 
-Traditional scrapers break when websites change their class names, IDs, or HTML structures (**selector drift**). Crawlingo solves this by caching element layout fingerprints and using similarity matching heuristics to self-heal and find drifted elements on the fly.
-
-### Comparison Matrix
-
 | Feature | Crawlingo | Scrapy | Crawl4AI |
-|----------|------------|---------|---------|
+|----------|-----------|--------|----------|
 | Rust Core | ✅ | ❌ | ❌ |
 | Python SDK | ✅ | ✅ | ✅ |
 | Node SDK | ✅ | ❌ | ❌ |
-| AI Agent Ready | ✅ | ⚠️ | ✅ |
+| Self-Healing Selectors | ✅ | ❌ | ❌ |
 | Change Monitoring | ✅ | ❌ | ❌ |
-| Dataset Extraction | ✅ | ⚠️ | ⚠️ |
-| Cross Language | ✅ | ❌ | ❌ |
+| Dataset Export | ✅ | ⚠️ | ⚠️ |
+| Stealth TLS | ✅ | ❌ | ❌ |
+| Full TypeScript Support | ✅ | ❌ | ❌ |
+| AI / MCP Ready | ✅ | ❌ | ✅ |
 
 ---
 
@@ -83,15 +83,13 @@ Traditional scrapers break when websites change their class names, IDs, or HTML 
 
 <a id="features"></a>
 
-Crawlingo packs all components required to scrape, watch, and pipe modern web pages under JavaScript/TypeScript:
-
-*   **🧠 Self-Healing DOM Fingerprinting**: Tracks layout changes and leverages Jaro-Winkler calculations dynamically. [Learn more](https://crawlingo.dev/docs/features#auto-match-self-healing).
-*   **🛡️ Stealth Browser Impersonation**: Bypasses bot verification systems (Cloudflare, etc.) using high-performance HTTP/2 TLS fingerprint rotation. [Learn more](https://crawlingo.dev/docs/features#stealthy-browser-impersonation).
-*   **⚡ SIMD-Accelerated Text Anchors**: CSS/XPath is great, but anchoring relative to text values using vector calculations is faster. [Learn more](https://crawlingo.dev/docs/features#text-anchor-simd-accelerated).
-*   **🔄 High-Speed Proxy Rotation**: Automatically rotates proxy configurations inside background crawling loops. [Learn more](https://crawlingo.dev/docs/spiders#proxy-rotation).
-*   **⏰ Reactive Watch Monitors**: Run background threads that poll websites and notify handlers upon layout shifts or price changes. [Learn more](https://crawlingo.dev/docs/features#change-monitoring-watches).
-*   **🤖 Built-in MCP Server**: Native server that connects scraping tool functions straight to Claude Code or Cursor. [Learn more](https://crawlingo.dev/docs/ai/mcp-server).
-*   **📦 Schema-Driven Datasets**: Map results and export them straight to JSON, CSV, Apache Arrow, or Pandas DataFrames. [Learn more](https://crawlingo.dev/docs/features#multi-format-exports).
+- **🧠 Self-Healing DOM Fingerprinting** — Tracks layout changes via Jaro-Winkler. [Learn more](https://crawlingo.dev/docs/features#auto-match-self-healing)
+- **🛡️ Stealth Browser Impersonation** — Bypasses Cloudflare, Akamai via HTTP/2 TLS fingerprint rotation. [Learn more](https://crawlingo.dev/docs/features#stealthy-browser-impersonation)
+- **⚡ SIMD-Accelerated Text Anchors** — Faster than CSS/XPath via vector math. [Learn more](https://crawlingo.dev/docs/features#text-anchor-simd-accelerated)
+- **🔄 High-Speed Proxy Rotation** — Automatic round-robin proxy cycling. [Learn more](https://crawlingo.dev/docs/spiders#proxy-rotation)
+- **⏰ Reactive Watch Monitors** — Background polling with webhook notifications on changes. [Learn more](https://crawlingo.dev/docs/features#change-monitoring-watches)
+- **🤖 Built-in MCP Server** — Native Claude/Cursor integration. [Learn more](https://crawlingo.dev/docs/ai/mcp-server)
+- **📦 Schema-Driven Datasets** — Export to JSON, CSV, or Arrow. [Learn more](https://crawlingo.dev/docs/features#multi-format-exports)
 
 ---
 
@@ -99,7 +97,8 @@ Crawlingo packs all components required to scrape, watch, and pipe modern web pa
 
 <a id="quick-start"></a>
 
-### 1. Basic Web Scrape
+### 1. Basic Extraction
+
 ```typescript
 import { Session, Page } from 'crawlingo';
 
@@ -107,18 +106,32 @@ const session = new Session();
 session.autoMatch(true);
 
 const page = await Page.create("https://example.com", { session });
-console.log("Page Title:", page.title());
-
-const headings = page.css("h1");
-console.log("Header text:", headings.text.join(", "));
+console.log("Title:", page.title());
+console.log("Headings:", page.css("h1").text.join(", "));
 ```
 
-### 2. Multi-Page Crawling & Webhooks
+### 2. Self-Healing Dataset
+
+```typescript
+import { Dataset } from 'crawlingo';
+
+const result = await new Dataset("https://example.com/products")
+  .autoMatch(true)
+  .field("title", "h1.product-title")
+  .field("price", "span.price", { extractType: "price" })
+  .field("in_stock", ".stock-badge")
+  .build();
+
+console.log(result.toDict());
+result.toJsonFile("products.json");
+```
+
+### 3. Multi-Page Crawl with Webhooks
+
 ```typescript
 import { Session, Crawl } from 'crawlingo';
 
-const session = new Session();
-session.proxyPool([
+const session = new Session().proxyPool([
   "http://proxy1.example.com:8080",
   "http://proxy2.example.com:8080"
 ]);
@@ -126,31 +139,50 @@ session.proxyPool([
 const crawl = new Crawl("https://example.com/products", session);
 crawl.follow("a.next-page");
 crawl.field("title", "h1");
-
-// Deliver items to a webhook endpoint in real-time
 crawl.webhook("https://my-api.com/webhooks/crawl");
+crawl.schedule(3600); // run every hour
+```
 
-// Run background crawl loops every hour
-crawl.schedule(3600);
+### 4. Watch Monitor for Changes
+
+```typescript
+import { Watch } from 'crawlingo';
+
+const watch = new Watch("https://example.com/item")
+  .field("price", "span.item-price")
+  .interval(60)
+  .onPriceChange((event) => {
+    console.log(`Price: ${event.oldValue} → ${event.newValue}`);
+  });
+
+await watch.runAsync();
 ```
 
 ---
 
-## 🤖 AI LLM Ingestion & Benchmarking
+## 🤖 AI / LLM Benchmarks
 
 <a id="ai-benchmarks"></a>
 
-For web parsing pipelines feeding LLM context or RAG indices, Crawlingo provides structured inputs. The table below outlines how different AI models compare on processing raw scraped web pages for automated RAG/extraction tasks:
+| LLM Model | Context | Speed | Cost / 1M tok | Markdown Accuracy | MCP |
+|-----------|---------|-------|---------------|-------------------|-----|
+| **Claude 3.5 Sonnet** | 200k | ~80 tok/s | $3/$15 | 👑 98% | ✅ Native |
+| **GPT-4o** | 128k | ~90 tok/s | $2.5/$10 | 95% | ✅ Gateway |
+| **Gemini 1.5 Pro** | 2M | ~60 tok/s | $1.25/$5 | 92% | ⚠️ Experimental |
+| **Llama 3.1 70B** | 128k | ~45 tok/s | $0.60/$0.60 | 88% | ❌ Needs wrapper |
 
-| Model | Context Window | Speed (tok/s) | Avg. Cost / 1M Tok | Markdown Parsing Accuracy | Native MCP Support |
-|-----------|----------------|---------------|--------------------|---------------------------|---------------------|
-| **Claude 3.5 Sonnet** | 200k | ~80 | $3.00 / $15.00 | 👑 **98%** (Best for tables/JSON) | ✅ Native |
-| **GPT-4o** | 128k | ~90 | $2.50 / $10.00 | **95%** (Excellent formatting) | ✅ Via Gateway |
-| **Gemini 1.5 Pro** | 2M | ~60 | $1.25 / $5.00 | **92%** (Huge content ingestion) | ⚠️ Experimental |
-| **Llama 3.1 70B** | 128k | ~45 | $0.60 / $0.60 | **88%** (Great open-source alternative) | ❌ Needs wrapper |
+---
+
+## 💖 Sponsors
+
+<p align="center">
+  <a href="https://genzgrowth.com" title="Gen-Z Growth">
+    <img src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/genZgrowth.png" alt="Gen-Z Growth" width="180">
+  </a>
+</p>
 
 ---
 
 ## 📝 License
 
-MIT License. See [LICENSE](../../LICENSE) file.
+MIT License — see [LICENSE](https://github.com/Vamshavardhan50/crawlingo/blob/main/LICENSE).

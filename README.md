@@ -1,21 +1,24 @@
 <div align="center">
   <a href="https://crawlingo.dev">
-    <img src="assets/Logo and name.png" alt="Crawlingo Logo & Name" width="640" style="max-width: 100%;">
+    <img src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/Logo%20and%20name.png" alt="Crawlingo" width="640" style="max-width: 100%;">
   </a>
   <p align="center">
     <strong>Effortless, Self-Healing, Stealth Web Scraping for the Modern Web.</strong>
   </p>
   <p align="center">
-    <a href="https://github.com/Vamshavardhan50/crawlingo/actions"><img src="https://img.shields.io/github/actions/workflow/status/Vamshavardhan50/crawlingo/ci.yml?branch=main&label=CI&style=flat-square" alt="Build Status"></a>
+    <a href="https://github.com/Vamshavardhan50/crawlingo/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Vamshavardhan50/crawlingo/ci.yml?branch=main&label=CI&style=flat-square&logo=github" alt="CI Status"></a>
+    <a href="https://crates.io/crates/crawlingo"><img src="https://img.shields.io/crates/v/crawlingo?style=flat-square&logo=rust&label=crates.io" alt="Crates.io"></a>
+    <a href="https://pypi.org/project/crawlingo/"><img src="https://img.shields.io/pypi/v/crawlingo?style=flat-square&logo=python&label=PyPI" alt="PyPI"></a>
+    <a href="https://www.npmjs.com/package/crawlingo"><img src="https://img.shields.io/npm/v/crawlingo?style=flat-square&logo=nodedotjs&label=npm" alt="npm"></a>
     <a href="https://github.com/Vamshavardhan50/crawlingo/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Vamshavardhan50/crawlingo?style=flat-square&color=orange" alt="License"></a>
-    <a href="https://crawlingo.dev"><img src="https://img.shields.io/badge/docs-crawlingo.dev-blue?style=flat-square&color=6366F1" alt="Documentation"></a>
+    <a href="https://crawlingo.dev/docs"><img src="https://img.shields.io/badge/docs-crawlingo.dev-blue?style=flat-square&color=6366F1" alt="Documentation"></a>
   </p>
 </div>
 
 <br>
 
 <p align="center">
-  <img src="assets/Logo.png" alt="Crawlingo Concentric Logo" width="180">
+  <img src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/Logo.png" alt="Crawlingo Logo" width="160">
 </p>
 
 ---
@@ -43,23 +46,19 @@ Crawlingo ships with native, idiomatic SDKs for **Python**, **Node.js (TypeScrip
 
 ## 📊 Framework Comparison
 
-Crawlingo is designed to replace heavy, slow browser instances (Playwright/Puppeteer) and rigid scrapers (Scrapy/BeautifulSoup):
-
 | Metric / Feature | Crawlingo | Scrapy | Playwright / Puppeteer |
 | :--- | :--- | :--- | :--- |
 | **Language Bindings** | Python · Node.js · Rust | Python | JS · Python · C# · Java |
 | **Throughput (50 concurrent)** | **~3,500 req/s** | ~500 req/s | ~50 req/s |
 | **Memory Footprint (Idle)** | **2.4 MB** | ~50 MB | ~200 MB |
-| **Self-Healing Selectors** | **✅ Built-in** | ❌ (Manual Fix Required) | ❌ (Manual Fix Required) |
-| **Stealth TLS Fingerprinting**| **✅ Built-in** | ❌ (Third-party plugins) | ❌ (Need heavy plugins) |
-| **Change Monitoring** | **✅ Built-in (Watch)** | ❌ | ❌ |
-| **CPU Acceleration** | **✅ SIMD-optimized** | ❌ | ❌ |
+| **Self-Healing Selectors** | **✅ Built-in** | ❌ Manual Fix | ❌ Manual Fix |
+| **Stealth TLS Fingerprinting**| **✅ Built-in** | ❌ Third-party | ❌ Heavy plugins |
+| **Change Monitoring** | **✅ Built-in** | ❌ | ❌ |
+| **CPU Acceleration** | **✅ SIMD** | ❌ | ❌ |
 
 ---
 
 ## 💻 Multi-Language Quick Start
-
-Choose your favorite language SDK. All three SDKs share the same Rust core, configuration parameters, and execution speeds.
 
 ### 🐍 Python SDK
 
@@ -70,11 +69,9 @@ pip install crawlingo
 ```python
 from crawlingo import Page, Session, Dataset
 
-# Instantiate a self-healing session
 with Session() as s:
     s.auto_match(True).fetcher_tier("stealthy").rate_limit(5)
 
-    # Scrape and extract fields in a single step
     result = (Dataset("https://shop.example.com", session=s)
               .field("title", "h1")
               .field("price", ".price", extraction_type="price")
@@ -94,13 +91,8 @@ npm install crawlingo
 ```typescript
 import { Page, Session, Dataset } from 'crawlingo';
 
-// Instantiate the session
-const session = new Session()
-  .autoMatch(true)
-  .fetcherTier("stealthy")
-  .rateLimit(5);
+const session = new Session().autoMatch(true).fetcherTier("stealthy").rateLimit(5);
 
-// Fetch a page and extract dataset
 const result = await new Dataset("https://shop.example.com", session)
   .field("title", "h1")
   .field("price", ".price", { extractType: "price" })
@@ -114,9 +106,8 @@ result.toJsonFile("shop_data.json");
 ### 🦀 Rust SDK
 
 ```toml
-# Cargo.toml
 [dependencies]
-crawlingo = "0.1"
+crawlingo = "1.0.0-alpha.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -137,45 +128,50 @@ async fn main() -> anyhow::Result<()> {
         .await?;
 
     println!("{:#?}", result.fields);
-    result.to_parquet("shop_data.parquet")?;
     Ok(())
 }
 ```
 
 ---
 
-## ⚙️ Advanced Configuration Mapping
-
-Crawlingo sessions are customized via a fluent config API or system environment variables:
+## ⚙️ Advanced Configuration
 
 | Config Key / Env Var | Default | Description |
 | :--- | :--- | :--- |
 | `fetcher_tier` / `CRAWLINGO_TIER` | `"standard"` | `"standard"` (raw HTTP/2) or `"stealthy"` (browser fingerprint spoofing). |
 | `auto_match` / `CRAWLINGO_AUTO_MATCH`| `true` | Enables Jaro-Winkler based self-healing for broken selectors. |
-| `rate_limit` / `CRAWLINGO_RATE_LIMIT` | `0` (Disabled)| Restricts request rate to `N` requests per second per host. |
+| `rate_limit` / `CRAWLINGO_RATE_LIMIT` | `0` (Disabled) | Restricts request rate to `N` requests per second per host. |
 | `proxy_pool` / `CRAWLINGO_PROXIES` | `[]` | List of proxy URLs to rotate in a round-robin pool. |
 | `fingerprint_db` / `CRAWLINGO_DB_PATH`| `".crawlingo"` | File path to store DOM selector fingerprints in Sled DB. |
 
 ---
 
-## 🛠️ Troubleshooting & Diagnostics
+## 📚 Resources & Community
 
-| Symptom | Probable Cause | Action |
-| :--- | :--- | :--- |
-| **`403 Forbidden` / Blocked** | Bot detection flagged the TLS handshake. | Set fetcher tier to `"stealthy"`: `session.fetcher_tier("stealthy")` |
-| **`SelectorNotFound`** | Page structure has updated. | Verify `auto_match` is enabled. Check fingerprint file path is writeable. |
-| **High Memory Idle** | Stale session memory map. | Keep the session in a context manager block (`with Session()`) to auto-dispose. |
-| **Rate Limit Errors** | Exceeding host request limits. | Set concurrency limits: `session.rate_limit(3)` |
+| Resource | Link |
+| :--- | :--- |
+| 🌐 **Official Website** | [crawlingo.dev](https://crawlingo.dev) |
+| 📖 **Documentation** | [crawlingo.dev/docs](https://crawlingo.dev/docs) |
+| 🐍 **PyPI Package** | [pypi.org/project/crawlingo](https://pypi.org/project/crawlingo/) |
+| 📦 **npm Package** | [npmjs.com/package/crawlingo](https://www.npmjs.com/package/crawlingo) |
+| 🦀 **crates.io** | [crates.io/crates/crawlingo](https://crates.io/crates/crawlingo) |
+| 📋 **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
+| 🤝 **Contributing** | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| 🔐 **Security Policy** | [SECURITY.md](SECURITY.md) |
 
 ---
 
-## 📚 Resources & Community
+## 💖 Sponsors
 
-- **Official Website:** [crawlingo.dev](https://crawlingo.dev)
-- **Documentation Repo:** [crawlingo-docs](https://github.com/Vamshavardhan50/crawlingo-docs)
-- **Contribution Guidelines:** [CONTRIBUTING.md](CONTRIBUTING.md)
-- **Security Policy:** [SECURITY.md](SECURITY.md)
-- **License File:** [LICENSE](LICENSE)
+Crawlingo is proudly sponsored by:
+
+<p align="center">
+  <a href="https://genzgrowth.com" title="Gen-Z Growth">
+    <img src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/genZgrowth.png" alt="Gen-Z Growth" width="200">
+  </a>
+</p>
+
+> Want to sponsor Crawlingo? See our [sponsorship page](https://crawlingo.dev/sponsor) or click the **Sponsor** button at the top of this page.
 
 ---
 
