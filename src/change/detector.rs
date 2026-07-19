@@ -281,7 +281,7 @@ mod tests {
         }
 
         // 4. ElementAdded (None -> Some)
-        let mut old_add = HashMap::new();
+        let old_add = HashMap::new();
         let mut new_add = HashMap::new();
         new_add.insert("extra".to_string(), "new element".to_string());
         let changes_add = detect_changes("https://example.com", &old_add, &new_add);
@@ -295,7 +295,7 @@ mod tests {
         // 5. ElementRemoved (Some -> None)
         let mut old_rem = HashMap::new();
         old_rem.insert("extra".to_string(), "old element".to_string());
-        let mut new_rem = HashMap::new();
+        let new_rem = HashMap::new();
         let changes_rem = detect_changes("https://example.com", &old_rem, &new_rem);
         assert_eq!(changes_rem.len(), 1);
         assert_eq!(changes_rem[0].field, "extra");

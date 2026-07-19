@@ -443,7 +443,7 @@ mod tests {
         assert_eq!(result.status, 206);
         assert!(mock.has_range.load(Ordering::SeqCst));
         assert_eq!(result.bytes_written, 5); // 5 bytes appended
-        assert_eq!(result.resumed, true);
+        assert!(result.resumed);
 
         // Verify file contains both parts
         let content = std::fs::read_to_string(&dest).unwrap();

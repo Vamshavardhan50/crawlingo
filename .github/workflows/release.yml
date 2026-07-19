@@ -19,19 +19,38 @@ jobs:
       - name: Check version consistency
         shell: bash
         run: |
-          cargo_version=$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2)
-          python_version=$(grep '^version' sdk/python/pyproject.toml | head -1 | cut -d'"' -f2)
-          node_version=$(grep '"version"' sdk/nodejs/package.json | head -1 | cut -d'"' -f4)
-          echo "Cargo version: $cargo_version"
+          cargo_version=$(python3 -c "
+import re, sys
+txt = open('Cargo.toml').read()
+m = re.search(r'^version\s*=\s*\"([^\"]+)\"', txt, re.MULTILINE)
+if not m: print('ERROR', file=sys.stderr); sys.exit(1)
+print(m.group(1))
+")
+          python_version=$(python3 -c "
+import re, sys
+txt = open('sdk/python/pyproject.toml').read()
+m = re.search(r'^version\s*=\s*\"([^\"]+)\"', txt, re.MULTILINE)
+if not m: print('ERROR', file=sys.stderr); sys.exit(1)
+print(m.group(1))
+")
+          node_version=$(node -e "console.log(require('./sdk/nodejs/package.json').version)")
+          echo "Cargo version:  $cargo_version"
           echo "Python version: $python_version"
           echo "Node.js version: $node_version"
-          # Normalize python version if it contains PEP 440 prerelease format
-          python_norm=$(echo "$python_version" | sed -e 's/a\([0-9]\)/-alpha.\1/')
 
-          if [ "$cargo_version" != "$python_norm" ] || [ "$cargo_version" != "$node_version" ]; then
-            echo "Version mismatch!"
-            exit 1
+          # Normalize Python PEP-440 prerelease -> semver (e.g. 1.0.0a1 -> 1.0.0-alpha.1)
+          python_norm=$(echo "$python_version" | sed -E 's/([0-9])a([0-9]+)/\1-alpha.\2/g')
+
+          FAIL=0
+          if [ "$cargo_version" != "$python_norm" ] && [ "$cargo_version" != "$python_version" ]; then
+            echo "::error::Cargo ($cargo_version) vs Python ($python_version) version mismatch"
+            FAIL=1
           fi
+          if [ "$cargo_version" != "$node_version" ]; then
+            echo "::error::Cargo ($cargo_version) vs Node.js ($node_version) version mismatch"
+            FAIL=1
+          fi
+          if [ $FAIL -eq 1 ]; then exit 1; fi
           echo "All versions match: $cargo_version"
 
   test-core:

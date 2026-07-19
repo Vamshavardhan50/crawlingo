@@ -170,7 +170,7 @@ impl Layer for MetricsLayer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::fetcher::{mock_request, FetchManager, FetcherTier, MockTransport};
+    use crate::engine::fetcher::{mock_request, FetchManager, MockTransport};
     use crate::engine::middleware::MiddlewareStack;
     use crate::engine::rate_limiter::HostRateLimiter;
 

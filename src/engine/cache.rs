@@ -215,7 +215,7 @@ impl Layer for CachingLayer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::fetcher::{mock_request, FetcherTier, MockResponse, MockTransport};
+    use crate::engine::fetcher::{mock_request, MockResponse, MockTransport};
     use crate::engine::middleware::MiddlewareStack;
     use std::collections::HashMap;
     use std::sync::atomic::{AtomicUsize, Ordering};

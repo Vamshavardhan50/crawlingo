@@ -24,7 +24,7 @@ env:
 # ─────────────────────────────────────────────────────────────────────────────
 jobs:
 
-  # ── 1. Version consistency ─────────────────────────────────────────────────
+  # ── 1. Version consistency ──────────────────────────────────────────────────
   version-check:
     name: 🔢 Version Consistency
     runs-on: ubuntu-latest
@@ -39,30 +39,58 @@ jobs:
       - name: Verify all SDK versions match Cargo.toml
         shell: bash
         run: |
-          cargo_ver=$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2)
-          python_ver=$(grep '^version' sdk/python/pyproject.toml 2>/dev/null | head -1 | cut -d'"' -f2 || echo "SKIP")
-          node_ver=$(node -e "console.log(require('./sdk/nodejs/package.json').version)" 2>/dev/null || echo "SKIP")
+          # ── Cargo (source of truth) ────────────────────────────────────
+          cargo_ver=$(python3 -c "
+          import re, sys
+          txt = open('Cargo.toml').read()
+          m = re.search(r'^version\s*=\s*\"([^\"]+)\"', txt, re.MULTILINE)
+          if not m:
+              print('ERROR: version not found in Cargo.toml', file=sys.stderr); sys.exit(1)
+          print(m.group(1))
+          ")
+
+          # ── Python (pyproject.toml) ───────────────────────────────────
+          if [ -f sdk/python/pyproject.toml ]; then
+            python_ver=$(python3 -c "
+          import re, sys
+          txt = open('sdk/python/pyproject.toml').read()
+          m = re.search(r'^version\s*=\s*\"([^\"]+)\"', txt, re.MULTILINE)
+          if not m:
+              print('ERROR: version not found in pyproject.toml', file=sys.stderr); sys.exit(1)
+          print(m.group(1))
+          ")
+          else
+            python_ver="SKIP"
+          fi
+
+          # ── Node (package.json) ───────────────────────────────────────
+          if [ -f sdk/nodejs/package.json ]; then
+            node_ver=$(node -e "console.log(require('./sdk/nodejs/package.json').version)")
+          else
+            node_ver="SKIP"
+          fi
 
           echo "Cargo:   $cargo_ver"
           echo "Python:  $python_ver"
           echo "Node.js: $node_ver"
 
-          # Normalize python version if it contains PEP 440 prerelease format
-          python_norm=$(echo "$python_ver" | sed -e 's/a\([0-9]\)/-alpha.\1/')
+          # Normalize Python PEP-440 prerelease to semver for comparison
+          # e.g. 1.0.0a1 -> 1.0.0-alpha.1
+          python_norm=$(echo "$python_ver" | sed -E 's/([0-9])a([0-9]+)/\1-alpha.\2/g')
 
-          if [[ "$python_ver" != "SKIP" && "$cargo_ver" != "$python_norm" ]]; then
-            echo "::error::Cargo ($cargo_ver) and Python ($python_ver) versions differ"
-            exit 1
+          FAIL=0
+          if [[ "$python_ver" != "SKIP" && "$cargo_ver" != "$python_norm" && "$cargo_ver" != "$python_ver" ]]; then
+            echo "::error::Version mismatch — Cargo ($cargo_ver) vs Python ($python_ver)"
+            FAIL=1
           fi
-
           if [[ "$node_ver" != "SKIP" && "$cargo_ver" != "$node_ver" ]]; then
-            echo "::error::Cargo ($cargo_ver) and Node.js ($node_ver) versions differ"
-            exit 1
+            echo "::error::Version mismatch — Cargo ($cargo_ver) vs Node.js ($node_ver)"
+            FAIL=1
           fi
-
+          if [[ $FAIL -eq 1 ]]; then exit 1; fi
           echo "✓ All versions consistent: $cargo_ver"
 
-  # ── 2. Rust — format / lint / test ────────────────────────────────────────
+  # ── 2. Rust — format / lint / test ─────────────────────────────────────────
   rust:
     name: 🦀 Rust • ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -99,61 +127,75 @@ jobs:
       - name: Check documentation
         run: cargo doc --workspace --all-features --no-deps
 
-  # ── 3. Python SDK — build + test ──────────────────────────────────────────
+  # ── 3. Python SDK — build + test ───────────────────────────────────────────
   python:
     name: 🐍 Python ${{ matrix.python }} • ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     needs: rust
+    # Only run if the SDK folder exists (skip for repos that haven't added it yet)
+    if: ${{ !cancelled() && needs.rust.result == 'success' }}
 
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
-        exclude:
-          # Python 3.8 / 3.9 wheels are not supported on Windows arm
-          - os: windows-latest
-            python: "3.8"
-          - os: windows-latest
-            python: "3.9"
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check if Python SDK exists
+        id: py_sdk
+        run: |
+          if [ -d sdk/python ]; then echo "exists=true" >> $GITHUB_OUTPUT
+          else echo "exists=false" >> $GITHUB_OUTPUT; fi
+
       - uses: dtolnay/rust-toolchain@stable
+        if: steps.py_sdk.outputs.exists == 'true'
 
       - uses: actions/setup-python@v5
+        if: steps.py_sdk.outputs.exists == 'true'
         with:
           python-version: ${{ matrix.python }}
 
       - name: Rust dependency cache
+        if: steps.py_sdk.outputs.exists == 'true'
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: rust-python-${{ runner.os }}
 
       - name: Install maturin
+        if: steps.py_sdk.outputs.exists == 'true'
         run: pip install --upgrade pip maturin
 
       - name: Build + install Python SDK
+        if: steps.py_sdk.outputs.exists == 'true'
         working-directory: sdk/python
         run: pip install --no-build-isolation -e ".[dev]"
 
       - name: Smoke test
+        if: steps.py_sdk.outputs.exists == 'true'
         run: python -c "import crawlingo; print('Version:', crawlingo.__version__)"
 
       - name: Run Python tests
+        if: steps.py_sdk.outputs.exists == 'true'
         working-directory: sdk/python
         run: |
           pip install pytest
           pytest tests/ -v --tb=short
 
-  # ── 4. Node.js SDK — build + test ─────────────────────────────────────────
+  # ── 4. Node.js SDK — build + test ──────────────────────────────────────────
   node:
     name: 📦 Node.js ${{ matrix.node }} • ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     needs: rust
+    if: ${{ !cancelled() && needs.rust.result == 'success' }}
 
     strategy:
       fail-fast: false
@@ -164,42 +206,58 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check if Node SDK exists
+        id: node_sdk
+        shell: bash
+        run: |
+          if [ -d sdk/nodejs ]; then echo "exists=true" >> $GITHUB_OUTPUT
+          else echo "exists=false" >> $GITHUB_OUTPUT; fi
+
       - uses: dtolnay/rust-toolchain@stable
+        if: steps.node_sdk.outputs.exists == 'true'
 
       - uses: actions/setup-node@v4
+        if: steps.node_sdk.outputs.exists == 'true'
         with:
           node-version: ${{ matrix.node }}
           cache: npm
           cache-dependency-path: sdk/nodejs/package-lock.json
 
       - name: Rust dependency cache
+        if: steps.node_sdk.outputs.exists == 'true'
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: rust-node-${{ runner.os }}
 
       - name: Install Node.js dependencies
+        if: steps.node_sdk.outputs.exists == 'true'
         working-directory: sdk/nodejs
         run: npm ci
 
       - name: Build native module + TypeScript
+        if: steps.node_sdk.outputs.exists == 'true'
         working-directory: sdk/nodejs
+        shell: bash
         run: |
           npm run build
           npm run build:ts
 
       - name: Pack dry-run (verify package contents)
+        if: steps.node_sdk.outputs.exists == 'true'
         working-directory: sdk/nodejs
         run: npm pack --dry-run
 
       - name: Run Node.js tests
+        if: steps.node_sdk.outputs.exists == 'true'
         working-directory: sdk/nodejs
         run: node tests/test_all.cjs
 
-  # ── 5. Security audit ─────────────────────────────────────────────────────
+  # ── 5. Security audit ──────────────────────────────────────────────────────
   audit:
     name: 🔐 Security Audit
     runs-on: ubuntu-latest
     needs: [rust]
+    if: ${{ !cancelled() && needs.rust.result == 'success' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -208,7 +266,7 @@ jobs:
       - name: Run cargo audit
         run: cargo audit
 
-  # ── 6. Docs — link check ──────────────────────────────────────────────────
+  # ── 6. Docs — link check ───────────────────────────────────────────────────
   docs-check:
     name: 📚 Docs Link Check
     runs-on: ubuntu-latest
@@ -220,7 +278,7 @@ jobs:
           args: --no-progress --exclude-mail '**/*.md'
           fail: false   # warn only — don't block CI on external link rot
 
-  # ── Summary gate (required check for branch protection) ───────────────────
+  # ── Summary gate (required check for branch protection) ────────────────────
   ci-pass:
     name: ✅ CI Pass
     runs-on: ubuntu-latest

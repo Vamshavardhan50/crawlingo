@@ -401,7 +401,7 @@ mod tests {
         env.insert("CRAWLINGO_POOL_IDLE_TIMEOUT_SECS", "600");
         env.insert("CRAWLINGO_RETRY_BASE_DELAY_MS", "500");
         env.insert("CRAWLINGO_RETRY_MAX_DELAY_MS", "5000");
-        env.insert("CRAWLINGO_RETRY_MULTIPLIER", "3.14");
+        env.insert("CRAWLINGO_RETRY_MULTIPLIER", "2.5");
 
         config.apply_env_from(|key| env.get(key).map(|v| v.to_string()));
 
@@ -410,6 +410,6 @@ mod tests {
         assert_eq!(config.pool.idle_timeout_secs, 600);
         assert_eq!(config.retry.base_delay_ms, 500);
         assert_eq!(config.retry.max_delay_ms, 5000);
-        assert_eq!(config.retry.multiplier, 3.14);
+        assert_eq!(config.retry.multiplier, 2.5);
     }
 }
