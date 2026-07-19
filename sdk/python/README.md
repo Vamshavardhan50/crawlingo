@@ -1,5 +1,5 @@
 <h1 align="center">
-  <a href="https://crawlingo.dev">
+  <a href="https://crawlingo-docs.vercel.app">
     <img alt="Crawlingo" src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/Logo%20and%20name.png" width="560">
   </a>
   <br>
@@ -11,7 +11,7 @@
   <a href="https://pypi.org/project/crawlingo/"><img src="https://img.shields.io/pypi/v/crawlingo?style=flat-square&logo=python&color=blue&label=PyPI" alt="PyPI version" /></a>
   <a href="https://pypi.org/project/crawlingo/"><img src="https://img.shields.io/pypi/pyversions/crawlingo?style=flat-square&logo=python" alt="Python Versions" /></a>
   <a href="https://github.com/Vamshavardhan50/crawlingo/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Vamshavardhan50/crawlingo?style=flat-square&label=License" alt="License" /></a>
-  <a href="https://crawlingo.dev/docs"><img src="https://img.shields.io/badge/docs-crawlingo.dev-6366F1?style=flat-square" alt="Docs" /></a>
+  <a href="https://crawlingo-docs.vercel.app/docs"><img src="https://img.shields.io/badge/docs-crawlingo.dev-6366F1?style=flat-square" alt="Docs" /></a>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 **Crawlingo Python SDK** is a next-generation web data extraction, crawling, and website monitoring library. It wraps a high-performance Rust core in an elegant Python API — scraping workflows that survive page design shifts automatically.
 
-📚 **Full API reference and guides at [crawlingo.dev/docs](https://crawlingo.dev/docs)**
+📚 **Full API reference and guides at [crawlingo.dev/docs](https://crawlingo-docs.vercel.app/docs)**
 
 ---
 
@@ -83,13 +83,13 @@ pip install -e .
 
 <a id="features"></a>
 
-- **🧠 Self-Healing DOM Fingerprinting** — Tracks layout changes via Jaro-Winkler. [Learn more](https://crawlingo.dev/docs/features#auto-match-self-healing)
-- **🛡️ Stealth Browser Impersonation** — Bypasses Cloudflare, Akamai via HTTP/2 TLS fingerprint rotation. [Learn more](https://crawlingo.dev/docs/features#stealthy-browser-impersonation)
-- **⚡ SIMD-Accelerated Text Anchors** — Faster than CSS/XPath via vector math. [Learn more](https://crawlingo.dev/docs/features#text-anchor-simd-accelerated)
-- **🔄 High-Speed Proxy Rotation** — Automatic round-robin proxy cycling. [Learn more](https://crawlingo.dev/docs/spiders#proxy-rotation)
-- **⏰ Reactive Watch Monitors** — Background polling with webhook notifications on changes. [Learn more](https://crawlingo.dev/docs/features#change-monitoring-watches)
-- **🤖 Built-in MCP Server** — Native Claude/Cursor integration. [Learn more](https://crawlingo.dev/docs/ai/mcp-server)
-- **📦 Schema-Driven Datasets** — Export to JSON, CSV, Arrow, or Pandas DataFrames. [Learn more](https://crawlingo.dev/docs/features#multi-format-exports)
+- **🧠 Self-Healing DOM Fingerprinting** — Tracks layout changes via Jaro-Winkler. [Learn more](https://crawlingo-docs.vercel.app/docs/features#auto-match-self-healing)
+- **🛡️ Stealth Browser Impersonation** — Bypasses Cloudflare, Akamai via HTTP/2 TLS fingerprint rotation. [Learn more](https://crawlingo-docs.vercel.app/docs/features#stealthy-browser-impersonation)
+- **⚡ SIMD-Accelerated Text Anchors** — Faster than CSS/XPath via vector math. [Learn more](https://crawlingo-docs.vercel.app/docs/features#text-anchor-simd-accelerated)
+- **🔄 High-Speed Proxy Rotation** — Automatic round-robin proxy cycling. [Learn more](https://crawlingo-docs.vercel.app/docs/spiders#proxy-rotation)
+- **⏰ Reactive Watch Monitors** — Background polling with webhook notifications on changes. [Learn more](https://crawlingo-docs.vercel.app/docs/features#change-monitoring-watches)
+- **🤖 Built-in MCP Server** — Native Claude/Cursor integration. [Learn more](https://crawlingo-docs.vercel.app/docs/ai/mcp-server)
+- **📦 Schema-Driven Datasets** — Export to JSON, CSV, Arrow, or Pandas DataFrames. [Learn more](https://crawlingo-docs.vercel.app/docs/features#multi-format-exports)
 
 ---
 

@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://crawlingo.dev">
+  <a href="https://crawlingo-docs.vercel.app">
     <img src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/Logo%20and%20name.png" alt="Crawlingo" width="640" style="max-width: 100%;">
   </a>
   <p align="center">
@@ -11,7 +11,7 @@
     <a href="https://pypi.org/project/crawlingo/"><img src="https://img.shields.io/pypi/v/crawlingo?style=flat-square&logo=python&label=PyPI" alt="PyPI"></a>
     <a href="https://www.npmjs.com/package/crawlingo"><img src="https://img.shields.io/npm/v/crawlingo?style=flat-square&logo=nodedotjs&label=npm" alt="npm"></a>
     <a href="https://github.com/Vamshavardhan50/crawlingo/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Vamshavardhan50/crawlingo?style=flat-square&color=orange" alt="License"></a>
-    <a href="https://crawlingo.dev/docs"><img src="https://img.shields.io/badge/docs-crawlingo.dev-blue?style=flat-square&color=6366F1" alt="Documentation"></a>
+    <a href="https://crawlingo-docs.vercel.app/docs"><img src="https://img.shields.io/badge/docs-crawlingo--docs.vercel.app-blue?style=flat-square&color=6366F1" alt="Documentation"></a>
   </p>
 </div>
 
@@ -26,7 +26,7 @@
 </p>
 
 <p align="center">
-  <sub>Want your logo here? <a href="https://crawlingo.dev/sponsor">Become a sponsor →</a></sub>
+  <sub>Want your logo here? <a href="https://crawlingo-docs.vercel.app/sponsor">Become a sponsor →</a></sub>
 </p>
 
 ---
@@ -166,8 +166,8 @@ async fn main() -> anyhow::Result<()> {
 
 | Resource | Link |
 | :--- | :--- |
-| 🌐 **Official Website** | [crawlingo.dev](https://crawlingo.dev) |
-| 📖 **Documentation** | [crawlingo.dev/docs](https://crawlingo.dev/docs) |
+| 🌐 **Official Website** | [crawlingo-docs.vercel.app](https://crawlingo-docs.vercel.app) |
+| 📖 **Documentation** | [crawlingo-docs.vercel.app](https://crawlingo-docs.vercel.app) |
 | 🐍 **PyPI Package** | [pypi.org/project/crawlingo](https://pypi.org/project/crawlingo/) |
 | 📦 **npm Package** | [npmjs.com/package/crawlingo](https://www.npmjs.com/package/crawlingo) |
 | 🦀 **crates.io** | [crates.io/crates/crawlingo](https://crates.io/crates/crawlingo) |
