@@ -110,6 +110,13 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      # pyo3 (pulled in by --all-features) needs a real Python interpreter at
+      # build time.  Pin to 3.13 — the highest version pyo3 0.24 guarantees.
+      - name: Set up Python (for pyo3 build)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
       - name: Rust dependency cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -119,12 +126,18 @@ jobs:
         run: cargo fmt --all --check
 
       - name: Clippy (all features, deny warnings)
+        env:
+          PYO3_PYTHON: python3
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
       - name: Run tests
+        env:
+          PYO3_PYTHON: python3
         run: cargo test --workspace --all-features --verbose
 
       - name: Check documentation
+        env:
+          PYO3_PYTHON: python3
         run: cargo doc --workspace --all-features --no-deps
 
   # ── 3. Python SDK — build + test ───────────────────────────────────────────
