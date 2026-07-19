@@ -93,7 +93,7 @@ flate2 = "1.0"
 time = ">=0.3, <0.3.52"
 
 # Python bindings
-pyo3 = { version = "0.24", features = ["extension-module", "py-clone"], optional = true }
+pyo3 = { version = "0.25", features = ["extension-module", "py-clone"], optional = true }
 
 # CLI argument parsing
 clap = { version = "4", features = ["derive", "env"], optional = true }

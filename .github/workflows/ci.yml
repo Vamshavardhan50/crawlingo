@@ -18,6 +18,9 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  # pyo3: allow building against Python versions newer than pyo3's stated max
+  # (e.g. macos-latest ships Python 3.14; pyo3 0.25 caps at 3.13 stable ABI)
+  PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  JOBS
