@@ -30,7 +30,7 @@ impl From<crawlingo::change::detector::ChangeEvent> for JsChangeEvent {
             ChangeType::StockChange { .. } => "StockChange".to_string(),
             ChangeType::ElementAdded => "ElementAdded".to_string(),
             ChangeType::ElementRemoved => "ElementRemoved".to_string(),
-            ChangeType::LayoutChange => "LayoutChange".to_string(),
+            _ => "Unknown".to_string(),
         };
 
         Self {
@@ -336,7 +336,7 @@ pub async fn fetch_page(
     let cookies_val = cookies.unwrap_or_default();
     let timeout_val = timeout.unwrap_or(30) as u64;
 
-    let (headers_f, cookies_f, proxy_f, rate_limit_rps_f, timeout_f, fetcher_tier_f, browser_profile_f) = if let Some(s) = session {
+    let (headers_f, cookies_f, proxy_f, _rate_limit_rps_f, timeout_f, fetcher_tier_f, browser_profile_f) = if let Some(s) = session {
         let h = s.inner.headers.read().unwrap().clone();
         let c = s.inner.cookies.read().unwrap().clone();
         let p = s.inner.proxy.read().unwrap().clone();
@@ -366,7 +366,6 @@ pub async fn fetch_page(
         proxy: proxy_f,
         timeout: std::time::Duration::from_secs(timeout_f),
         retries: 3,
-        rate_limit_rps: rate_limit_rps_f,
     };
 
     let rate_limiter = Arc::new(crawlingo::engine::rate_limiter::HostRateLimiter::new());
@@ -1005,7 +1004,6 @@ impl JsSitemap {
                     proxy: crawler.session.get_next_proxy(),
                     timeout: std::time::Duration::from_secs(*crawler.session.timeout_seconds.read().unwrap()),
                     retries: 2,
-                    rate_limit_rps: 0.0,
                 };
                 if let Ok(resp) = manager.dispatch(req).await {
                     if let Ok(parsed) = crawlingo::crawl::sitemap::parse_sitemap(&resp.body) {
