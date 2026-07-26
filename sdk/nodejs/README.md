@@ -11,7 +11,7 @@
   <a href="https://www.npmjs.com/package/crawlingo"><img src="https://img.shields.io/npm/v/crawlingo?style=flat-square&logo=nodedotjs&color=red&label=npm" alt="npm version" /></a>
   <a href="https://www.npmjs.com/package/crawlingo"><img src="https://img.shields.io/npm/dm/crawlingo?style=flat-square" alt="npm Downloads" /></a>
   <a href="https://github.com/Vamshavardhan50/crawlingo/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Vamshavardhan50/crawlingo?style=flat-square&label=License" alt="License" /></a>
-  <a href="https://crawlingo-docs.vercel.app/docs"><img src="https://img.shields.io/badge/docs-crawlingo.dev-6366F1?style=flat-square" alt="Docs" /></a>
+  <a href="https://crawlingo-docs.vercel.app/docs"><img src="https://img.shields.io/badge/docs-crawlingo--docs.vercel.app-6366F1?style=flat-square" alt="Docs" /></a>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 **Crawlingo Node.js SDK** is a next-generation web data extraction, crawling, and website monitoring library. It wraps a high-performance Rust core in a TypeScript-first API — scraping workflows that survive page design shifts automatically.
 
-📚 **Full API reference and guides at [crawlingo.dev/docs](https://crawlingo-docs.vercel.app/docs)**
+📚 **Full API reference and guides at [crawlingo-docs.vercel.app/docs](https://crawlingo-docs.vercel.app/docs)**
 
 ---
 
