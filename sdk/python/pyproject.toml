@@ -28,6 +28,7 @@ Funding = "https://github.com/sponsors/Vamshavardhan50"
 crawlingo = "crawlingo.cli:main"
 
 [tool.maturin]
+bindings = "pyo3"
 features = ["python"]
 manifest-path = "../../Cargo.toml"
 module-name = "crawlingo._crawlingo_core"
