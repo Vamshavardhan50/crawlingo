@@ -37,7 +37,7 @@
     "check:package": "node scripts/check-package.cjs"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^2.18.4",
+    "@napi-rs/cli": "^3.10.8",
     "@types/node": "^25.9.3",
     "typescript": "^5.4.5"
   },
