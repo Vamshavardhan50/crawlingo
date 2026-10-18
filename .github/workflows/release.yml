@@ -157,7 +157,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: '"LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV'
-      - uses: pypa/cibuildwheel@v2.21
+      - uses: pypa/cibuildwheel@v4.3
         with:
           package-dir: sdk/python
         env:
