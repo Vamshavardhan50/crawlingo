@@ -1,6 +1,5 @@
 use crate::error::Result;
 use crate::parser::document::Page;
-use crate::selector::SelectorQuery;
 use std::collections::HashMap;
 
 /// Defines how a raw extracted string should be cleaned and typed.
@@ -50,25 +49,28 @@ impl ExtractionEngine {
         let mut fields = HashMap::new();
 
         for rule in rules {
-            let query = match rule.selector_type.as_str() {
-                "xpath" => SelectorQuery::XPath(&rule.selector),
-                "regex" => SelectorQuery::Regex(&rule.selector),
-                "text" | "text_anchor" => SelectorQuery::TextAnchor(&rule.selector),
-                "after_text" => SelectorQuery::AfterText(&rule.selector),
-                "before_text" => SelectorQuery::BeforeText(&rule.selector),
-                _ => SelectorQuery::Css(&rule.selector),
-            };
+            let query =
+                crate::selector::SelectorQuery::from_type_str(&rule.selector_type, &rule.selector);
 
             let matched_indices = page.query(query)?;
             let extracted_val: Option<String> = if matched_indices.is_empty() {
                 None
             } else {
-                let raw_text = page.get_nodes_combined_text(&matched_indices);
-                let cleaned = Self::normalize_value(&raw_text, &rule.extract_type, page.url());
-                if cleaned.is_empty() {
+                // For Attribute extraction we read directly from the DOM node's attribute map —
+                // NOT from the combined text content. This is the canonical attribute extraction path.
+                let value = match &rule.extract_type {
+                    ExtractionType::Attribute(attr_name) => {
+                        page.get_node_attr(&matched_indices, attr_name)
+                    }
+                    other => {
+                        let raw_text = page.get_nodes_combined_text(&matched_indices);
+                        Self::normalize_value(&raw_text, other, page.url())
+                    }
+                };
+                if value.is_empty() {
                     None
                 } else {
-                    Some(cleaned)
+                    Some(value)
                 }
             };
 
@@ -111,8 +113,9 @@ impl ExtractionEngine {
             ExtractionType::NormalizedUrl => crate::util::url::resolve_url(base_url, raw.trim())
                 .unwrap_or_else(|| raw.trim().to_string()),
             ExtractionType::Attribute(_attr_name) => {
-                // This type should be paired with attribute extraction at call site;
-                // here we just return the raw value as-is
+                // Attribute values are always extracted at the call site via `Page::get_node_attr`.
+                // `normalize_value` is only called for text-based types; reaching this arm means
+                // a caller passed a pre-fetched attribute string — just trim and return it.
                 raw.trim().to_string()
             }
         }
@@ -228,15 +231,131 @@ mod tests {
         );
     }
 
+    /// Verifies that `ExtractionType::Attribute` pulls the value from the DOM attribute map,
+    /// NOT from the node's text content. This is the regression test for the P0 bug where
+    /// `extract_type="attr:href"` would return the link text instead of the href URL.
     #[test]
-    fn test_extraction_type_attribute() {
+    fn test_extraction_type_attribute_extracts_from_dom_not_text() {
+        use std::collections::HashMap;
+        let html = r#"
+            <div>
+              <a class="link" href="https://example.com/page">Click here</a>
+              <img id="hero" src="/images/hero.png" alt="Hero image">
+              <span data-id="42">some text</span>
+              <a class="empty-href" href="">Empty href</a>
+            </div>
+        "#;
+        let page = crate::parser::streaming::HtmlParser::parse(
+            crate::engine::fetcher::NormalizedResponse {
+                url: "https://example.com".to_string(),
+                status: 200,
+                headers: HashMap::new(),
+                cookies: HashMap::new(),
+                body: html.into(),
+                content_type: "text/html".to_string(),
+                encoding: "utf-8".to_string(),
+                timings: Default::default(),
+            },
+        )
+        .unwrap();
+
+        let rules = vec![
+            // href — must return URL string, not "Click here"
+            ExtractionRule {
+                name: "link_href".to_string(),
+                selector: "a.link".to_string(),
+                selector_type: "css".to_string(),
+                extract_type: ExtractionType::Attribute("href".to_string()),
+                default: None,
+                #[cfg(feature = "python")]
+                transform: None,
+            },
+            // src — must return image path, not alt text
+            ExtractionRule {
+                name: "img_src".to_string(),
+                selector: "#hero".to_string(),
+                selector_type: "css".to_string(),
+                extract_type: ExtractionType::Attribute("src".to_string()),
+                default: None,
+                #[cfg(feature = "python")]
+                transform: None,
+            },
+            // data-id — custom data attribute
+            ExtractionRule {
+                name: "data_id".to_string(),
+                selector: "span".to_string(),
+                selector_type: "css".to_string(),
+                extract_type: ExtractionType::Attribute("data-id".to_string()),
+                default: None,
+                #[cfg(feature = "python")]
+                transform: None,
+            },
+            // missing attribute — must fall back to default
+            ExtractionRule {
+                name: "missing_attr".to_string(),
+                selector: "a.link".to_string(),
+                selector_type: "css".to_string(),
+                extract_type: ExtractionType::Attribute("nonexistent".to_string()),
+                default: Some("MISSING".to_string()),
+                #[cfg(feature = "python")]
+                transform: None,
+            },
+            // empty href — empty attribute should fall back to default
+            ExtractionRule {
+                name: "empty_href".to_string(),
+                selector: "a.empty-href".to_string(),
+                selector_type: "css".to_string(),
+                extract_type: ExtractionType::Attribute("href".to_string()),
+                default: Some("DEFAULT".to_string()),
+                #[cfg(feature = "python")]
+                transform: None,
+            },
+            // class attribute
+            ExtractionRule {
+                name: "link_class".to_string(),
+                selector: "a.link".to_string(),
+                selector_type: "css".to_string(),
+                extract_type: ExtractionType::Attribute("class".to_string()),
+                default: None,
+                #[cfg(feature = "python")]
+                transform: None,
+            },
+        ];
+
+        let result = ExtractionEngine::extract(&page, &rules).unwrap();
+
+        // P0 regression: href must be the URL, NOT the link text "Click here"
         assert_eq!(
-            ExtractionEngine::normalize_value(
-                " raw value ",
-                &ExtractionType::Attribute("src".to_string()),
-                "https://example.com"
-            ),
-            "raw value"
+            result.get("link_href").unwrap(),
+            "https://example.com/page",
+            "attr:href must return the href attribute value, not the node text"
+        );
+        assert_eq!(
+            result.get("img_src").unwrap(),
+            "/images/hero.png",
+            "attr:src must return the src attribute value"
+        );
+        assert_eq!(
+            result.get("data_id").unwrap(),
+            "42",
+            "attr:data-id must return the data-id attribute value"
+        );
+        // missing attribute → falls through to default
+        assert_eq!(
+            result.get("missing_attr").unwrap(),
+            "MISSING",
+            "missing attribute must use field default"
+        );
+        // empty href → empty string → falls through to default
+        assert_eq!(
+            result.get("empty_href").unwrap(),
+            "DEFAULT",
+            "empty attribute string must use field default"
+        );
+        assert_eq!(
+            result.get("link_class").unwrap(),
+            "link",
+            "attr:class must return the class attribute value"
         );
     }
 

@@ -64,14 +64,18 @@ pub async fn write_parquet_stream(
 
         let mut arrow_fields = Vec::new();
         let mut keys = Vec::new();
-        for key in first_record.keys() {
+        let mut sorted_keys: Vec<_> = first_record.keys().collect();
+        sorted_keys.sort();
+        for key in sorted_keys {
             arrow_fields.push(Field::new(key, DataType::Utf8, false));
             keys.push(key.clone());
         }
         let schema = Arc::new(Schema::new(arrow_fields));
 
         let file = std::fs::File::create(&path_str)?;
-        let props = WriterProperties::builder().build();
+        let props = WriterProperties::builder()
+            .set_max_row_group_size(limit)
+            .build();
         let mut writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
 
         let write_batch = |w: &mut ArrowWriter<std::fs::File>,
@@ -102,6 +106,11 @@ pub async fn write_parquet_stream(
         batch.push(first_record);
 
         while let Some(record) = receiver.blocking_recv() {
+            if record.keys().any(|key| !keys.contains(key)) {
+                return Err(CrawlingoError::ExportError(
+                    "Parquet record introduces undeclared columns".into(),
+                ));
+            }
             batch.push(record);
             if batch.len() >= limit {
                 write_batch(&mut writer, &batch, &keys, &schema)?;

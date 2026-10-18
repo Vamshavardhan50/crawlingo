@@ -17,6 +17,9 @@ pub fn parse_html(html: &[u8]) -> Result<DomTree> {
 
     // Track start tags and parent relations
     let element_handler = element!("*", move |el| {
+        if stack_clone.borrow().len() >= 1024 || tree_clone.borrow().nodes.len() >= 250_000 {
+            return Err("HTML parser resource limit exceeded (depth or node count)".into());
+        }
         let tag = el.tag_name().to_lowercase();
         let attrs: HashMap<String, String> = el
             .attributes()

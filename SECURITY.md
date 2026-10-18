@@ -1,51 +1,37 @@
-# Security Policy
+# Security policy
 
-## Supported Versions
+## Supported source
 
-| Version | Supported |
-|---------|-----------|
-| 0.1.x   | ✅ Yes |
-| < 0.1   | ❌ No  |
+Crawlingo is in alpha development. Reports against the current development branch
+and `1.0.0-alpha.1` are assessed on a best-effort basis. Published packages may differ
+from the current source. Include the exact package version or commit and build features.
+There is no guaranteed response timeline or backport policy.
 
-## Reporting a Vulnerability
+## Report privately
 
-**Please do NOT report security vulnerabilities via public GitHub issues.**
+Use [GitHub private vulnerability reporting](https://github.com/Vamshavardhan50/crawlingo/security/advisories/new)
+when it is enabled for this repository. If the private form is unavailable, ask the
+maintainer for a private contact route without including exploit details, credentials
+or affected private data in a public issue.
 
-Instead, use one of these private channels:
+Include the affected component, environment, minimal reproduction, impact and any
+suggested fix. Maintainers should coordinate a fix and disclosure with the reporter
+and ask before publishing their identity. Do not open a public issue containing a
+working exploit while private triage is pending.
 
-### GitHub Security Advisories (Preferred)
+Private reporting is a GitHub repository setting; adding this file does not enable it.
+See [GitHub's configuration guide](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository).
 
-1. Go to [Security → Report a Vulnerability](https://github.com/Vamshavardhan50/crawlingo/security/advisories/new)
-2. Describe the vulnerability and include:
-   - Affected version(s)
-   - Steps to reproduce
-   - Potential impact assessment
-   - Suggested fix (optional)
+## Scope and application boundaries
 
-### Response Timeline
+Reports may include parser failures on hostile input, credential leakage, unsafe
+filesystem handling, unexpected network access or exploitable dependency behavior.
+Describe the actual affected configuration and boundary.
 
-| Stage | Target Timeline |
-|-------|----------------|
-| Initial response | 48 hours |
-| Triage & validation | 5 business days |
-| Fix & private patch | 30 days |
-| Public disclosure | After patch is released |
+Crawlingo makes network requests chosen by its caller. Applications accepting URLs,
+selectors, output paths or credentials from other users must enforce their own access
+policy and resource limits. The SDK is not an isolation boundary for untrusted jobs.
+Run browser workloads with the protections appropriate to the host environment.
 
-We follow [Coordinated Vulnerability Disclosure](https://vuls.cert.org/confluence/display/CVD/What+is+CVD) and will credit reporters in our release notes unless they prefer to remain anonymous.
-
-## Scope
-
-**In scope:**
-- Credential exposure or leakage in logs/output
-- Arbitrary code execution via malformed HTML or selectors
-- SSRF via proxy configuration
-- Dependency vulnerabilities with exploitable vectors
-
-**Out of scope:**
-- Rate limiting or abuse by users of the library
-- Bypassing bot detection (that's a feature, not a bug)
-- Denial of service of third-party sites using Crawlingo
-
-## Trusted-Input Assumption
-
-Crawlingo assumes that target URLs, CSS/XPath selectors, and JSON schemas passed to the engine are trusted inputs. The library does not execute user-provided scripts in a sandbox, nor does it attempt to prevent denial of service from overly complex regular expressions (ReDoS) provided by the caller. Callers should ensure all inputs (especially regular expressions and user-supplied selectors) are validated and sanitized prior to execution.
+Do not include secrets in logs, issue attachments, example files or committed datasets.
+For ordinary correctness bugs and feature requests, use the public issue forms.

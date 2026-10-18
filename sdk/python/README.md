@@ -1,197 +1,94 @@
-<h1 align="center">
-  <a href="https://crawlingo-docs.vercel.app">
-    <img alt="Crawlingo" src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/Logo%20and%20name.png" width="560">
-  </a>
-  <br>
-  <small>Python SDK — Self-Healing Web Scraping for Python</small>
-</h1>
+# Crawlingo for Python
 
-<p align="center">
-  <a href="https://github.com/Vamshavardhan50/crawlingo/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/Vamshavardhan50/crawlingo/ci.yml?branch=main&style=flat-square&logo=github&label=CI" /></a>
-  <a href="https://pypi.org/project/crawlingo/"><img src="https://img.shields.io/pypi/v/crawlingo?style=flat-square&logo=python&color=blue&label=PyPI" alt="PyPI version" /></a>
-  <a href="https://pypi.org/project/crawlingo/"><img src="https://img.shields.io/pypi/pyversions/crawlingo?style=flat-square&logo=python" alt="Python Versions" /></a>
-  <a href="https://github.com/Vamshavardhan50/crawlingo/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Vamshavardhan50/crawlingo?style=flat-square&label=License" alt="License" /></a>
-  <a href="https://crawlingo-docs.vercel.app/docs"><img src="https://img.shields.io/badge/docs-crawlingo--docs.vercel.app-6366F1?style=flat-square" alt="Docs" /></a>
-</p>
+Generate validated datasets using a Rust engine and a small Python API.
 
-<p align="center">
-  <a href="#installation"><strong>Installation</strong></a> ·
-  <a href="#why-crawlingo"><strong>Why Crawlingo</strong></a> ·
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#quick-start"><strong>Quick Start</strong></a> ·
-  <a href="#cli-interface"><strong>CLI</strong></a>
-</p>
+[Documentation](https://crawlingo-docs.vercel.app/sdk/python) ·
+[Job reference](https://github.com/Vamshavardhan50/crawlingo/blob/main/DATASET_JOBS.md) · [Scale evidence](https://github.com/Vamshavardhan50/crawlingo/blob/main/SCALE_RESULTS.md)
 
----
+[Complete product example](https://github.com/Vamshavardhan50/crawlingo/blob/main/examples/product_dataset/README.md) ·
+[Deploy a worker](https://github.com/Vamshavardhan50/crawlingo/blob/main/guides/deployment.md) · [Publish to PyPI](https://github.com/Vamshavardhan50/crawlingo/blob/main/guides/publishing.md)
 
-**Crawlingo Python SDK** is a next-generation web data extraction, crawling, and website monitoring library. It wraps a high-performance Rust core in an elegant Python API — scraping workflows that survive page design shifts automatically.
+## Build from source
 
-📚 **Full API reference and guides at [crawlingo-docs.vercel.app/docs](https://crawlingo-docs.vercel.app/docs)**
+This source targets **1.0.0a2 (unpublished)**. PyPI currently has `0.1.2`, with a
+Windows Python 3.14 wheel and source archive. That artifact is not this dataset
+API. Build the matching extension before running these examples.
 
----
+The source declares Python 3.8–3.13; use Python 3.12 for the verified local build.
+The current PyO3 dependency does not
+support Python 3.14. Install Rust, C/C++ build tools, CMake and libclang first.
 
-## 🎥 Demo
+From the repository root:
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/crawlingo_demo.webp" alt="Crawlingo Self-Healing Demo" width="600">
-</p>
-
-### How Self-Healing Works:
-1. **Drift Detection** — When `button#submit.btn-primary` renames to `button#send-btn.btn-primary-new`, traditional scrapers return empty.
-2. **DOM Parsing** — Crawlingo's Rust engine intercepts the mismatch and isolates candidates within the parent node.
-3. **Jaro-Winkler Matching** — Candidates are ranked by tag, attributes, text content, and structural fingerprints.
-4. **Auto-Match Recovery** — The highest-scoring candidate (e.g. **94% confidence**) is auto-bound and cached — zero pipeline downtime.
-
----
-
-## 📦 Installation
-
-<a id="installation"></a>
-
-```bash
-pip install crawlingo
+```sh
+python -m venv .venv
+# Activate .venv using the command for your shell.
+python -m pip install maturin
+cd sdk/python
+maturin develop --locked --release
+python -c "from crawlingo import DatasetJob; print(DatasetJob)"
 ```
 
-Or build from source:
+If native compilation cannot find LLVM, set `LIBCLANG_PATH` to the directory
+containing `libclang.dll` or the equivalent library on your platform.
 
-```bash
-git clone https://github.com/Vamshavardhan50/crawlingo.git
-cd crawlingo/sdk/python
-pip install -e .
-```
+## Generate a dataset
 
----
-
-## 🚀 Why Crawlingo?
-
-<a id="why-crawlingo"></a>
-
-| Feature | Crawlingo | Scrapy | Crawl4AI |
-|----------|-----------|--------|----------|
-| Rust Core | ✅ | ❌ | ❌ |
-| Python SDK | ✅ | ✅ | ✅ |
-| Node SDK | ✅ | ❌ | ❌ |
-| Self-Healing Selectors | ✅ | ❌ | ❌ |
-| Change Monitoring | ✅ | ❌ | ❌ |
-| Dataset Export | ✅ | ⚠️ | ⚠️ |
-| Stealth TLS | ✅ | ❌ | ❌ |
-| AI / MCP Ready | ✅ | ❌ | ✅ |
-
----
-
-## 🛠️ Core Features
-
-<a id="features"></a>
-
-- **🧠 Self-Healing DOM Fingerprinting** — Tracks layout changes via Jaro-Winkler. [Learn more](https://crawlingo-docs.vercel.app/docs/features#auto-match-self-healing)
-- **🛡️ Stealth Browser Impersonation** — Bypasses Cloudflare, Akamai via HTTP/2 TLS fingerprint rotation. [Learn more](https://crawlingo-docs.vercel.app/docs/features#stealthy-browser-impersonation)
-- **⚡ SIMD-Accelerated Text Anchors** — Faster than CSS/XPath via vector math. [Learn more](https://crawlingo-docs.vercel.app/docs/features#text-anchor-simd-accelerated)
-- **🔄 High-Speed Proxy Rotation** — Automatic round-robin proxy cycling. [Learn more](https://crawlingo-docs.vercel.app/docs/spiders#proxy-rotation)
-- **⏰ Reactive Watch Monitors** — Background polling with webhook notifications on changes. [Learn more](https://crawlingo-docs.vercel.app/docs/features#change-monitoring-watches)
-- **🤖 Built-in MCP Server** — Native Claude/Cursor integration. [Learn more](https://crawlingo-docs.vercel.app/docs/ai/mcp-server)
-- **📦 Schema-Driven Datasets** — Export to JSON, CSV, Arrow, or Pandas DataFrames. [Learn more](https://crawlingo-docs.vercel.app/docs/features#multi-format-exports)
-
----
-
-## ⚡ Quick Start
-
-<a id="quick-start"></a>
-
-### 1. Basic Extraction
+Create `urls.txt` with one HTTP(S) URL per line, then run:
 
 ```python
-from crawlingo import Page
+from crawlingo import DatasetJob
 
-page = Page("https://example.com")
-print(page.title())
-print(page.css("p").text())
+job = DatasetJob({
+    "urls_file": "urls.txt",
+    "output_dir": "datasets/pages",
+    "fields": [{"name": "title", "selector": "h1", "required": True}],
+    "format": "jsonl",
+})
+report = job.run()
+print(report)
 ```
 
-### 2. Self-Healing Datasets
+The Rust engine writes accepted records and error shards to disk. Python receives
+a summary instead of a million-element list. Check `pages_failed` and
+`records_rejected`, even when `complete` is true.
+
+In an async application, use `await job.run_async()`. Call `job.cancel()` to request
+cancellation. Resume with a new instance using the same input, configuration and
+output directory. Use a fresh directory if any of them change.
+
+## Configure requests
+
+```python
+from crawlingo import DatasetJob, Session
+
+session = Session().rate_limit(2).timeout(30)
+session.headers({"User-Agent": "MyDatasetBot/1.0"})
+job = DatasetJob(config, session=session)  # config is your job dictionary
+```
+
+Robots checks are enabled by default. `row_selector`, field validation and exact
+deduplication are described in the [job reference](https://github.com/Vamshavardhan50/crawlingo/blob/main/DATASET_JOBS.md).
+
+## Extract a small result
 
 ```python
 from crawlingo import Dataset
 
-dataset = (
-    Dataset("https://example.com/products")
-    .auto_match(True)
-    .field("title", "h1.product-title")
-    .field("price", "span.price")
-    .build()
-)
-
-print(dataset.to_dict())
-dataset.to_csv("products.csv")
-dataset.to_parquet("products.parquet")
+result = Dataset("https://example.com/").field("title", "h1").build()
+print(result.to_dict())
+result.to_json("page.json")
 ```
 
-### 3. Watch Monitor for Changes
+The Python `Dataset.field` wrapper accepts `selector_type`, `transform` and
+`default`; use job field configuration for bulk `extract_type` options. Collected
+results support JSON, CSV and Parquet. Bulk jobs currently support JSONL and CSV.
 
-```python
-import asyncio
-from crawlingo import Watch
+## Limits
 
-def on_price_update(event):
-    print(f"Price changed: {event.old_value} → {event.new_value}")
+Job values are strings with optional strict validation. Selector recovery is a
+heuristic feature of the existing Dataset builder, not DatasetJob. Browser-like
+TLS profiles do not guarantee access. The million-record result uses local HTTP
+fixtures and does not establish arbitrary-site performance.
 
-async def main():
-    watch = (
-        Watch("https://example.com/item")
-        .field("price", "span.item-price")
-        .interval(60)
-        .on_price_change(on_price_update)
-    )
-    await watch.run_async()
-
-asyncio.run(main())
-```
-
-### 4. Stealth Session with Proxies
-
-```python
-from crawlingo import Session, Page
-
-session = (
-    Session()
-    .fetcher_tier("stealthy")
-    .proxy_pool(["http://proxy1:8080", "http://proxy2:8080"])
-    .rate_limit(3)
-    .auto_match(True)
-)
-
-page = Page("https://protected-site.com", session=session)
-print(page.css("h1").text())
-```
-
----
-
-## 🛠️ CLI Interface
-
-<a id="cli-interface"></a>
-
-```bash
-# Interactive REPL preloaded with crawlingo
-crawlingo shell https://example.com
-
-# Extract elements directly
-crawlingo extract https://example.com --css "h1"
-
-# Start MCP server for AI agents
-crawlingo mcp --host 127.0.0.1 --port 8000
-```
-
----
-
-## 💖 Sponsors
-
-<p align="center">
-  <a href="https://genzgrowth.com" title="Gen-Z Growth">
-    <img src="https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/genZgrowth.png" alt="Gen-Z Growth" width="180">
-  </a>
-</p>
-
----
-
-## 📝 License
-
-MIT License — see [LICENSE](https://github.com/Vamshavardhan50/crawlingo/blob/main/LICENSE).
+MIT license. [Report an issue](https://github.com/Vamshavardhan50/crawlingo/issues).

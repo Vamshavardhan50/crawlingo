@@ -1,7 +1,6 @@
 # Rust
 target/
-Cargo.lock
-sdk/nodejs/native/Cargo.lock
+# Commit lockfiles for repeatable CLI and native SDK releases.
 
 # Python
 __pycache__/
@@ -19,6 +18,9 @@ build/
 
 # Node.js
 node_modules/
+*.node
+*.tgz
+sdk/nodejs/LICENSE
 
 # Next.js build output (crawlingo-docs website)
 crawlingo-docs/.next/
@@ -29,6 +31,12 @@ dist/
 *.tsbuildinfo
 
 # Generated output data
+sdk/nodejs/tests/reports/
+sdk/nodejs/tests/output/
+sdk/python/tests/_crawlingo_test.json
+sdk/python/tests/_dataset_output.json
+sdk/python/tests/_crawlingo_test_fp/
+work/
 *.csv
 *.parquet
 examples/*.json

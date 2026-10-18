@@ -19,6 +19,7 @@ pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 pub enum FetcherTier {
     Standard,
     Stealthy,
+    Browser,
 }
 
 /// The identity of a reusable HTTP client.
@@ -152,6 +153,7 @@ pub trait Transport: Send + Sync {
 pub struct HttpFetcher {
     pool_config: ConnectionPoolConfig,
     clients: moka::future::Cache<TransportKey, Client>,
+    max_response_bytes: usize,
 }
 
 impl HttpFetcher {
@@ -162,7 +164,13 @@ impl HttpFetcher {
         Self {
             pool_config,
             clients,
+            max_response_bytes: 16 * 1024 * 1024,
         }
+    }
+
+    pub fn with_max_response_bytes(mut self, limit: usize) -> Self {
+        self.max_response_bytes = limit.max(1);
+        self
     }
 
     /// Constructs a fresh client for a given transport configuration, applying the pool settings.
@@ -275,7 +283,7 @@ impl HttpFetcher {
         };
 
         let status = resp.status().as_u16();
-        let url_str = request.url.clone();
+        let url_str = resp.uri().to_string();
 
         let mut headers = HashMap::new();
         for (name, value) in resp.headers() {
@@ -308,10 +316,27 @@ impl HttpFetcher {
             "utf-8".to_string()
         };
 
-        let body = resp
-            .bytes()
-            .await
-            .map_err(|e| CrawlingoError::FetchError(e.to_string()))?;
+        if resp
+            .content_length()
+            .is_some_and(|length| length > self.max_response_bytes as u64)
+        {
+            return Err(CrawlingoError::FetchError(
+                "response exceeds byte limit".into(),
+            ));
+        }
+        use futures::StreamExt;
+        let mut stream = resp.bytes_stream();
+        let mut body = bytes::BytesMut::new();
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk.map_err(|e| CrawlingoError::FetchError(e.to_string()))?;
+            if chunk.len() > self.max_response_bytes.saturating_sub(body.len()) {
+                return Err(CrawlingoError::FetchError(
+                    "response exceeds byte limit".into(),
+                ));
+            }
+            body.extend_from_slice(&chunk);
+        }
+        let body = body.freeze();
 
         Ok(NormalizedResponse {
             url: url_str,
@@ -332,35 +357,89 @@ impl Transport for HttpFetcher {
     }
 }
 
-/// Placeholder strategy for executing fetches in a headless stealth browser.
+// ─── BrowserFetcher ─────────────────────────────────────────────────────────
+//
+// Two variants: the real CDP-backed one (feature = "browser") and a stub that returns
+// NotSupported when the feature is disabled. Both implement Transport identically from
+// the caller's perspective — FetchManager routes FetcherTier::Browser to whichever is active.
+
+/// Real headless-browser fetch tier backed by [`super::browser::BrowserManager`].
 ///
-/// # ⚠️ Stub — No browser automation
-/// BrowserFetcher is a stub and delegates to the fallback HttpFetcher.
+/// Holds a shared [`super::browser::BrowserManager`] that owns a single Chromium process.
+/// Each `fetch()` call opens a new tab, navigates, waits for JS execution, captures the
+/// rendered HTML, and closes the tab.
+///
+/// Enabled only when compiled with `--features browser`. When the feature is absent the stub
+/// below is used instead, returning [`CrawlingoError::NotSupported`].
+#[cfg(feature = "browser")]
 pub struct BrowserFetcher {
-    fallback: HttpFetcher,
+    manager: tokio::sync::OnceCell<std::sync::Arc<super::browser::BrowserManager>>,
 }
 
+#[cfg(feature = "browser")]
 impl BrowserFetcher {
-    pub fn new(pool_config: ConnectionPoolConfig) -> Self {
+    /// Creates a `BrowserFetcher` from an already-initialized [`super::browser::BrowserManager`].
+    pub fn from_manager(manager: std::sync::Arc<super::browser::BrowserManager>) -> Self {
         Self {
-            fallback: HttpFetcher::new(pool_config),
+            manager: tokio::sync::OnceCell::new_with(Some(manager)),
+        }
+    }
+
+    #[allow(clippy::new_without_default)]
+    pub fn new(_pool_config: ConnectionPoolConfig) -> Self {
+        Self {
+            manager: tokio::sync::OnceCell::new(),
         }
     }
 }
 
+#[cfg(feature = "browser")]
 impl Transport for BrowserFetcher {
     fn fetch<'a>(&'a self, request: &'a FetchRequest) -> BoxFuture<'a, Result<NormalizedResponse>> {
-        let profile = request.browser_profile.as_deref().unwrap_or("None");
-        tracing::warn!(
-            "BrowserFetcher is a stub; falling back to HTTP for profile={}",
-            profile
-        );
-        // Delegates to fallback HTTP fetcher for Phase 3 (browser logic is placeholder for now)
-        self.fallback.fetch(request)
+        Box::pin(async move {
+            let manager = self
+                .manager
+                .get_or_try_init(|| {
+                    super::browser::BrowserManager::new(super::browser::BrowserConfig::from_env())
+                })
+                .await?;
+            manager.fetch_page(request).await
+        })
     }
 }
 
-/// The main orchestrator managing fetching strategies, retries, and rate limiting.
+/// Stub BrowserFetcher used when the `browser` feature is **not** enabled.
+///
+/// Returns an explicit [`CrawlingoError::NotSupported`] rather than silently falling back to
+/// HTTP. The user must enable the `browser` feature and supply a Chrome binary to use browser
+/// rendering.
+#[cfg(not(feature = "browser"))]
+pub struct BrowserFetcher;
+
+#[cfg(not(feature = "browser"))]
+impl BrowserFetcher {
+    #[allow(clippy::new_without_default)]
+    pub fn new(_pool_config: ConnectionPoolConfig) -> Self {
+        Self
+    }
+}
+
+#[cfg(not(feature = "browser"))]
+impl Transport for BrowserFetcher {
+    fn fetch<'a>(&'a self, request: &'a FetchRequest) -> BoxFuture<'a, Result<NormalizedResponse>> {
+        let profile = request.browser_profile.as_deref().unwrap_or("default");
+        let msg = format!(
+            "Browser rendering (profile='{}') requires the 'browser' Cargo feature and a \
+             local Chrome/Chromium binary. Compile with `--features browser` and set \
+             CRAWLINGO_CHROME_PATH. Use FetcherTier::Standard or FetcherTier::Stealthy \
+             for plain HTTP fetching.",
+            profile
+        );
+        Box::pin(async move { Err(CrawlingoError::NotSupported(msg)) })
+    }
+}
+
+/// Dispatches requests through shared transports, rate limits and bounded retries.
 pub struct FetchManager {
     rate_limiter: Arc<HostRateLimiter>,
     http_strategy: Arc<dyn Transport>,
@@ -370,12 +449,38 @@ pub struct FetchManager {
 }
 
 impl FetchManager {
-    /// Builds a manager backed by the real HTTP/browser transports.
+    /// Builds a manager backed by the real HTTP transport.
+    ///
+    /// When compiled with `--features browser`, also launches a Chromium process for the
+    /// browser tier. When the feature is absent, browser-tier requests return
+    /// [`CrawlingoError::NotSupported`].
     pub fn new(rate_limiter: Arc<HostRateLimiter>, pool_config: ConnectionPoolConfig) -> Self {
+        let browser_strategy: Arc<dyn Transport> =
+            Arc::new(BrowserFetcher::new(pool_config.clone()));
+
         Self {
             rate_limiter,
-            http_strategy: Arc::new(HttpFetcher::new(pool_config.clone())),
-            browser_strategy: Arc::new(BrowserFetcher::new(pool_config)),
+            http_strategy: Arc::new(HttpFetcher::new(pool_config)),
+            browser_strategy,
+            retry_policy: RetryPolicy::default(),
+            rate_limit_rps: Arc::new(std::sync::RwLock::new(0.0)),
+        }
+    }
+
+    /// Builds a `FetchManager` with an explicit `Arc<BrowserManager>` for the browser tier.
+    ///
+    /// Use this when you want to control the browser lifecycle externally (e.g. share one
+    /// browser across multiple `FetchManager` instances, or in tests).
+    #[cfg(feature = "browser")]
+    pub fn with_browser_manager(
+        rate_limiter: Arc<HostRateLimiter>,
+        pool_config: ConnectionPoolConfig,
+        browser_manager: std::sync::Arc<super::browser::BrowserManager>,
+    ) -> Self {
+        Self {
+            rate_limiter,
+            http_strategy: Arc::new(HttpFetcher::new(pool_config)),
+            browser_strategy: Arc::new(BrowserFetcher::from_manager(browser_manager)),
             retry_policy: RetryPolicy::default(),
             rate_limit_rps: Arc::new(std::sync::RwLock::new(0.0)),
         }
@@ -432,21 +537,29 @@ impl FetchManager {
     /// the transport's perspective). A `Retry-After` response header takes precedence over the
     /// computed exponential backoff when present.
     pub async fn dispatch(&self, request: FetchRequest) -> Result<NormalizedResponse> {
-        let parsed_url = url::Url::parse(&request.url)
-            .map_err(|e| CrawlingoError::FetchError(format!("Invalid URL: {}", e)))?;
+        let parsed_url = crate::util::url::UrlValidator::default().validate(&request.url)?;
         let host = parsed_url.host_str().unwrap_or("");
-
-        let rps = *self.rate_limit_rps.read().unwrap();
-        self.rate_limiter.wait(host, rps).await;
 
         let mut attempt = 0;
 
         loop {
-            let res = if request.tier == FetcherTier::Stealthy {
-                self.browser_strategy.fetch(&request).await
-            } else {
-                self.http_strategy.fetch(&request).await
+            let rps = *self.rate_limit_rps.read().unwrap();
+            self.rate_limiter.wait(host, rps).await;
+            let fetch = async {
+                match request.tier {
+                    FetcherTier::Browser => self.browser_strategy.fetch(&request).await,
+                    FetcherTier::Standard | FetcherTier::Stealthy => {
+                        self.http_strategy.fetch(&request).await
+                    }
+                }
             };
+            let res = tokio::time::timeout(request.timeout, fetch)
+                .await
+                .unwrap_or_else(|_| {
+                    Err(CrawlingoError::TimeoutError {
+                        seconds: request.timeout.as_secs(),
+                    })
+                });
 
             match self.retry_policy.decide(attempt, request.retries, &res) {
                 RetryDecision::Return => return res,
@@ -988,40 +1101,13 @@ mod tests {
         );
     }
 
+    #[cfg(not(feature = "browser"))]
     #[tokio::test]
-    async fn test_browser_fetcher_emits_warn_log() {
-        struct WarnCounter {
-            count: std::sync::atomic::AtomicUsize,
-        }
-        impl tracing::Subscriber for WarnCounter {
-            fn enabled(&self, metadata: &tracing::Metadata<'_>) -> bool {
-                metadata.level() == &tracing::Level::WARN
-            }
-            fn new_span(&self, _span: &tracing::span::Attributes<'_>) -> tracing::span::Id {
-                tracing::span::Id::from_u64(1)
-            }
-            fn record(&self, _span: &tracing::span::Id, _values: &tracing::span::Record<'_>) {}
-            fn record_follows_from(&self, _span: &tracing::span::Id, _follows: &tracing::span::Id) {
-            }
-            fn event(&self, event: &tracing::Event<'_>) {
-                if event.metadata().level() == &tracing::Level::WARN {
-                    self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                }
-            }
-            fn enter(&self, _span: &tracing::span::Id) {}
-            fn exit(&self, _span: &tracing::span::Id) {}
-        }
-
-        let counter = Arc::new(WarnCounter {
-            count: std::sync::atomic::AtomicUsize::new(0),
-        });
-        let dispatcher = tracing::Dispatch::new(counter.clone());
-        let url = spawn_test_server().await;
-
+    async fn test_browser_fetcher_returns_not_supported_error() {
         let client = BrowserFetcher::new(ConnectionPoolConfig::default());
         let req = FetchRequest {
-            url,
-            tier: FetcherTier::Stealthy,
+            url: "https://example.com".to_string(),
+            tier: FetcherTier::Browser,
             browser_profile: Some("chrome".to_string()),
             headers: HashMap::new(),
             cookies: HashMap::new(),
@@ -1030,8 +1116,9 @@ mod tests {
             retries: 0,
         };
 
-        let _fut = tracing::dispatcher::with_default(&dispatcher, || client.fetch(&req));
-
-        assert!(counter.count.load(std::sync::atomic::Ordering::SeqCst) >= 1);
+        let res = client.fetch(&req).await;
+        assert!(res.is_err());
+        let err = res.unwrap_err();
+        assert!(matches!(err, CrawlingoError::NotSupported(_)));
     }
 }

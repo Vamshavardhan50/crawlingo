@@ -213,6 +213,7 @@ impl Session {
     }
 
     /// Selects the next proxy from the pool, or falls back to the static proxy setting.
+    /// Returns the raw proxy URL **without** credentials embedded.
     pub fn get_next_proxy(&self) -> Option<String> {
         if let Some(ref p) = *self.proxy.read().unwrap() {
             return Some(p.clone());
@@ -225,6 +226,138 @@ impl Session {
             .proxy_index
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         Some(pool[idx % pool.len()].clone())
+    }
+
+    /// Like [`Session::get_next_proxy`] but injects `proxy_username`/`proxy_password` into the
+    /// URL if they are set (e.g. `http://user:pass@host:port`). The credentials are
+    /// percent-encoded so that special characters in passwords do not break URL parsing.
+    ///
+    /// This is the method that should be used when building a [`crate::engine::fetcher::FetchRequest`]
+    /// so that proxy authentication actually reaches `wreq::Proxy`.
+    pub fn get_next_proxy_with_auth(&self) -> Option<String> {
+        let raw = self.get_next_proxy()?;
+        let username = self.proxy_username.read().unwrap().clone();
+        let password = self.proxy_password.read().unwrap().clone();
+
+        match (username, password) {
+            (Some(user), Some(pass)) if !user.is_empty() => {
+                Some(Self::inject_proxy_credentials(&raw, &user, &pass))
+            }
+            _ => Some(raw),
+        }
+    }
+
+    /// Injects `username:password` into a proxy URL, percent-encoding both values.
+    ///
+    /// ```text
+    /// http://host:8080  +  user / p@ss  →  http://user:p%40ss@host:8080
+    /// ```
+    fn inject_proxy_credentials(proxy_url: &str, username: &str, password: &str) -> String {
+        // Percent-encode characters that would break URL authority parsing.
+        fn encode(s: &str) -> String {
+            s.chars()
+                .flat_map(|c| match c {
+                    // RFC 3986 §3.2.1 — characters safe in userinfo
+                    'A'..='Z'
+                    | 'a'..='z'
+                    | '0'..='9'
+                    | '-'
+                    | '.'
+                    | '_'
+                    | '~'
+                    | '!'
+                    | '$'
+                    | '&'
+                    | '\''
+                    | '('
+                    | ')'
+                    | '*'
+                    | '+'
+                    | ','
+                    | ';'
+                    | '=' => {
+                        vec![c]
+                    }
+                    other => {
+                        let mut buf = [0u8; 4];
+                        let s = other.encode_utf8(&mut buf);
+                        s.bytes()
+                            .flat_map(|b| format!("%{:02X}", b).chars().collect::<Vec<_>>())
+                            .collect::<Vec<_>>()
+                    }
+                })
+                .collect()
+        }
+
+        // Find where the scheme ends (e.g. "http://") and insert credentials before the host.
+        if let Some(after_scheme) = proxy_url.find("://") {
+            let scheme = &proxy_url[..after_scheme + 3]; // includes "://"
+            let rest = &proxy_url[after_scheme + 3..];
+            // Strip any existing userinfo to avoid doubling
+            let host_part = if let Some(at) = rest.rfind('@') {
+                &rest[at + 1..]
+            } else {
+                rest
+            };
+            format!(
+                "{}{}:{}@{}",
+                scheme,
+                encode(username),
+                encode(password),
+                host_part
+            )
+        } else {
+            // Malformed proxy URL — return as-is
+            proxy_url.to_string()
+        }
+    }
+
+    /// Set static proxy URL.
+    pub fn set_proxy(&self, proxy_url: String) {
+        *self.proxy.write().unwrap() = Some(proxy_url);
+    }
+
+    /// Set proxy authentication username and password.
+    pub fn set_proxy_auth(&self, username: String, password: String) {
+        *self.proxy_username.write().unwrap() = Some(username);
+        *self.proxy_password.write().unwrap() = Some(password);
+    }
+
+    /// Creates an independent copy of this [`Session`] with its own configuration values.
+    ///
+    /// ## Explicit Semantics
+    /// - **Configuration Copied**: `headers`, `cookies`, `proxy`, `proxy_pool`, `proxy_username`,
+    ///   `proxy_password`, `proxy_provider_url`, `rate_limit_rps`, `auto_match`, `timeout_seconds`,
+    ///   `retries`, `fetcher_tier`, `browser_profile`, `similarity_weights` are copied as a snapshot.
+    /// - **Independent Networking**: The clone gets a **fresh, unshared `FetchManager`** and rate
+    ///   limiter so that client pooling of the parent is unaffected.
+    /// - **Independent Proxy Rotation**: `proxy_index` is reset to 0.
+    /// - **Unshared State**: `fingerprint_store`, `metrics`, and `middleware` are **not shared**.
+    pub fn clone_session(&self) -> Self {
+        Self {
+            headers: RwLock::new(self.headers.read().unwrap().clone()),
+            cookies: RwLock::new(self.cookies.read().unwrap().clone()),
+            proxy: RwLock::new(self.proxy.read().unwrap().clone()),
+            proxy_pool: RwLock::new(self.proxy_pool.read().unwrap().clone()),
+            proxy_index: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            proxy_provider_url: RwLock::new(self.proxy_provider_url.read().unwrap().clone()),
+            proxy_username: RwLock::new(self.proxy_username.read().unwrap().clone()),
+            proxy_password: RwLock::new(self.proxy_password.read().unwrap().clone()),
+            rate_limit_rps: Arc::new(RwLock::new(*self.rate_limit_rps.read().unwrap())),
+            auto_match: RwLock::new(*self.auto_match.read().unwrap()),
+            timeout_seconds: RwLock::new(*self.timeout_seconds.read().unwrap()),
+            retries: RwLock::new(*self.retries.read().unwrap()),
+            fingerprint_path: RwLock::new(self.fingerprint_path.read().unwrap().clone()),
+            fingerprint_store: RwLock::new(None),
+            fetcher_tier: RwLock::new(*self.fetcher_tier.read().unwrap()),
+            browser_profile: RwLock::new(self.browser_profile.read().unwrap().clone()),
+            similarity_weights: RwLock::new(self.similarity_weights.read().unwrap().clone()),
+            fetch_manager: RwLock::new(None),
+            metrics: Arc::new(crate::metrics::Metrics::new()),
+            middleware: RwLock::new(MiddlewareStack::new()),
+            retry_backoff: RwLock::new(*self.retry_backoff.read().unwrap()),
+            retry_delay: RwLock::new(*self.retry_delay.read().unwrap()),
+        }
     }
 
     /// Fetch proxy list from provider URL.
@@ -364,6 +497,26 @@ mod tests {
         let first = session.fetch_manager();
         let second = session.fetch_manager();
         assert!(Arc::ptr_eq(&first, &second));
+    }
+
+    #[test]
+    fn inject_proxy_credentials_encodes_special_chars() {
+        let raw = "http://proxy.example.com:8080";
+        let injected = Session::inject_proxy_credentials(raw, "user@domain", "p@ss:word#1");
+        assert_eq!(
+            injected,
+            "http://user%40domain:p%40ss%3Aword%231@proxy.example.com:8080"
+        );
+    }
+
+    #[test]
+    fn get_next_proxy_with_auth_embeds_credentials() {
+        let session = Session::new();
+        session.set_proxy("http://proxy.example.com:8080".to_string());
+        session.set_proxy_auth("myuser".to_string(), "mypass".to_string());
+
+        let proxy_url = session.get_next_proxy_with_auth().unwrap();
+        assert_eq!(proxy_url, "http://myuser:mypass@proxy.example.com:8080");
     }
 
     #[tokio::test]
@@ -547,10 +700,10 @@ impl PySession {
 
     /// Set fetcher tier standard vs stealthy (returns self)
     pub fn fetcher_tier(self_: PyRef<'_, Self>, tier: String) -> PyResult<Py<Self>> {
-        let tier_enum = if tier.to_lowercase() == "stealthy" {
-            FetcherTier::Stealthy
-        } else {
-            FetcherTier::Standard
+        let tier_enum = match tier.to_lowercase().as_str() {
+            "stealthy" | "stealth" => FetcherTier::Stealthy,
+            "browser" | "headless" => FetcherTier::Browser,
+            _ => FetcherTier::Standard,
         };
         {
             let mut t = self_
@@ -698,39 +851,11 @@ impl PySession {
         Ok(parsed.into())
     }
 
-    /// Clone the session (returns a new Session)
+    /// Clone the session (returns a new independent Session)
     #[pyo3(name = "clone")]
     pub fn clone_session(&self) -> PyResult<Self> {
-        let cloned = Session::new();
-        *cloned.headers.write().unwrap() = self.inner.headers.read().unwrap().clone();
-        *cloned.cookies.write().unwrap() = self.inner.cookies.read().unwrap().clone();
-        *cloned.proxy.write().unwrap() = self.inner.proxy.read().unwrap().clone();
-        *cloned.rate_limit_rps.write().unwrap() = *self.inner.rate_limit_rps.read().unwrap();
-        *cloned.auto_match.write().unwrap() = *self.inner.auto_match.read().unwrap();
-        *cloned.timeout_seconds.write().unwrap() = *self.inner.timeout_seconds.read().unwrap();
-        *cloned.fingerprint_path.write().unwrap() =
-            self.inner.fingerprint_path.read().unwrap().clone();
-        *cloned.fetcher_tier.write().unwrap() = *self.inner.fetcher_tier.read().unwrap();
-        *cloned.browser_profile.write().unwrap() =
-            self.inner.browser_profile.read().unwrap().clone();
-        *cloned.similarity_weights.write().unwrap() =
-            self.inner.similarity_weights.read().unwrap().clone();
-        *cloned.proxy_pool.write().unwrap() = self.inner.proxy_pool.read().unwrap().clone();
-        cloned.proxy_index.store(
-            self.inner
-                .proxy_index
-                .load(std::sync::atomic::Ordering::SeqCst),
-            std::sync::atomic::Ordering::SeqCst,
-        );
-        *cloned.proxy_provider_url.write().unwrap() =
-            self.inner.proxy_provider_url.read().unwrap().clone();
-        *cloned.retries.write().unwrap() = *self.inner.retries.read().unwrap();
-        *cloned.retry_backoff.write().unwrap() = *self.inner.retry_backoff.read().unwrap();
-        *cloned.retry_delay.write().unwrap() = *self.inner.retry_delay.read().unwrap();
-        *cloned.proxy_username.write().unwrap() = self.inner.proxy_username.read().unwrap().clone();
-        *cloned.proxy_password.write().unwrap() = self.inner.proxy_password.read().unwrap().clone();
         Ok(Self {
-            inner: Arc::new(cloned),
+            inner: Arc::new(self.inner.clone_session()),
         })
     }
 

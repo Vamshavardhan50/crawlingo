@@ -1,0 +1,21 @@
+name: Documentation or example issue
+description: Report unclear instructions, broken examples or inaccurate claims.
+title: "docs: "
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Page URL or repository file
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is unclear or incorrect?
+      description: Include the command you tried and the version or commit you used.
+    validations:
+      required: true
+  - type: textarea
+    id: improvement
+    attributes:
+      label: Suggested improvement or expected instructions

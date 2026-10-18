@@ -23,13 +23,14 @@ impl HostRateLimiter {
 
     /// Acquires a slot for the specified host, blocking asynchronously until a token is available.
     pub async fn wait(&self, host: &str, requests_per_second: f64) {
-        if requests_per_second <= 0.0 {
+        if !requests_per_second.is_finite() || requests_per_second <= 0.0 {
             return;
         }
 
         let host_str = host.to_string();
-        let limiter = self.limiters.entry(host_str).or_insert_with(|| {
-            let period = Duration::from_secs_f64(1.0 / requests_per_second);
+        let entry = self.limiters.entry(host_str).or_insert_with(|| {
+            let period =
+                Duration::from_secs_f64((1.0 / requests_per_second).clamp(0.000000001, 86400.0));
             // Construct a quota of 1 cell per the calculated period.
             // Allow a burst capacity of 1 so it limits strictly to the duration pacing.
             let quota = Quota::with_period(period)
@@ -39,7 +40,10 @@ impl HostRateLimiter {
         });
 
         // Block asynchronously until the rate limiter allows the next request
-        limiter.value().until_ready().await;
+        let limiter = entry.value().clone();
+        drop(entry);
+        // Never retain a DashMap shard guard across await: unrelated hosts can share a shard.
+        limiter.until_ready().await;
     }
 }
 

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Usage and support
+    url: https://github.com/Vamshavardhan50/crawlingo/blob/main/SUPPORT.md
+    about: Find the right starting guide and prepare a useful support request.
+  - name: Security policy
+    url: https://github.com/Vamshavardhan50/crawlingo/blob/main/SECURITY.md
+    about: Read the private reporting guidance before sharing a vulnerability.

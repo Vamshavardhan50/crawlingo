@@ -1,6 +1,7 @@
 from .page import Page
 from .element import ElementCollection
 from .dataset import Dataset, DatasetResult
+from .dataset_job import DatasetJob
 from .crawl import Crawl
 from .watch import Watch
 from .session import Session
@@ -29,6 +30,7 @@ __all__ = [
     "ElementCollection",
     "Dataset",
     "DatasetResult",
+    "DatasetJob",
     "Crawl",
     "Watch",
     "Session",
@@ -56,5 +58,5 @@ __all__ = [
     "FingerprintStoreError",
 ]
 
-__version__ = "1.0.0a1"
+__version__ = "1.0.0a2"
 

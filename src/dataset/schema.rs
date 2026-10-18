@@ -19,18 +19,15 @@ impl FieldType {
         }
         match self {
             FieldType::String => Ok(trimmed.to_string()),
-            FieldType::Integer => {
-                let cleaned: String = trimmed
-                    .chars()
-                    .filter(|c| c.is_ascii_digit() || *c == '-')
-                    .collect();
-                cleaned.parse::<i64>().map(|_| cleaned).map_err(|_| {
+            FieldType::Integer => trimmed
+                .parse::<i64>()
+                .map(|value| value.to_string())
+                .map_err(|_| {
                     CrawlingoError::DatasetError(format!(
                         "Field '{}': value '{}' is not a valid integer",
                         field_name, trimmed
                     ))
-                })
-            }
+                }),
             FieldType::Float => crate::util::price::parse_price_string(trimmed).ok_or_else(|| {
                 CrawlingoError::DatasetError(format!(
                     "Field '{}': value '{}' is not a valid float",

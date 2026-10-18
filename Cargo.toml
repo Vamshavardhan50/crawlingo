@@ -1,9 +1,9 @@
 [package]
 name = "crawlingo"
-version = "1.0.0-alpha.1"
+version = "1.0.0-alpha.2"
 edition = "2021"
 license = "MIT"
-description = "Next-generation web data extraction, crawling, and website monitoring framework."
+description = "Validated datasets from web pages with bounded processing and resumable exports."
 repository = "https://github.com/Vamshavardhan50/crawlingo"
 homepage = "https://crawlingo-docs.vercel.app"
 documentation = "https://crawlingo-docs.vercel.app"
@@ -12,7 +12,11 @@ exclude = [
     "crawlingo-docs/",
     "archive/",
     "assets/",
-    "waitlist/"
+    "waitlist/",
+    ".github/",
+    "scripts/",
+    "package.json",
+    "Makefile"
 ]
 
 [package.metadata.funding]
@@ -95,6 +99,10 @@ time = ">=0.3, <0.3.52"
 # Python bindings
 pyo3 = { version = "0.25", features = ["extension-module", "py-clone"], optional = true }
 
+# Browser automation (Phase 3) — requires a local Chromium/Chrome binary
+# Enable with: cargo build --features browser
+chromiumoxide = { version = "0.9", features = ["fetcher", "rustls", "zip8"], optional = true }
+
 # CLI argument parsing
 clap = { version = "4", features = ["derive", "env"], optional = true }
 
@@ -102,6 +110,8 @@ clap = { version = "4", features = ["derive", "env"], optional = true }
 default = []
 python = ["pyo3"]
 cli = ["clap"]
+# Real headless-browser fetch tier via Chrome DevTools Protocol
+browser = ["chromiumoxide"]
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

@@ -1,0 +1,4 @@
+{
+  "description": "Generate validated datasets from web pages with a Rust engine, Python and Node.js SDKs, exact deduplication, and resumable JSONL/CSV exports.",
+  "homepage": "https://crawlingo-docs.vercel.app"
+}

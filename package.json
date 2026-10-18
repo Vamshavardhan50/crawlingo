@@ -1,27 +1,14 @@
 {
-  "name": "crawlingo-root",
-  "version": "1.0.0",
+  "name": "crawlingo-workspace",
   "private": true,
+  "description": "Development commands for the Crawlingo engine, SDKs and documentation.",
+  "license": "MIT",
   "scripts": {
-    "build": "npm run build --prefix crawlingo-docs"
-  },
-  "description": "<h1 align=\"center\">     <a href=\"https://crawlingo.dev\">         <img alt=\"Crawlingo Cover\" src=\"https://raw.githubusercontent.com/Vamshavardhan50/crawlingo/main/assets/crawlingo.jpg\" width=\"600\">     </a>     <br>     <small>Effortless Self-Healing Web Scraping for the Modern Web</small> </h1>",
-  "main": "build-merge.js",
-  "directories": {
-    "doc": "docs",
-    "example": "examples",
-    "test": "tests"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Vamshavardhan50/crawlingo.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/Vamshavardhan50/crawlingo/issues"
-  },
-  "homepage": "https://github.com/Vamshavardhan50/crawlingo#readme"
+    "build": "npm run docs:build",
+    "docs:dev": "npm run dev --prefix crawlingo-docs",
+    "docs:check": "npm run lint --prefix crawlingo-docs",
+    "docs:build": "npm run build --prefix crawlingo-docs",
+    "sdk:node": "npm run build --prefix sdk/nodejs",
+    "release:check": "node scripts/check-release.cjs"
+  }
 }

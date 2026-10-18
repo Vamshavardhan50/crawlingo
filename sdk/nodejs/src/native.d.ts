@@ -40,6 +40,12 @@ export interface JsSitemapEntry {
   priority?: string
 }
 export declare function sitemapUrlForOrigin(origin: string): string
+export const enum JsFieldType {
+  String = 0,
+  Integer = 1,
+  Float = 2,
+  Boolean = 3
+}
 export declare class JsSession {
   constructor()
   headers(headers: Record<string, string>): void
@@ -87,9 +93,14 @@ export declare class JsDatasetResult {
   toCsv(path: string): Promise<void>
   toParquet(path: string): Promise<void>
 }
+export declare class JsDatasetJob {
+  constructor(configJson: string, session: JsSession)
+  run(): Promise<string>
+  cancel(): void
+}
 export declare class JsDataset {
   constructor(url: string, session: JsSession)
-  field(name: string, selector: string, selectorType?: string | undefined | null, defaultVal?: string | undefined | null): void
+  field(name: string, selector: string, selectorType?: string | undefined | null, defaultVal?: string | undefined | null, extractType?: string | undefined | null): void
   withSchema(schema: JsDatasetSchema): void
   build(): Promise<JsDatasetResult>
   /**
@@ -109,14 +120,14 @@ export declare class JsCrawl {
   depth(depth: number): void
   concurrency(n: number): void
   delay(seconds: number): void
-  field(name: string, selector: string, selectorType?: string | undefined | null, defaultVal?: string | undefined | null): void
+  field(name: string, selector: string, selectorType?: string | undefined | null, defaultVal?: string | undefined | null, extractType?: string | undefined | null): void
   webhook(url: string): void
   schedule(intervalSeconds: number): void
   run(): Promise<Array<JsDatasetResult>>
 }
 export declare class JsWatch {
   constructor(url: string, session: JsSession)
-  field(name: string, selector: string, selectorType?: string | undefined | null, defaultVal?: string | undefined | null): void
+  field(name: string, selector: string, selectorType?: string | undefined | null, defaultVal?: string | undefined | null, extractType?: string | undefined | null): void
   interval(seconds: number): void
   run(callback: (err: Error | null, event: JsChangeEvent) => void): void
   stop(): void
@@ -146,12 +157,6 @@ export declare class JsPaginationConfig {
   static nextLink(selector: string): JsPaginationConfig
   static pageNumber(urlTemplate: string, startPage: number, maxPages: number): JsPaginationConfig
   static urlPattern(pageRegex: string, maxPage: number): JsPaginationConfig
-}
-export declare enum JsFieldType {
-  String = 0,
-  Integer = 1,
-  Float = 2,
-  Boolean = 3
 }
 export declare class JsFieldConstraint {
   name: string

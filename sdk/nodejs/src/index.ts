@@ -2,6 +2,8 @@ export { Page } from './page';
 export { Element, ElementCollection } from './element';
 export { Session } from './session';
 export { Dataset, DatasetResult } from './dataset';
+export { DatasetJob } from './dataset-job';
+export type { JobConfig, JobField, JobReport } from './dataset-job';
 export { Crawl } from './crawl';
 export { Watch, WatchChangeEvent } from './watch';
 export { Sitemap, sitemapUrlForOrigin } from './sitemap';

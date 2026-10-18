@@ -28,7 +28,7 @@ fn main() {
     #[command(
         name = "crawlingo",
         version = env!("CARGO_PKG_VERSION"),
-        about = "Crawlingo — stealth web scraping and crawling engine",
+        about = "Crawlingo — web dataset generation engine",
         long_about = None,
     )]
     struct Cli {
@@ -59,6 +59,8 @@ fn main() {
 
     #[derive(Subcommand)]
     enum Commands {
+        /// Generate or resume a bounded dataset job from a JSON configuration file.
+        Dataset { job: std::path::PathBuf },
         /// Fetch a single URL and print its content.
         Fetch {
             /// The URL to fetch.
@@ -172,6 +174,49 @@ fn main() {
     let session = Arc::new(Session::from_config(&config));
 
     match cli.command {
+        Commands::Dataset { job } => {
+            let result = (|| -> crawlingo::error::Result<_> {
+                let config: crawlingo::dataset::JobConfig =
+                    serde_json::from_reader(std::fs::File::open(job)?).map_err(|e| {
+                        crawlingo::error::CrawlingoError::ConfigError(e.to_string())
+                    })?;
+                let job = crawlingo::dataset::DatasetJob::new(config, session)?;
+                crawlingo::TOKIO_RUNTIME.block_on(async {
+                    let cancel = job.cancellation.clone();
+                    let signal = tokio::spawn(async move {
+                        #[cfg(unix)]
+                        {
+                            match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+                                Ok(mut terminate) => {
+                                    tokio::select! {
+                                        result = tokio::signal::ctrl_c() => { if result.is_ok() { cancel.cancel(); } },
+                                        _ = terminate.recv() => cancel.cancel(),
+                                    }
+                                }
+                                Err(_) => { if tokio::signal::ctrl_c().await.is_ok() { cancel.cancel(); } }
+                            }
+                        }
+                        #[cfg(not(unix))]
+                        if tokio::signal::ctrl_c().await.is_ok() { cancel.cancel(); }
+                    });
+                    let report = job.run().await;
+                    signal.abort();
+                    report
+                })
+            })();
+            match result {
+                Ok(report) => {
+                    println!("{}", serde_json::to_string_pretty(&report).unwrap());
+                    if report.pages_failed > 0 || report.records_rejected > 0 || report.cancelled {
+                        std::process::exit(2);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("{e}");
+                    std::process::exit(1);
+                }
+            }
+        }
         Commands::Fetch {
             url,
             markdown,
@@ -290,7 +335,7 @@ fn main() {
                             h
                         };
                         println!("{}", headers.join(","));
-                        for r in &results {
+                        for r in &results.results {
                             let mut row =
                                 vec![csv_escape(&r.url), csv_escape(&r.timestamp.to_rfc3339())];
                             for key in headers.iter().skip(2) {

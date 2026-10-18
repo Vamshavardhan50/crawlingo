@@ -310,7 +310,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { JsSession, JsPage, fetchPage, JsElementCollection, JsElement, JsDatasetResult, JsDataset, saveStructuredJson, saveStructuredCsv, JsCrawl, JsWatch, JsDownloader, JsSitemap, sitemapUrlForOrigin } = nativeBinding
+const { JsSession, JsPage, fetchPage, JsElementCollection, JsElement, JsDatasetResult, JsDatasetJob, JsDataset, saveStructuredJson, saveStructuredCsv, JsCrawl, JsWatch, JsDownloader, JsSitemap, sitemapUrlForOrigin, JsPaginationConfig, JsFieldType, JsFieldConstraint, JsDatasetSchema } = nativeBinding
 
 module.exports.JsSession = JsSession
 module.exports.JsPage = JsPage
@@ -318,6 +318,7 @@ module.exports.fetchPage = fetchPage
 module.exports.JsElementCollection = JsElementCollection
 module.exports.JsElement = JsElement
 module.exports.JsDatasetResult = JsDatasetResult
+module.exports.JsDatasetJob = JsDatasetJob
 module.exports.JsDataset = JsDataset
 module.exports.saveStructuredJson = saveStructuredJson
 module.exports.saveStructuredCsv = saveStructuredCsv
@@ -326,3 +327,7 @@ module.exports.JsWatch = JsWatch
 module.exports.JsDownloader = JsDownloader
 module.exports.JsSitemap = JsSitemap
 module.exports.sitemapUrlForOrigin = sitemapUrlForOrigin
+module.exports.JsPaginationConfig = JsPaginationConfig
+module.exports.JsFieldType = JsFieldType
+module.exports.JsFieldConstraint = JsFieldConstraint
+module.exports.JsDatasetSchema = JsDatasetSchema

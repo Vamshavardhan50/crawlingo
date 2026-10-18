@@ -1,236 +1,140 @@
 # Contributing to Crawlingo
 
-Thank you for your interest in contributing to Crawlingo! 🎉
+Start with the [product definition](guides/PRODUCT.md),
+[workspace map](guides/WORKSPACE.md) and [code of conduct](CODE_OF_CONDUCT.md).
+Small reproducible fixes, accurate examples and measured improvements are useful
+contributions.
 
-We welcome contributions from everyone — bug reports, feature requests, documentation improvements, code contributions, and more.
+## Development setup
 
----
+Use the stable Rust toolchain selected by `rust-toolchain.toml`. Native dependencies
+also need a C/C++ toolchain, CMake and libclang. CI installs these on Linux and
+configures LLVM on Windows. Set `LIBCLANG_PATH` when clang cannot be found locally.
 
-## Table of Contents
+For the Python SDK, use a virtual environment with CPython 3.12 or 3.13 for current
+CI targets. The broader wheel matrix is in the release workflow. For the Node SDK,
+use Node 22 or 24 and its npm installation.
 
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Setup](#development-setup)
-- [Making Changes](#making-changes)
-- [Pull Request Process](#pull-request-process)
-- [Commit Message Convention](#commit-message-convention)
-- [Code Style](#code-style)
-- [Testing](#testing)
-- [Release Process](#release-process)
-
----
-
-## Code of Conduct
-
-This project follows our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you agree to uphold this code.
-
----
-
-## Getting Started
-
-1. **Fork** the repository on GitHub
-2. **Clone** your fork locally:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/crawlingo.git
-   cd crawlingo
-   ```
-3. **Set up** the development environment (see below)
-4. **Create** a branch for your changes
-5. **Make** your changes
-6. **Test** your changes
-7. **Submit** a Pull Request
-
----
-
-## Development Setup
-
-### Prerequisites
-
-- **Rust** 1.70+ (`rustup update stable`)
-- **Python** 3.8+ and `maturin` (`pip install maturin`)
-- **Node.js** 18+ and `npm`
-- **Git** 2.x+
-
-### Rust Core
-
-```bash
-# Build and test the Rust core
+```sh
+git clone https://github.com/YOUR_USERNAME/crawlingo.git
+cd crawlingo
+git switch -c fix/describe-the-change
 cargo build
-cargo test
-cargo clippy -- -D warnings
-cargo fmt --check
 ```
+
+### Rust engine
+
+```sh
+cargo fmt --all --check
+cargo clippy --all-targets -- -D warnings
+cargo test --lib --tests
+cargo check --features cli,browser
+cargo doc --no-deps
+```
+
+Tests use writable temporary storage and local HTTP fixtures. Browser runtime
+tests additionally need a local Chrome/Chromium executable and the `browser`
+feature. Set `CRAWLINGO_CHROME_PATH`, then run:
+
+```sh
+cargo test --features browser --test browser_phase3_test
+```
+
+Browser tests can skip when Chrome is unavailable; record whether Chrome actually
+ran. Compilation alone is not browser execution evidence.
 
 ### Python SDK
 
-```bash
-# Install development dependencies
-pip install maturin pytest ruff
+Activate a virtual environment, then run from the repository root:
 
-# Build the Python extension in-place
+```sh
+python -m pip install maturin
+cd sdk/python
 maturin develop
-
-# Run Python tests
-pytest python/tests/ -v
+cd ../..
+python -m unittest discover -s sdk/python/tests -p test_import.py -v
+python -m unittest discover -s sdk/python/tests -p test_dataset_job.py -v
+python sdk/python/tests/test_all_apis.py
 ```
 
 ### Node.js SDK
 
-```bash
-cd node
-npm install
+```sh
+cd sdk/nodejs
+npm ci
 npm run build
 npm test
+npm run test:all
+node --test tests/dataset_job.test.cjs
+npm run check:package
 ```
 
-### Documentation
+`npm test` checks exports; `npm run test:all` runs the implemented API suite.
+Experimental entries excluded by that runner are not passing coverage. The dataset
+job test uses the freshly built native module. Rebuild for the target OS and architecture.
 
-```bash
-cd crawlingo-docs
-npm install
-npm run dev       # Start dev server at http://localhost:3000
+The Python comprehensive script is a standalone runner, not a pytest fixture suite.
+CI runs it explicitly and fails if it reports failures, including incomplete APIs.
+Run installed-package checks from the repository root so the wrapper source directory
+does not shadow the installed native extension.
+
+### Website and written guides
+
+The website at `crawlingo-docs/` and Markdown docs at `docs/` are separate repositories
+in the maintainer's workspace; they are not included in a normal engine clone.
+Engine-side guides live in `guides/`. Coordinate a separate website change when a
+public API changes.
+
+In the website checkout:
+
+```sh
+npm ci
+npm run lint
+npm run build
+npm run dev
 ```
 
----
+Use the webpack option documented in that repository when the environment cannot
+run Turbopack. Keep code examples aligned with the actual SDK source and describe
+unreleased APIs as development source.
 
-## Making Changes
+## Where changes belong
 
-### Branching
+| Area | Location |
+| --- | --- |
+| Fetching, sessions and resource limits | `src/engine/` |
+| Parsing, selection and extraction | `src/parser/`, `src/selector/`, `src/extraction/` |
+| Dataset job, schemas and output | `src/dataset/` |
+| Discovery and robots policy | `src/crawl/` |
+| Rust integration tests | `tests/` |
+| Python wrapper and tests | `sdk/python/` |
+| Node wrapper, native binding and tests | `sdk/nodejs/` |
+| Runnable fixture | `examples/product_dataset/` |
+| User and operator guides | `guides/` |
+| CI and contribution forms | `.github/` |
 
-Use descriptive branch names:
+## Pull requests
 
-| Type | Format | Example |
-|------|--------|---------|
-| Feature | `feat/description` | `feat/go-sdk` |
-| Bug fix | `fix/description` | `fix/proxy-rotation-leak` |
-| Documentation | `docs/description` | `docs/benchmarks-update` |
-| Refactor | `refactor/description` | `refactor/selector-engine` |
-| Performance | `perf/description` | `perf/simd-text-anchors` |
+1. Describe the user problem and the smallest change that solves it.
+2. Update relevant examples and add a reproducible check for changed behavior.
+3. Run the checks appropriate to your changes. State what was not run.
+4. Add an entry under Unreleased in `CHANGELOG.md` for user-visible changes.
+5. Open a pull request using the template; keep generated data and local artifacts out.
 
-### File Locations
+Use clear titles such as `fix(dataset): preserve row identity when a field is missing`
+or `docs: explain checkpoint ownership`. Performance claims need the workload,
+machine, build profile, before/after results and correctness checks. Avoid presenting
+a synthetic fixture as a general web throughput guarantee.
 
-| What | Where |
-|------|-------|
-| Rust core | `src/` |
-| Python bindings | `python/` |
-| Node.js bindings | `node/` |
-| Rust crate API | `examples/` |
-| Documentation | `crawlingo-docs/src/pages/` |
-| Tests (Rust) | `src/tests/` |
-| Tests (Python) | `python/tests/` |
-| Tests (Node.js) | `node/tests/` |
+## Releases
 
----
+Versions are checked by `node scripts/check-release.cjs`. Maintainers first run the
+Release workflow manually to build artifacts without publishing. Publishing a GitHub
+Release with the matching `v<version>` tag triggers registry publishing after its
+build jobs and environment gates pass. Follow [the release guide](guides/publishing.md)
+and [repository setup](.github/REPOSITORY_SETUP.md); a tag push alone does not publish.
 
-## Pull Request Process
+## Help and sensitive reports
 
-1. **Update documentation** — if your change affects the public API, update `crawlingo-docs/src/pages/`
-2. **Write tests** — add tests that cover your change
-3. **Pass CI** — all checks must pass: `cargo test`, `pytest`, `npm test`
-4. **Update CHANGELOG.md** — add a line under `[Unreleased]`
-5. **Request review** — tag a maintainer in your PR description
-
-### PR Title Format
-
-```
-feat: add Go SDK via CGo bindings
-fix: resolve proxy rotation memory leak
-docs: add Node.js streaming examples
-perf: improve auto-match scoring by 40%
-```
-
----
-
-## Commit Message Convention
-
-We use [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer(s)]
-```
-
-Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`
-
-Examples:
-```
-feat(python): add async Page.create() support
-fix(watch): prevent duplicate callbacks on rapid DOM changes
-perf(selectors): speed up text anchor SIMD by 20%
-docs(sdk): add Rust streaming example
-```
-
----
-
-## Code Style
-
-### Rust
-
-```bash
-cargo fmt          # Format code
-cargo clippy       # Lint code
-```
-
-Follow the [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/).
-
-### Python
-
-```bash
-ruff format .      # Format
-ruff check .       # Lint
-```
-
-Type annotations required for all public functions.
-
-### TypeScript
-
-```bash
-npx prettier --write .
-npx eslint .
-```
-
-Strict TypeScript — no `any` in public APIs.
-
----
-
-## Testing
-
-We require tests for all new features and bug fixes.
-
-```bash
-# Rust
-cargo test
-cargo test --features parquet
-
-# Python
-pytest python/tests/ -v --tb=short
-
-# Node.js
-npm test
-
-# Integration tests (requires network)
-cargo test --test integration -- --ignored
-```
-
----
-
-## Release Process
-
-Releases are managed by maintainers. The process:
-
-1. Update `CHANGELOG.md` (move `[Unreleased]` to a version)
-2. Bump versions in `Cargo.toml`, `python/pyproject.toml`, `node/package.json`
-3. Tag: `git tag v0.X.Y && git push --tags`
-4. GitHub Actions publishes wheels to PyPI, binaries to npm, and the crate to crates.io automatically
-
----
-
-## Questions?
-
-- Open a [GitHub Discussion](https://github.com/Vamshavardhan50/crawlingo/discussions)
-- Open a [GitHub Issue](https://github.com/Vamshavardhan50/crawlingo/issues)
-
-Thank you for contributing! 🦀
+Use [SUPPORT.md](SUPPORT.md) for usage questions and [SECURITY.md](SECURITY.md) for
+vulnerabilities. Do not include credentials or private datasets in public reports.

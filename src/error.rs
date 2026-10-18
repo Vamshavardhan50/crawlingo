@@ -58,6 +58,12 @@ pub enum CrawlingoError {
 
     #[error("Configuration error: {0}")]
     ConfigError(String),
+
+    #[error("Not supported: {0}")]
+    NotSupported(String),
+
+    #[error("Browser error: {0}")]
+    BrowserError(String),
 }
 
 // Convert FFI errors if python feature is enabled

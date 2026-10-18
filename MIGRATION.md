@@ -1,58 +1,63 @@
-# Migration Guide
+# Migrating to the dataset preview
 
-## Crawlingo v1.0.0 Migrations
+The next source version is **1.0.0-alpha.2** (`1.0.0a2` for Python), currently
+unpublished. Build the matching wrappers and native engine together. Do not mix
+an old `.node`/Python extension with the new wrappers.
 
-### PersistentFrontier store format (M2)
+## From the published SDKs
 
-In Milestone 2, the `PersistentFrontier` was redesigned to avoid serialization overhead and support high-throughput scaling. 
+The inspected npm alpha.1 package does not contain `DatasetJob`. Use the new bulk
+API when the input is a URL file and the result should be a dataset on disk. Existing
+Page/Dataset interfaces remain useful for inspecting pages and collecting small results.
 
-**What Changed:**
-- Previously, the entire pending queue was stored as a single serialized `Vec` under the key `__frontier_pending__` (causing $O(n)$ writes and reads).
-- Now, queue elements are stored as individual database keys prefixed by `pending:{id:016}` (achieving $O(1)$ enqueue and $O(\log n)$ dequeue), with a monotonic counter key `pending_counter` tracking the insertions.
+```python
+from crawlingo import DatasetJob
 
-**Impact:**
-Existing `PersistentFrontier` Sled database directories created with pre-Milestone 2 code are incompatible with the new format. Attempting to reopen an old database directory will result in deserialization errors or missing pending queue items.
-
-**Migration Action Required:**
-To migrate existing persistent queues to the new format:
-1. Delete the old persistent store directory (configured by your crawler/frontier storage path).
-2. Allow Crawlingo to recreate the persistent frontier automatically on the next crawl run.
-
-**Example Command (Bash):**
-```bash
-rm -rf path/to/frontier/db
+report = DatasetJob({
+    "urls_file": "urls.txt",
+    "output_dir": "datasets/new-job",
+    "fields": [{"name": "title", "selector": "h1", "required": True}],
+}).run()
 ```
 
-**Example Command (PowerShell):**
-```powershell
-Remove-Item -Recurse -Force path/to/frontier/db
-```
+The call returns counters; records are in committed output shards. Inspect
+`pages_failed`, `records_rejected`, `complete` and `cancelled`. A complete job can
+contain failures. The [API reference](guides/api-dataset-job.md) describes handling.
 
----
+## Runtime requirements
 
-### FetchRequest `rate_limit_rps` removal (M3)
+- Node.js: use 22 or newer for this SDK version.
+- Python: current PyO3 supports 3.8–3.13. Use 3.12 for the documented local build.
+  The old PyPI 3.14 wheel is not evidence that the current source supports 3.14.
+- Native source builds require Rust, C/C++ build tools, CMake and libclang.
 
-**What Changed:**
-- The request-level `rate_limit_rps` parameter was removed from `FetchRequest` to simplify the core dispatcher. 
-- Rate limiting is now configured at the `Session` level and managed dynamically by `FetchManager` and shared `HostRateLimiter` instances.
+## Dataset checkpoints
 
-**Impact:**
-Constructing individual `FetchRequest` structures with the `rate_limit_rps` field will fail to compile.
+Keep the complete output directory, including its `state/`, data and error shards.
+Resume requires the same configuration and unchanged URL-file contents. Use a new
+directory after changing either; copying only JSONL files does not transfer a checkpoint.
+The allocation changes do not intentionally change the dataset checkpoint format.
 
-**Migration Action Required:**
-1. Remove `rate_limit_rps` field assignments from any manual `FetchRequest` struct initializations.
-2. Set rate limits using `Session::rate_limit` (Python/JS) or `FetchManager::with_rate_limit_rps` (Rust).
+## Persistent crawler frontier
 
----
+The current frontier indexes pending URL keys and replays interrupted in-flight
+items. It can add membership indexes to compatible `pending:` entries. This does
+not establish compatibility with every older serialized-queue format.
 
-### `ExtractionRule` -> `DatasetField` type alias (M3)
+Back up an old frontier directory before migration. For an unsupported legacy
+format, export its remaining URLs using the matching old version, then feed them
+to a new crawl/job directory. Retain the original until the new output is verified.
+Do not delete a queue as a generic upgrade step.
 
-**What Changed:**
-- `ExtractionRule` was converted from a standalone struct into a type alias for `DatasetField` (`pub type ExtractionRule = crate::dataset::builder::DatasetField;`).
+## Rust configuration changes
 
-**Impact:**
-Any legacy code directly calling conversion loops (e.g. converting `ExtractionRule` into `DatasetField`) is no longer necessary.
+- `FetchRequest` no longer has `rate_limit_rps`. In Rust, set
+  `*session.rate_limit_rps.write().unwrap() = 2.0` before starting work, or pass
+  `rate_limit_rps` through `CrawlingoConfig` to `Session::from_config`.
+- `ExtractionRule` is a type alias for `DatasetField`; direct conversions between
+  these names are unnecessary.
+- Bulk jobs use `JobConfig`/`JobField`, with JSONL and CSV output. They do not inherit
+  automatic selector healing from the existing Dataset builder.
 
-**Migration Action Required:**
-1. Replace structural conversions with direct uses of `DatasetField`.
-2. Update references to `crawlingo::extraction::ExtractionRule` accordingly.
+See [release status](guides/RELEASE_STATUS.md), [publishing](guides/publishing.md)
+and the [local product example](examples/product_dataset/README.md).

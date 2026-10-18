@@ -24,9 +24,7 @@ pub mod watch;
 pub use parser::document::Page;
 
 #[cfg(feature = "python")]
-use crate::engine::fetcher::{FetchManager, FetchRequest, FetcherTier};
-#[cfg(feature = "python")]
-use crate::engine::pool::ConnectionPoolConfig;
+use crate::engine::fetcher::{FetchRequest, FetcherTier};
 #[cfg(feature = "python")]
 use crate::error::CrawlingoError;
 #[cfg(feature = "python")]
@@ -61,42 +59,67 @@ pub struct PyPage {
 #[pymethods]
 impl PyPage {
     #[new]
-    #[pyo3(signature = (url, auto_match=false, timeout=30, retries=3, headers=None, cookies=None, proxy=None))]
+    #[pyo3(signature = (url, session=None, auto_match=false, timeout=None, retries=None, headers=None, cookies=None, proxy=None))]
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         py: Python<'_>,
         url: &str,
+        session: Option<&crate::engine::session::PySession>,
         auto_match: bool,
-        timeout: u64,
-        retries: usize,
+        timeout: Option<u64>,
+        retries: Option<usize>,
         headers: Option<HashMap<String, String>>,
         cookies: Option<HashMap<String, String>>,
         proxy: Option<String>,
     ) -> PyResult<Self> {
         let url_str = url.to_string();
-        let headers_val = headers.unwrap_or_default();
-        let cookies_val = cookies.unwrap_or_default();
 
+        // 1. Acquire or construct session
+        let session_arc = match session {
+            Some(s) => s.inner.clone(),
+            None => Arc::new(crate::engine::session::Session::new()),
+        };
+
+        // 2. Resolve request parameters (call-site params take precedence over session defaults)
+        let effective_retries =
+            retries.unwrap_or_else(|| session_arc.retries.read().unwrap().unwrap_or(3) as usize);
+        let effective_timeout_sec =
+            timeout.unwrap_or_else(|| *session_arc.timeout_seconds.read().unwrap());
+
+        let mut effective_headers = session_arc.headers.read().unwrap().clone();
+        if let Some(h) = headers {
+            effective_headers.extend(h);
+        }
+
+        let mut effective_cookies = session_arc.cookies.read().unwrap().clone();
+        if let Some(c) = cookies {
+            effective_cookies.extend(c);
+        }
+
+        let effective_proxy = proxy.or_else(|| session_arc.get_next_proxy_with_auth());
+
+        let effective_tier = if auto_match {
+            FetcherTier::Stealthy
+        } else {
+            *session_arc.fetcher_tier.read().unwrap()
+        };
+
+        let manager = session_arc.fetch_manager();
+
+        // 3. Dispatch fetch through shared FetchManager (reuses connection pool & rate limiter)
         let result: Result<crate::parser::document::Page, CrawlingoError> =
             py.allow_threads(move || {
                 TOKIO_RUNTIME.block_on(async {
                     let req = FetchRequest {
-                        url: url_str.clone(),
-                        tier: if auto_match {
-                            FetcherTier::Stealthy
-                        } else {
-                            FetcherTier::Standard
-                        },
-                        browser_profile: None,
-                        headers: headers_val,
-                        cookies: cookies_val,
-                        proxy,
-                        timeout: std::time::Duration::from_secs(timeout),
-                        retries,
+                        url: url_str,
+                        tier: effective_tier,
+                        browser_profile: session_arc.browser_profile.read().unwrap().clone(),
+                        headers: effective_headers,
+                        cookies: effective_cookies,
+                        proxy: effective_proxy,
+                        timeout: std::time::Duration::from_secs(effective_timeout_sec),
+                        retries: effective_retries,
                     };
-                    let rate_limiter =
-                        Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
-                    let manager = FetchManager::new(rate_limiter, ConnectionPoolConfig::default());
                     let resp = manager.dispatch(req).await?;
                     let page = HtmlParser::parse(resp)?;
                     Ok(page)
@@ -503,6 +526,7 @@ fn _crawlingo_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<crate::parser::document::PyElementCollection>()?;
     m.add_class::<crate::dataset::builder::PyDataset>()?;
     m.add_class::<crate::dataset::builder::PyDatasetResult>()?;
+    m.add_class::<crate::dataset::job::PyDatasetJob>()?;
     m.add_class::<crate::dataset::schema::PyFieldType>()?;
     m.add_class::<crate::dataset::schema::PyFieldConstraint>()?;
     m.add_class::<crate::dataset::schema::PyDatasetSchema>()?;

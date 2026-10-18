@@ -42,12 +42,13 @@ export class Dataset {
     name: string,
     selector: string,
     options?: {
-      selectorType?: 'css' | 'xpath';
+      selectorType?: 'css' | 'xpath' | 'regex' | 'text' | 'after_text' | 'before_text';
       defaultVal?: string;
+      extractType?: string;
     }
   ): this {
     const selType = options?.selectorType ?? 'css';
-    this.inner.field(name, selector, selType, options?.defaultVal);
+    this.inner.field(name, selector, selType, options?.defaultVal, options?.extractType);
     return this;
   }
 

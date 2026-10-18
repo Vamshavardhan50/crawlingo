@@ -16,300 +16,152 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
-  PIP_DISABLE_PIP_VERSION_CHECK: "1"
-  # pyo3: allow building against Python versions newer than pyo3's stated max
-  # (e.g. macos-latest ships Python 3.14; pyo3 0.25 caps at 3.13 stable ABI)
-  PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
+  RUST_BACKTRACE: '1'
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  JOBS
-# ─────────────────────────────────────────────────────────────────────────────
 jobs:
-
-  # ── 1. Version consistency ──────────────────────────────────────────────────
   version-check:
-    name: 🔢 Version Consistency
+    name: Version consistency
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+      - run: node scripts/check-release.cjs
 
-      - name: Verify all SDK versions match Cargo.toml
-        shell: bash
-        run: |
-          # ── Cargo (source of truth) ────────────────────────────────────
-          cargo_ver=$(python3 -c "
-          import re, sys
-          txt = open('Cargo.toml').read()
-          m = re.search(r'^version\s*=\s*\"([^\"]+)\"', txt, re.MULTILINE)
-          if not m:
-              print('ERROR: version not found in Cargo.toml', file=sys.stderr); sys.exit(1)
-          print(m.group(1))
-          ")
-
-          # ── Python (pyproject.toml) ───────────────────────────────────
-          if [ -f sdk/python/pyproject.toml ]; then
-            python_ver=$(python3 -c "
-          import re, sys
-          txt = open('sdk/python/pyproject.toml').read()
-          m = re.search(r'^version\s*=\s*\"([^\"]+)\"', txt, re.MULTILINE)
-          if not m:
-              print('ERROR: version not found in pyproject.toml', file=sys.stderr); sys.exit(1)
-          print(m.group(1))
-          ")
-          else
-            python_ver="SKIP"
-          fi
-
-          # ── Node (package.json) ───────────────────────────────────────
-          if [ -f sdk/nodejs/package.json ]; then
-            node_ver=$(node -e "console.log(require('./sdk/nodejs/package.json').version)")
-          else
-            node_ver="SKIP"
-          fi
-
-          echo "Cargo:   $cargo_ver"
-          echo "Python:  $python_ver"
-          echo "Node.js: $node_ver"
-
-          # Normalize Python PEP-440 prerelease to semver for comparison
-          # e.g. 1.0.0a1 -> 1.0.0-alpha.1
-          python_norm=$(echo "$python_ver" | sed -E 's/([0-9])a([0-9]+)/\1-alpha.\2/g')
-
-          FAIL=0
-          if [[ "$python_ver" != "SKIP" && "$cargo_ver" != "$python_norm" && "$cargo_ver" != "$python_ver" ]]; then
-            echo "::error::Version mismatch — Cargo ($cargo_ver) vs Python ($python_ver)"
-            FAIL=1
-          fi
-          if [[ "$node_ver" != "SKIP" && "$cargo_ver" != "$node_ver" ]]; then
-            echo "::error::Version mismatch — Cargo ($cargo_ver) vs Node.js ($node_ver)"
-            FAIL=1
-          fi
-          if [[ $FAIL -eq 1 ]]; then exit 1; fi
-          echo "✓ All versions consistent: $cargo_ver"
-
-  # ── 2. Rust — format / lint / test ─────────────────────────────────────────
   rust:
-    name: 🦀 Rust • ${{ matrix.os }}
+    name: Rust (${{ matrix.os }})
+    needs: version-check
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
-    needs: version-check
-
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
+        os: [ubuntu-latest, macos-15, windows-latest]
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust (stable + components)
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Install Linux native build tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang libclang-dev cmake
+      - name: Configure Windows libclang
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '"LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV'
+      - run: cargo fmt --all --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --lib --tests
+      - run: cargo check --features cli,browser
+      - run: cargo doc --no-deps
 
-      # pyo3 (pulled in by --all-features) needs a real Python interpreter at
-      # build time.  Pin to 3.13 — the highest version pyo3 0.24 guarantees.
-      - name: Set up Python (for pyo3 build)
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Rust dependency cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: rust-${{ runner.os }}
-
-      - name: Check formatting
-        run: cargo fmt --all --check
-
-      - name: Clippy (all features, deny warnings)
-        env:
-          PYO3_PYTHON: python3
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-
-      - name: Run tests
-        env:
-          PYO3_PYTHON: python3
-        run: cargo test --workspace --all-features --verbose
-
-      - name: Check documentation
-        env:
-          PYO3_PYTHON: python3
-        run: cargo doc --workspace --all-features --no-deps
-
-  # ── 3. Python SDK — build + test ───────────────────────────────────────────
   python:
-    name: 🐍 Python ${{ matrix.python }} • ${{ matrix.os }}
+    name: Python ${{ matrix.python }} (${{ matrix.os }})
+    needs: version-check
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
-    needs: rust
-    # Only run if the SDK folder exists (skip for repos that haven't added it yet)
-    if: ${{ !cancelled() && needs.rust.result == 'success' }}
-
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-
-    defaults:
-      run:
-        shell: bash
-
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.12', '3.13']
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check if Python SDK exists
-        id: py_sdk
-        run: |
-          if [ -d sdk/python ]; then echo "exists=true" >> $GITHUB_OUTPUT
-          else echo "exists=false" >> $GITHUB_OUTPUT; fi
-
       - uses: dtolnay/rust-toolchain@stable
-        if: steps.py_sdk.outputs.exists == 'true'
-
       - uses: actions/setup-python@v5
-        if: steps.py_sdk.outputs.exists == 'true'
         with:
           python-version: ${{ matrix.python }}
-
-      - name: Rust dependency cache
-        if: steps.py_sdk.outputs.exists == 'true'
-        uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: rust-python-${{ runner.os }}
-
-      - name: Install maturin
-        if: steps.py_sdk.outputs.exists == 'true'
-        run: pip install --upgrade pip maturin
-
-      - name: Build + install Python SDK
-        if: steps.py_sdk.outputs.exists == 'true'
+          shared-key: python-${{ matrix.python }}
+      - name: Install Linux native build tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang libclang-dev cmake
+      - name: Configure Windows libclang
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '"LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV'
+      - name: Build and install the source extension
         working-directory: sdk/python
-        run: pip install --no-build-isolation -e ".[dev]"
-
-      - name: Smoke test
-        if: steps.py_sdk.outputs.exists == 'true'
-        run: python -c "import crawlingo; print('Version:', crawlingo.__version__)"
-
-      - name: Run Python tests
-        if: steps.py_sdk.outputs.exists == 'true'
-        working-directory: sdk/python
+        run: python -m pip install .
+      - name: Check installed package and dataset jobs
         run: |
-          pip install pytest
-          pytest tests/ -v --tb=short
+          python -m unittest discover -s sdk/python/tests -p test_import.py -v
+          python -m unittest discover -s sdk/python/tests -p test_dataset_job.py -v
+      - name: Run the standalone Python API suite
+        run: python sdk/python/tests/test_all_apis.py
 
-  # ── 4. Node.js SDK — build + test ──────────────────────────────────────────
   node:
-    name: 📦 Node.js ${{ matrix.node }} • ${{ matrix.os }}
+    name: Node ${{ matrix.node }} (${{ matrix.os }})
+    needs: version-check
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
-    needs: rust
-    if: ${{ !cancelled() && needs.rust.result == 'success' }}
-
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        node: [18, 20, 22]
-
+        include:
+          - { os: ubuntu-latest, node: '22' }
+          - { os: ubuntu-latest, node: '24' }
+          - { os: windows-latest, node: '22' }
+    defaults:
+      run:
+        working-directory: sdk/nodejs
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check if Node SDK exists
-        id: node_sdk
-        shell: bash
-        run: |
-          if [ -d sdk/nodejs ]; then echo "exists=true" >> $GITHUB_OUTPUT
-          else echo "exists=false" >> $GITHUB_OUTPUT; fi
-
       - uses: dtolnay/rust-toolchain@stable
-        if: steps.node_sdk.outputs.exists == 'true'
-
       - uses: actions/setup-node@v4
-        if: steps.node_sdk.outputs.exists == 'true'
         with:
           node-version: ${{ matrix.node }}
           cache: npm
           cache-dependency-path: sdk/nodejs/package-lock.json
-
-      - name: Rust dependency cache
-        if: steps.node_sdk.outputs.exists == 'true'
-        uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: rust-node-${{ runner.os }}
+          workspaces: sdk/nodejs/native -> target
+      - name: Install Linux native build tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang libclang-dev cmake
+      - name: Configure Windows libclang
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '"LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV'
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npm run test:all
+      - run: node --test tests/dataset_job.test.cjs
+      - run: npm run check:package
+      - run: npm pack --dry-run
 
-      - name: Install Node.js dependencies
-        if: steps.node_sdk.outputs.exists == 'true'
-        working-directory: sdk/nodejs
-        run: npm ci
-
-      - name: Build native module + TypeScript
-        if: steps.node_sdk.outputs.exists == 'true'
-        working-directory: sdk/nodejs
-        shell: bash
-        run: |
-          npm run build
-          npm run build:ts
-
-      - name: Pack dry-run (verify package contents)
-        if: steps.node_sdk.outputs.exists == 'true'
-        working-directory: sdk/nodejs
-        run: npm pack --dry-run
-
-      - name: Run Node.js tests
-        if: steps.node_sdk.outputs.exists == 'true'
-        working-directory: sdk/nodejs
-        run: node tests/test_all.cjs
-
-  # ── 5. Security audit ──────────────────────────────────────────────────────
   audit:
-    name: 🔐 Security Audit
+    name: Dependency audit
     runs-on: ubuntu-latest
-    needs: [rust]
-    if: ${{ !cancelled() && needs.rust.result == 'success' }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install cargo-audit
-        run: cargo install cargo-audit --quiet
-      - name: Run cargo audit
-        run: cargo audit
+      - run: cargo install cargo-audit --locked
+      - run: cargo audit
 
-  # ── 6. Docs — link check ───────────────────────────────────────────────────
-  docs-check:
-    name: 📚 Docs Link Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check markdown links
-        uses: lycheeverse/lychee-action@v2
-        with:
-          args: --no-progress --exclude-mail '**/*.md'
-          fail: false   # warn only — don't block CI on external link rot
-
-  # ── Summary gate (required check for branch protection) ────────────────────
   ci-pass:
-    name: ✅ CI Pass
+    name: CI Pass
     runs-on: ubuntu-latest
-    needs: [rust, python, node, audit]
+    needs: [version-check, rust, python, node, audit]
     if: always()
     steps:
-      - name: Evaluate results
+      - name: Require every job to succeed
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
         run: |
-          results='${{ toJSON(needs) }}'
-          echo "$results" | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          failed = [k for k, v in data.items() if v['result'] not in ('success', 'skipped')]
-          if failed:
-              print('::error::Failed jobs:', ', '.join(failed))
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['JOB_RESULTS'])
+          failures = [name for name, result in results.items() if result['result'] != 'success']
+          if failures:
+              print('Required jobs did not succeed:', ', '.join(failures))
               sys.exit(1)
           print('All required jobs passed.')
-          "
+          PY

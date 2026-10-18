@@ -1,0 +1,10 @@
+changelog:
+  categories:
+    - title: Dataset and SDK features
+      labels: [enhancement]
+    - title: Fixes
+      labels: [bug]
+    - title: Documentation
+      labels: [documentation]
+    - title: Maintenance and other changes
+      labels: ['*']

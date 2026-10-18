@@ -1,0 +1,14 @@
+{
+  "urls_file": "urls.txt",
+  "output_dir": "output",
+  "row_selector": "article.product",
+  "fields": [
+    { "name": "sku", "selector": "article.product", "extract_type": "attr:data-sku", "required": true },
+    { "name": "name", "selector": "h2", "required": true },
+    { "name": "price", "selector": ".price", "extract_type": "price", "data_type": "float", "required": true }
+  ],
+  "dedup_fields": ["sku"],
+  "concurrency": 2,
+  "checkpoint_pages": 10,
+  "format": "jsonl"
+}

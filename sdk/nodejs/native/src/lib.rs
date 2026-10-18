@@ -8,6 +8,7 @@ use crawlingo::engine::fetcher::{FetchRequest, FetcherTier};
 use crawlingo::engine::pool::ConnectionPoolConfig;
 use crawlingo::selector::{css, xpath, text_anchor, regex_selector};
 use crawlingo::dataset::builder::{Dataset, DatasetField, DatasetResult};
+use crawlingo::dataset::job::DatasetJob;
 use crawlingo::crawl::crawler::Crawler;
 use crawlingo::crawl::pagination::PaginationConfig;
 use crawlingo::dataset::schema::{DatasetSchema, FieldType, FieldConstraint};
@@ -454,6 +455,26 @@ pub struct JsDatasetResult {
 }
 
 #[napi]
+pub struct JsDatasetJob { inner: DatasetJob }
+
+#[napi]
+impl JsDatasetJob {
+    #[napi(constructor)]
+    pub fn new(config_json: String, session: &JsSession) -> napi::Result<Self> {
+        let config = serde_json::from_str(&config_json).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+        let inner = DatasetJob::new(config, session.inner.clone()).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+        Ok(Self { inner })
+    }
+    #[napi]
+    pub async fn run(&self) -> napi::Result<String> {
+        let report = self.inner.run().await.map_err(|e| napi::Error::from_reason(e.to_string()))?;
+        serde_json::to_string(&report).map_err(|e| napi::Error::from_reason(e.to_string()))
+    }
+    #[napi]
+    pub fn cancel(&self) { self.inner.cancel(); }
+}
+
+#[napi]
 impl JsDatasetResult {
     #[napi]
     pub fn to_dict(&self) -> HashMap<String, String> {
@@ -516,13 +537,24 @@ impl JsDataset {
     }
 
     #[napi]
-    pub fn field(&mut self, name: String, selector: String, selector_type: Option<String>, default_val: Option<String>) {
+    pub fn field(
+        &mut self,
+        name: String,
+        selector: String,
+        selector_type: Option<String>,
+        default_val: Option<String>,
+        extract_type: Option<String>,
+    ) {
+        let ext = extract_type
+            .as_deref()
+            .map(crawlingo::extraction::ExtractionType::from_str_or_text)
+            .unwrap_or_default();
         let field = DatasetField {
             name,
             selector,
             selector_type: selector_type.unwrap_or("css".to_string()),
             default: default_val,
-            extract_type: Default::default(),
+            extract_type: ext,
         };
         self.fields.push(field);
     }
@@ -545,11 +577,11 @@ impl JsDataset {
     /// Synchronously extract structured multi-row records from an already-fetched JsPage.
     /// Returns a Vec of HashMaps, one per row, zipped by element index across all selectors.
     #[napi]
-    pub fn extract_structured(&self, page: &JsPage) -> Vec<HashMap<String, String>> {
+    pub fn extract_structured(&self, page: &JsPage) -> napi::Result<Vec<HashMap<String, String>>> {
         let mut dataset = Dataset::new(&self.url, self.session.clone());
         dataset.fields = self.fields.clone();
         dataset.schema = self.schema.clone();
-        dataset.extract_from_tree(&page.tree)
+        dataset.extract_from_tree_checked(&page.tree).map_err(|e| to_napi_error(e, &self.url, "dataset"))
     }
 
     /// Fetch the URL, parse the page, and extract structured multi-row records entirely in Rust.
@@ -658,13 +690,24 @@ impl JsCrawl {
     }
 
     #[napi]
-    pub fn field(&mut self, name: String, selector: String, selector_type: Option<String>, default_val: Option<String>) {
+    pub fn field(
+        &mut self,
+        name: String,
+        selector: String,
+        selector_type: Option<String>,
+        default_val: Option<String>,
+        extract_type: Option<String>,
+    ) {
+        let ext = extract_type
+            .as_deref()
+            .map(crawlingo::extraction::ExtractionType::from_str_or_text)
+            .unwrap_or_default();
         let field = DatasetField {
             name,
             selector,
             selector_type: selector_type.unwrap_or("css".to_string()),
             default: default_val,
-            extract_type: Default::default(),
+            extract_type: ext,
         };
         self.crawler.fields.push(field);
     }
@@ -683,7 +726,7 @@ impl JsCrawl {
     pub async fn run(&self) -> napi::Result<Vec<JsDatasetResult>> {
         let res = self.crawler.crawl_async().await
             .map_err(|e| to_napi_error(e, &self.crawler.start_url, "crawler"))?;
-        let results = res.into_iter().map(|item| JsDatasetResult { inner: item }).collect();
+        let results = res.results.into_iter().map(|item| JsDatasetResult { inner: item }).collect();
         Ok(results)
     }
 }
@@ -713,13 +756,24 @@ impl JsWatch {
     }
 
     #[napi]
-    pub fn field(&mut self, name: String, selector: String, selector_type: Option<String>, default_val: Option<String>) {
+    pub fn field(
+        &mut self,
+        name: String,
+        selector: String,
+        selector_type: Option<String>,
+        default_val: Option<String>,
+        extract_type: Option<String>,
+    ) {
+        let ext = extract_type
+            .as_deref()
+            .map(crawlingo::extraction::ExtractionType::from_str_or_text)
+            .unwrap_or_default();
         let field = DatasetField {
             name,
             selector,
             selector_type: selector_type.unwrap_or("css".to_string()),
             default: default_val,
-            extract_type: Default::default(),
+            extract_type: ext,
         };
         self.fields.push(field);
     }

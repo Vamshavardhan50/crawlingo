@@ -118,14 +118,16 @@ class Crawl:
         selector: str,
         selector_type: str = "css",
         default: Optional[str] = None,
+        extract_type: str = "text",
     ) -> "Crawl":
         """Define an extraction field for every crawled page."""
         try:
             self._core_crawl.field(
                 name,
                 selector,
-                selector_type=selector_type,
-                default=default,
+                selector_type,
+                default,
+                extract_type,
             )
         except Exception as e:
             raise handle_core_exception(e)
@@ -151,6 +153,45 @@ class Crawl:
         except Exception as e:
             raise handle_core_exception(e)
         return self
+
+    def browser(self, enabled: bool = True) -> "Crawl":
+        """Enable real headless-browser rendering for all pages in this crawl.
+
+        Requires the Rust library to be compiled with ``--features browser`` and a local
+        Chrome/Chromium binary available at ``CRAWLINGO_CHROME_PATH`` (or a default OS location).
+
+        When ``enabled=True`` the fetcher tier is set to ``'browser'``; all pages are rendered
+        through a real Chromium process so JavaScript-injected content is captured.
+        When ``enabled=False`` the tier resets to ``'standard'`` HTTP fetching.
+
+        Example::
+
+            import crawlingo
+            results = (
+                crawlingo.Crawl("https://spa-site.example.com")
+                .browser()               # enable JS rendering
+                .field("title", "h1")
+                .build()
+            )
+        """
+        tier = "browser" if enabled else "standard"
+        self._session.fetcher_tier(tier)
+        return self
+
+    def respect_robots(self, enabled: bool) -> "Crawl":
+        """Set whether the crawler respects robots.txt rules. Default: True."""
+        try:
+            self._core_crawl.respect_robots(enabled)
+        except Exception as e:
+            raise handle_core_exception(e)
+        return self
+
+    def cancel(self):
+        """Cancel an ongoing crawl."""
+        try:
+            self._core_crawl.cancel()
+        except Exception as e:
+            raise handle_core_exception(e)
 
     def webhook(self, url: str) -> "Crawl":
         """Set webhook endpoint URL to deliver JSON results in real-time."""

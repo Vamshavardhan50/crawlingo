@@ -100,6 +100,8 @@ pub struct Paginator {
     /// For `PageNumber`: tracks which page we're currently generating.
     page_counter: std::sync::atomic::AtomicUsize,
     compiled_regex: Option<Arc<Regex>>,
+    /// Tracks all generated/followed pagination URLs to prevent infinite pagination loops.
+    seen_pages: std::sync::Mutex<std::collections::HashSet<String>>,
 }
 
 impl Paginator {
@@ -119,24 +121,24 @@ impl Paginator {
             config,
             page_counter: std::sync::atomic::AtomicUsize::new(start),
             compiled_regex,
+            seen_pages: std::sync::Mutex::new(std::collections::HashSet::new()),
         }
     }
 
     /// Computes the next page URL given the current `url` and its `dom`.
     ///
-    /// Returns `Ok(None)` if pagination is exhausted or no next link was found.
+    /// Returns `Ok(None)` if pagination is exhausted, no next link was found, or a loop is detected.
     pub fn next_url(&self, url: &str, dom: &Arc<DomTree>) -> Result<Option<String>> {
-        match &self.config.scheme {
+        let candidate = match &self.config.scheme {
             PaginationScheme::NextLink { selector } => {
                 let matches = css::query(dom, selector);
                 let next = matches
                     .iter()
                     .find_map(|&idx| dom.nodes[idx].attrs.get("href").cloned());
                 if let Some(href) = next {
-                    let resolved = resolve_url(url, &href);
-                    Ok(resolved)
+                    resolve_url(url, &href)
                 } else {
-                    Ok(None)
+                    None
                 }
             }
 
@@ -148,12 +150,10 @@ impl Paginator {
                 let current = self
                     .page_counter
                     .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                // current is the *next* page number to generate (already incremented above).
                 if current > *max_pages {
                     return Ok(None);
                 }
-                let next_url = url_template.replace("{page}", &current.to_string());
-                Ok(Some(next_url))
+                Some(url_template.replace("{page}", &current.to_string()))
             }
 
             PaginationScheme::UrlPattern {
@@ -170,17 +170,33 @@ impl Paginator {
                         if next_n > *max_page {
                             return Ok(None);
                         }
-                        // Replace the matched capture group with n+1.
                         let full_match = caps.get(0).unwrap();
                         let new_segment = re.replace(
                             url,
                             full_match.as_str().replace(matched, &next_n.to_string()),
                         );
-                        return Ok(Some(new_segment.into_owned()));
+                        Some(new_segment.into_owned())
+                    } else {
+                        None
                     }
+                } else {
+                    None
                 }
-                Ok(None)
             }
+        };
+
+        if let Some(raw_next) = candidate {
+            let canonical =
+                crate::util::url::canonicalize_url(&raw_next).unwrap_or(raw_next.clone());
+            let mut seen = self.seen_pages.lock().unwrap();
+            if seen.contains(&canonical) {
+                tracing::warn!("Infinite pagination loop detected for URL: {}", canonical);
+                return Ok(None);
+            }
+            seen.insert(canonical);
+            Ok(Some(raw_next))
+        } else {
+            Ok(None)
         }
     }
 

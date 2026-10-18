@@ -4,7 +4,8 @@ use std::collections::HashMap;
 /// An async streaming buffer for dataset records.
 ///
 /// Uses a tokio mpsc channel to stream extracted records from workers
-/// to a background writer, enabling constant-memory scaling for large crawls.
+/// to a consumer with bounded channel capacity. Record sizes and export buffers
+/// also contribute to memory usage.
 pub struct DatasetStream {
     /// `None` once [`DatasetStream::detach_sender`] has been called. A drain loop (`recv()`,
     /// `write_csv`, `write_parquet`) can only ever observe the channel as closed once every
@@ -12,15 +13,19 @@ pub struct DatasetStream {
     /// a producer — has been dropped. Without a way to give up this field's own sender, a caller
     /// holding both a `DatasetStream` and the task producing into it (e.g. via
     /// [`crate::dataset::builder::Dataset::build_many_streamed`]) could never see the stream end.
-    sender: Option<tokio::sync::mpsc::UnboundedSender<Result<HashMap<String, String>>>>,
-    receiver: tokio::sync::mpsc::UnboundedReceiver<Result<HashMap<String, String>>>,
+    sender: Option<tokio::sync::mpsc::Sender<Result<HashMap<String, String>>>>,
+    receiver: tokio::sync::mpsc::Receiver<Result<HashMap<String, String>>>,
     count: usize,
 }
 
 impl DatasetStream {
-    /// Create a new unbounded streaming buffer.
+    /// Create a bounded streaming buffer with capacity for 100 records.
     pub fn new() -> Self {
-        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        Self::with_capacity(100)
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        let (tx, rx) = tokio::sync::mpsc::channel(capacity.max(1));
         Self {
             sender: Some(tx),
             receiver: rx,
@@ -28,12 +33,16 @@ impl DatasetStream {
         }
     }
 
-    /// Push a record into the stream. A no-op once [`DatasetStream::detach_sender`] has been
-    /// called.
-    pub fn push(&self, record: Result<HashMap<String, String>>) {
-        if let Some(ref sender) = self.sender {
-            let _ = sender.send(record);
-        }
+    /// Try to push a record. Returns an error if full, closed or detached.
+    /// Use [`DatasetStreamHandle::send`] to wait for available capacity.
+    pub fn push(&self, record: Result<HashMap<String, String>>) -> Result<()> {
+        self.sender
+            .as_ref()
+            .ok_or_else(|| {
+                crate::error::CrawlingoError::DatasetError("stream sender detached".into())
+            })?
+            .try_send(record)
+            .map_err(|e| crate::error::CrawlingoError::DatasetError(e.to_string()))
     }
 
     /// Try to receive the next record (non-blocking).
@@ -106,7 +115,7 @@ impl DatasetStream {
     pub async fn write_csv(self, path: &str) -> Result<usize> {
         let mut writer = csv::Writer::from_path(path)
             .map_err(|e| crate::error::CrawlingoError::DatasetError(e.to_string()))?;
-        let mut header_written = false;
+        let mut keys: Option<Vec<String>> = None;
         let mut total = 0;
 
         let DatasetStream {
@@ -119,21 +128,31 @@ impl DatasetStream {
         while let Some(record) = receiver.recv().await {
             match record {
                 Ok(fields) => {
-                    if !header_written {
-                        let keys: Vec<&str> = fields.keys().map(|k| k.as_str()).collect();
-                        writer.write_record(&keys).map_err(|e| {
+                    if keys.is_none() {
+                        let mut columns: Vec<String> = fields.keys().cloned().collect();
+                        columns.sort();
+                        writer.write_record(&columns).map_err(|e| {
                             crate::error::CrawlingoError::DatasetError(e.to_string())
                         })?;
-                        header_written = true;
+                        keys = Some(columns);
                     }
-                    let values: Vec<&str> = fields.values().map(|v| v.as_str()).collect();
+                    let columns = keys.as_ref().unwrap();
+                    if fields.keys().any(|key| !columns.contains(key)) {
+                        return Err(crate::error::CrawlingoError::ExportError(
+                            "CSV record introduces undeclared columns".into(),
+                        ));
+                    }
+                    let values: Vec<&str> = columns
+                        .iter()
+                        .map(|key| fields.get(key).map(String::as_str).unwrap_or(""))
+                        .collect();
                     writer
                         .write_record(&values)
                         .map_err(|e| crate::error::CrawlingoError::DatasetError(e.to_string()))?;
                     total += 1;
                 }
                 Err(e) => {
-                    tracing::warn!("Skipping failed record in stream: {e}");
+                    return Err(e);
                 }
             }
         }
@@ -147,7 +166,7 @@ impl DatasetStream {
     /// Consume the stream and write all records to a Parquet file.
     ///
     /// Forwards successfully-received records onto a fresh channel consumed by
-    /// [`crate::dataset::export::write_parquet_stream`], skipping (and logging) failed records
+    /// [`crate::dataset::export::write_parquet_stream`], propagating failed records
     /// exactly like [`DatasetStream::write_csv`]. See that method's doc comment for why `self`'s
     /// own sender must be dropped before draining.
     pub async fn write_parquet(self, path: &str) -> Result<usize> {
@@ -161,32 +180,29 @@ impl DatasetStream {
         batch_size: usize,
     ) -> Result<usize> {
         let (tx, rx) = tokio::sync::mpsc::channel(100);
-        let mut total = 0;
-
         let DatasetStream {
             sender,
             mut receiver,
             ..
         } = self;
         drop(sender);
-
-        while let Some(record) = receiver.recv().await {
-            match record {
-                Ok(fields) => {
-                    total += 1;
-                    if tx.send(fields).await.is_err() {
-                        break;
-                    }
-                }
-                Err(e) => {
-                    tracing::warn!("Skipping failed record in stream: {e}");
-                }
+        let forward = async move {
+            let mut total = 0;
+            while let Some(record) = receiver.recv().await {
+                tx.send(record?).await.map_err(|_| {
+                    crate::error::CrawlingoError::ExportError("Parquet writer closed".into())
+                })?;
+                total += 1;
             }
-        }
-        drop(tx);
-
-        crate::dataset::export::write_parquet_stream(path, rx, Some(batch_size)).await?;
-        Ok(total)
+            Ok::<usize, crate::error::CrawlingoError>(total)
+        };
+        // Poll both ends concurrently. Sending before starting the writer deadlocked at capacity.
+        let (forwarded, written) = tokio::join!(
+            forward,
+            crate::dataset::export::write_parquet_stream(path, rx, Some(batch_size))
+        );
+        written?;
+        forwarded
     }
 }
 
@@ -194,13 +210,27 @@ impl DatasetStream {
 /// [`DatasetStream::handle`].
 #[derive(Clone)]
 pub struct DatasetStreamHandle {
-    sender: tokio::sync::mpsc::UnboundedSender<Result<HashMap<String, String>>>,
+    sender: tokio::sync::mpsc::Sender<Result<HashMap<String, String>>>,
 }
 
 impl DatasetStreamHandle {
     /// Pushes a record into the associated stream.
-    pub fn push(&self, record: Result<HashMap<String, String>>) {
-        let _ = self.sender.send(record);
+    pub fn push(&self, record: Result<HashMap<String, String>>) -> Result<()> {
+        self.sender
+            .try_send(record)
+            .map_err(|e| crate::error::CrawlingoError::DatasetError(e.to_string()))
+    }
+
+    /// Waits for consumer capacity; producers stop when the receiver is dropped.
+    pub async fn send(&self, record: Result<HashMap<String, String>>) -> Result<()> {
+        self.sender
+            .send(record)
+            .await
+            .map_err(|e| crate::error::CrawlingoError::DatasetError(e.to_string()))
+    }
+
+    pub fn is_closed(&self) -> bool {
+        self.sender.is_closed()
     }
 }
 
@@ -219,7 +249,7 @@ mod tests {
     async fn handle_push_is_observed_via_recv() {
         let mut stream = DatasetStream::new();
         let handle = stream.handle();
-        handle.push(Ok(HashMap::new()));
+        handle.push(Ok(HashMap::new())).unwrap();
         assert!(stream.recv().await.is_some());
     }
 
@@ -233,7 +263,7 @@ mod tests {
 
         let mut a = HashMap::new();
         a.insert("title".to_string(), "Book One".to_string());
-        handle.push(Ok(a));
+        handle.push(Ok(a)).unwrap();
         drop(handle);
 
         let dir = tempdir().unwrap();
@@ -257,11 +287,11 @@ mod tests {
 
         let mut a = HashMap::new();
         a.insert("title".to_string(), "Book One".to_string());
-        handle.push(Ok(a));
+        handle.push(Ok(a)).unwrap();
 
         let mut b = HashMap::new();
         b.insert("title".to_string(), "Book Two".to_string());
-        handle.push(Ok(b));
+        handle.push(Ok(b)).unwrap();
 
         drop(handle);
 

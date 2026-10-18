@@ -1,4 +1,6 @@
 pub mod auth;
+#[cfg(feature = "browser")]
+pub mod browser;
 pub mod cache;
 pub mod download;
 pub mod fetcher;

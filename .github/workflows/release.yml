@@ -6,102 +6,78 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  id-token: write
-  packages: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   verify-version:
-    name: Verify Version Consistency
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check version consistency
-        shell: bash
-        run: |
-          cargo_version=$(python3 -c "
-import re, sys
-txt = open('Cargo.toml').read()
-m = re.search(r'^version\s*=\s*\"([^\"]+)\"', txt, re.MULTILINE)
-if not m: print('ERROR', file=sys.stderr); sys.exit(1)
-print(m.group(1))
-")
-          python_version=$(python3 -c "
-import re, sys
-txt = open('sdk/python/pyproject.toml').read()
-m = re.search(r'^version\s*=\s*\"([^\"]+)\"', txt, re.MULTILINE)
-if not m: print('ERROR', file=sys.stderr); sys.exit(1)
-print(m.group(1))
-")
-          node_version=$(node -e "console.log(require('./sdk/nodejs/package.json').version)")
-          echo "Cargo version:  $cargo_version"
-          echo "Python version: $python_version"
-          echo "Node.js version: $node_version"
-
-          # Normalize Python PEP-440 prerelease -> semver (e.g. 1.0.0a1 -> 1.0.0-alpha.1)
-          python_norm=$(echo "$python_version" | sed -E 's/([0-9])a([0-9]+)/\1-alpha.\2/g')
-
-          FAIL=0
-          if [ "$cargo_version" != "$python_norm" ] && [ "$cargo_version" != "$python_version" ]; then
-            echo "::error::Cargo ($cargo_version) vs Python ($python_version) version mismatch"
-            FAIL=1
-          fi
-          if [ "$cargo_version" != "$node_version" ]; then
-            echo "::error::Cargo ($cargo_version) vs Node.js ($node_version) version mismatch"
-            FAIL=1
-          fi
-          if [ $FAIL -eq 1 ]; then exit 1; fi
-          echo "All versions match: $cargo_version"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/check-release.cjs
+      - name: Verify release tag
+        if: github.event_name == 'release'
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: node scripts/check-release.cjs "$RELEASE_TAG"
 
   test-core:
-    name: Test Core (${{ matrix.os }})
+    needs: verify-version
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+          - os: macos-15
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
-
-      - name: Run Rust tests
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux native build tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang libclang-dev cmake
+      - name: Configure Windows libclang
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '"LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV'
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --locked --lib --tests
+      - run: cargo check --locked --features cli,browser
+      - name: Build CLI
+        run: cargo build --locked --release --features cli
+      - name: Archive CLI and license
         shell: bash
-        run: cargo test --workspace --verbose
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Build Python extension
-        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
-          cd sdk/python
-          pip install maturin
-          maturin build --features python --release
-
-      - name: Quick Python import test
-        shell: bash
-        run: |
-          cd sdk/python
-          pip install -e . --no-build-isolation
-          python -c "from crawlingo import Page; p = Page('https://example.com'); print('Page OK:', p.title())"
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          binary=crawlingo
+          if [[ "$RUNNER_OS" == Windows ]]; then binary=crawlingo.exe; fi
+          mkdir cli-release
+          cp "target/release/$binary" LICENSE cli-release/
+          tar -czf "crawlingo-$version-$TARGET.tar.gz" -C cli-release .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.target }}
+          path: crawlingo-*.tar.gz
+          if-no-files-found: error
 
   build-node-addons:
-    name: Build Node Addon (${{ matrix.target }})
-    runs-on: ${{ matrix.os }}
     needs: [verify-version, test-core]
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -109,10 +85,10 @@ print(m.group(1))
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             file: crawlingo-native.linux-x64-gnu.node
-          - os: macos-latest
+          - os: macos-15-intel
             target: x86_64-apple-darwin
             file: crawlingo-native.darwin-x64.node
-          - os: macos-latest
+          - os: macos-15
             target: aarch64-apple-darwin
             file: crawlingo-native.darwin-arm64.node
           - os: windows-latest
@@ -120,173 +96,267 @@ print(m.group(1))
             file: crawlingo-native.win32-x64-msvc.node
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            sdk/nodejs/native/target
-          key: ${{ runner.os }}-node-${{ matrix.target }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock', 'sdk/nodejs/package-lock.json', 'sdk/nodejs/native/Cargo.toml') }}
-
-      - name: Install dependencies
+      - name: Install Linux build tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang libclang-dev cmake
+      - name: Configure Windows libclang
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '"LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV'
+      - run: npm ci
         working-directory: sdk/nodejs
-        run: npm ci
-
-      - name: Build native module
+      - name: Build host native addon
         working-directory: sdk/nodejs
-        run: npx napi build --target ${{ matrix.target }} --platform --release --js src/native.js --dts src/native.d.ts --cargo-cwd native .
-
-      - name: Test native module
+        run: npx napi build --target ${{ matrix.target }} --platform --release --js src/native.js --dts src/native.d.ts --cargo-cwd native --cargo-flags="--locked" .
+      - name: Compile wrapper and stage assets
         working-directory: sdk/nodejs
-        # Only run tests if running on host target
-        if: (matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64-unknown-linux-gnu') || (matrix.os == 'macos-latest' && matrix.target == 'x86_64-apple-darwin') || (matrix.os == 'windows-latest' && matrix.target == 'x86_64-pc-windows-msvc')
-        run: npm test || true
-
-      - name: Locate and stage built addon
-        shell: bash
-        run: |
-          mkdir -p staging
-          find sdk/nodejs -name "${{ matrix.file }}" -exec cp {} staging/ \;
-
-      - name: Upload Node.js addon
-        uses: actions/upload-artifact@v4
+        run: npm run prepack
+      - name: Test compiled package
+        working-directory: sdk/nodejs
+        run: npm test
+      - name: Test dataset jobs and monitoring
+        working-directory: sdk/nodejs
+        run: node --test tests/dataset_job.test.cjs
+      - name: Run implemented API suite
+        working-directory: sdk/nodejs
+        run: npm run test:all
+      - uses: actions/upload-artifact@v4
         with:
           name: node-addon-${{ matrix.target }}
-          path: staging/${{ matrix.file }}
+          path: sdk/nodejs/${{ matrix.file }}
           if-no-files-found: error
 
   python-wheels:
-    name: Build Python Wheels (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
     needs: [verify-version, test-core]
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            archs: x86_64 aarch64
+          - os: macos-15-intel
+            archs: x86_64
+          - os: macos-15
+            archs: arm64
+          - os: windows-latest
+            archs: AMD64
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Rust (host)
-        if: matrix.os != 'ubuntu-latest'
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Set up QEMU (for arm64 Linux builds)
-        if: matrix.os == 'ubuntu-latest'
-        uses: docker/setup-qemu-action@v3
-
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21
+      - uses: dtolnay/rust-toolchain@stable
+        if: runner.os != 'Linux'
+      - uses: docker/setup-qemu-action@v3
+        if: runner.os == 'Linux'
+      - name: Configure Windows libclang
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '"LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV'
+      - uses: pypa/cibuildwheel@v2.21
         with:
           package-dir: sdk/python
         env:
-          CIBW_BUILD_VERBOSITY: 1
-          CIBW_TEST_COMMAND: python -c "import crawlingo; print(crawlingo.__version__)"
-          CIBW_BEFORE_ALL: pip install maturin
-          CIBW_BEFORE_ALL_LINUX: >
+          CIBW_ARCHS: ${{ matrix.archs }}
+          CIBW_SKIP: '*-musllinux_*'
+          CIBW_TEST_COMMAND: >-
+            python {project}/tests/test_import.py &&
+            python {project}/tests/test_dataset_job.py
+          CIBW_BEFORE_ALL_LINUX: >-
             curl https://sh.rustup.rs -sSf | sh -s -- -y &&
-            (yum install -y clang || dnf install -y clang || apt-get install -y clang || true) &&
-            pip install maturin
+            (if command -v yum; then yum install -y clang; else apt-get update && apt-get install -y clang libclang-dev; fi)
           CIBW_ENVIRONMENT_LINUX: PATH=/root/.cargo/bin:$PATH MATURIN_NO_INSTALL_RUST=1
           CIBW_ENVIRONMENT_MACOS: PATH=$HOME/.cargo/bin:$PATH MATURIN_NO_INSTALL_RUST=1
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: python-wheels-${{ matrix.os }}
-          path: ./wheelhouse/*.whl
+          path: wheelhouse/*.whl
           if-no-files-found: error
 
-  publish-npm:
-    name: Publish NPM Package
+  package-npm:
+    needs: [build-node-addons, python-wheels]
     runs-on: ubuntu-latest
-    needs: build-node-addons
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Download all node addons
-        uses: actions/download-artifact@v4
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v4
         with:
           path: sdk/nodejs
           pattern: node-addon-*
           merge-multiple: true
-
-      - name: Install dependencies
+      - run: npm ci
         working-directory: sdk/nodejs
-        run: npm ci
-
-      - name: Prepack NPM package
+      - name: Build and verify distribution
         working-directory: sdk/nodejs
-        run: npm run prepack
-
-      - name: Pack NPM package
-        working-directory: sdk/nodejs
-        run: npm pack
-
-      - name: Publish to NPM
-        if: github.event_name == 'release'
-        working-directory: sdk/nodejs
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Upload NPM tarball to GitHub Release
-        uses: softprops/action-gh-release@v2
-        if: github.event_name == 'release'
+        run: |
+          npm run prepack
+          node scripts/check-package.cjs --all-platforms
+          npm test
+          node --test tests/dataset_job.test.cjs
+          npm pack --ignore-scripts
+      - name: Inspect archive and install into a clean consumer
+        shell: bash
+        run: |
+          version=$(node -p "require('./sdk/nodejs/package.json').version")
+          tar -tzf "sdk/nodejs/crawlingo-$version.tgz"
+          mkdir npm-consumer
+          cd npm-consumer
+          npm init -y
+          npm install --ignore-scripts "../sdk/nodejs/crawlingo-$version.tgz"
+          node -e "if (typeof require('crawlingo').DatasetJob !== 'function') throw Error('Missing DatasetJob')"
+      - uses: actions/upload-artifact@v4
         with:
-          files: sdk/nodejs/*.tgz
-
-  publish-python:
-    name: Publish Python Package
+          name: npm-package
+          path: sdk/nodejs/*.tgz
+          if-no-files-found: error
+  package-python:
+    needs: [python-wheels, build-node-addons]
     runs-on: ubuntu-latest
-    needs: python-wheels
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Install maturin
-        run: pip install maturin
-
-      - name: Download all wheels
-        uses: actions/download-artifact@v4
+      - run: python -m pip install maturin twine
+      - uses: actions/download-artifact@v4
         with:
           path: dist
           pattern: python-wheels-*
           merge-multiple: true
-
-      - name: Build sdist
+      - run: maturin sdist --out ../../dist
         working-directory: sdk/python
-        run: maturin sdist --out ../../dist
+      - run: python -m twine check dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-distributions
+          path: dist/*
+          if-no-files-found: error
+  package-crate:
+    needs: [verify-version, test-core, build-node-addons, python-wheels]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: sudo apt-get update && sudo apt-get install -y clang libclang-dev cmake
+      - run: cargo package --locked --list
+      - run: cargo publish --locked --dry-run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rust-crate
+          path: target/package/*.crate
+          if-no-files-found: error
 
-      - name: Publish to PyPI
-        if: github.event_name == 'release'
-        uses: pypa/gh-action-pypi-publish@release/v1
+  release-artifacts:
+    needs: [package-npm, package-python, package-crate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          pattern: cli-*
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: release-assets
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-distributions
+          path: release-assets
+      - uses: actions/download-artifact@v4
+        with:
+          name: rust-crate
+          path: release-assets
+      - name: Verify complete artifact set and write SHA-256 manifest
+        run: node scripts/release-manifest.cjs release-assets
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: release-assets/*
+          if-no-files-found: error
+
+  publish-npm:
+    needs: release-artifacts
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: https://registry.npmjs.org
+      - run: npm install --global npm@11
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: dist
+      - name: Publish the reviewed tarball with OIDC
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version=${RELEASE_TAG#v}
+          tag=latest
+          if [[ "$version" == *-* ]]; then tag=next; fi
+          npm publish "dist/crawlingo-$version.tgz" --provenance --access public --tag "$tag"
+
+  publish-python:
+    needs: release-artifacts
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-distributions
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
 
-      - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
-        if: github.event_name == 'release'
+  publish-crate:
+    needs: release-artifacts
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment: crates-io
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: sudo apt-get update && sudo apt-get install -y clang libclang-dev cmake
+      - run: cargo publish --locked
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  attach-release-assets:
+    needs: [publish-npm, publish-python, publish-crate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
         with:
-          files: dist/*
+          name: release-assets
+          path: release-assets
+      - name: Attach packages, CLI archives and checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" release-assets/*

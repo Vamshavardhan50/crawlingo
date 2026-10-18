@@ -62,24 +62,7 @@ class Page:
         if self._core_page is not None:
             return
 
-        # Merge session values as defaults, explicit Page kwargs override
-        headers = {}
-        cookies = {}
-        proxy = None
-        auto_match = self._auto_match
-        timeout = self._timeout
-
-        if self._session is not None:
-            headers.update(self._session._headers)
-            cookies.update(self._session._cookies)
-            proxy = self._session._proxy if self._proxy is None else self._proxy
-            auto_match = self._session._auto_match if not self._auto_match else self._auto_match
-            timeout = self._session._timeout if self._timeout == 30 else self._timeout
-
-        headers.update(self._headers)
-        cookies.update(self._cookies)
-        proxy = self._proxy or proxy
-        auto_match = self._auto_match or auto_match
+        core_session = self._session._core_session if self._session is not None else None
 
         # 1. Trigger before_fetch hooks
         class RequestContext:
@@ -87,20 +70,21 @@ class Page:
                 self.url = url
                 self.headers = headers
         
-        req_ctx = RequestContext(self._url, headers)
+        req_ctx = RequestContext(self._url, self._headers)
         for hook in self._before_fetch_hooks:
             hook(req_ctx)
 
-        # 2. Fetch via Rust Core
+        # 2. Fetch via Rust Core (session provides default headers, cookies, proxy, timeout, retries)
         try:
             self._core_page = _CorePage(
                 self._url,
-                auto_match=auto_match,
-                timeout=timeout,
+                session=core_session,
+                auto_match=self._auto_match,
+                timeout=self._timeout,
                 retries=self._retries,
-                headers=headers,
-                cookies=cookies,
-                proxy=proxy,
+                headers=self._headers or None,
+                cookies=self._cookies or None,
+                proxy=self._proxy,
             )
         except Exception as e:
             raise handle_core_exception(e)

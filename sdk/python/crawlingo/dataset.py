@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Callable, Optional, TYPE_CHECKING
 from ._crawlingo_core import Dataset as _CoreDataset, DatasetResult as _CoreDatasetResult
 from .session import Session

@@ -1,0 +1,29 @@
+name: Feature request
+description: Propose a dataset workflow or API improvement.
+title: "feat: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What task are you trying to complete?
+      description: Describe the user and the dataset outcome, including the current limitation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Include input, output, API examples and failure behavior where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: How would we know it works?
+      description: A small fixture, expected records, resource limits or a measurable acceptance case.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Current workaround or alternatives

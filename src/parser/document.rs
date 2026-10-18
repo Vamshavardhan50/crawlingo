@@ -694,4 +694,19 @@ impl Page {
             .collect::<Vec<String>>()
             .join(" ")
     }
+
+    /// Returns the value of `attr_name` from the **first** matched node, or an empty string if the
+    /// node does not have that attribute. Used by [`crate::extraction::ExtractionType::Attribute`].
+    pub fn get_node_attr(&self, indices: &[usize], attr_name: &str) -> String {
+        indices
+            .iter()
+            .find_map(|&idx| {
+                self.tree
+                    .nodes
+                    .get(idx)
+                    .and_then(|n| n.attrs.get(attr_name))
+                    .cloned()
+            })
+            .unwrap_or_default()
+    }
 }

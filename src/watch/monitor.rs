@@ -130,28 +130,31 @@ impl PyWatch {
 
     /// Run the poll loop synchronously (blocking the Python thread)
     pub fn run(&self, py: Python<'_>) -> PyResult<()> {
-        let on_change = self.on_change_cb.clone();
-        let on_price = self.on_price_change_cb.clone();
-        let on_stock = self.on_stock_change_cb.clone();
-        let on_added = self.on_added_cb.clone();
-        let on_removed = self.on_removed_cb.clone();
-
         let url = self.inner.url.clone();
         let session = self.inner.session.clone();
         let interval_sec = self.inner.interval_seconds;
         let token = self.inner.cancellation_token.clone();
 
-        let mut fields = Vec::new();
-        for f in &self.inner.fields {
-            fields.push(crate::dataset::builder::DatasetField {
+        // Pre-build dataset field templates while GIL is held
+        let field_templates: Vec<DatasetField> = self
+            .inner
+            .fields
+            .iter()
+            .map(|f| DatasetField {
                 name: f.name.clone(),
                 selector: f.selector.clone(),
                 selector_type: f.selector_type.clone(),
                 transform: f.transform.clone(),
                 default: f.default.clone(),
                 extract_type: f.extract_type.clone(),
-            });
-        }
+            })
+            .collect();
+
+        let on_change = self.on_change_cb.clone();
+        let on_price = self.on_price_change_cb.clone();
+        let on_stock = self.on_stock_change_cb.clone();
+        let on_added = self.on_added_cb.clone();
+        let on_removed = self.on_removed_cb.clone();
 
         // Release the GIL during sleep and fetches, re-acquiring it only to run callbacks
         py.allow_threads(move || {
@@ -167,20 +170,23 @@ impl PyWatch {
                         _ = interval.tick() => {
                             tracing::info!("Watch tick checking: {}", url);
                             let mut dataset = Dataset::new(&url, session.clone());
-                            for f in &fields {
-                                dataset.add_field(crate::dataset::builder::DatasetField {
-                                    name: f.name.clone(),
-                                    selector: f.selector.clone(),
-                                    selector_type: f.selector_type.clone(),
-                                    transform: f.transform.clone(),
-                                    default: f.default.clone(),
-                                    extract_type: f.extract_type.clone(),
-                                });
-                            }
+                            // Clone fields using GIL inside tick if needed
+                            Python::with_gil(|py| {
+                                for f in &field_templates {
+                                    dataset.add_field(DatasetField {
+                                        name: f.name.clone(),
+                                        selector: f.selector.clone(),
+                                        selector_type: f.selector_type.clone(),
+                                        transform: f.transform.as_ref().map(|t| t.clone_ref(py)),
+                                        default: f.default.clone(),
+                                        extract_type: f.extract_type.clone(),
+                                    });
+                                }
+                            });
 
                             if let Ok(mut res) = dataset.build_async().await {
                                 Python::with_gil(|py| {
-                                    for field_def in &fields {
+                                    for field_def in &field_templates {
                                         if let Some(ref trans_fn) = field_def.transform {
                                             if let Some(val) = res.fields.get_mut(&field_def.name) {
                                                 let py_val = val.as_str().into_pyobject(py).unwrap();

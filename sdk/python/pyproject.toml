@@ -4,16 +4,59 @@ build-backend = "maturin"
 
 [project]
 name = "crawlingo"
-version = "1.0.0-alpha.1"
-description = "Crawlingo - next-generation web scraping and monitoring framework"
-readme = "README.md"
+version = "1.0.0a2"
+description = "Crawlingo - validated datasets from web pages, powered by Rust"
+# Inline registry text avoids a README filename collision when maturin flattens
+# this mixed Rust/Python project's source distribution into one directory.
+readme = { content-type = "text/markdown", text = """
+# Crawlingo for Python
+
+Turn web pages into validated datasets using a Rust engine and a small Python API.
+
+Supply a URL file and explicit field selectors. DatasetJob validates records,
+removes exact duplicates, writes JSONL/CSV shards and resumes committed work.
+Records stay in the Rust pipeline; Python receives a summary report.
+
+```python
+from crawlingo import DatasetJob
+
+job = DatasetJob({
+    "urls_file": "urls.txt",
+    "output_dir": "datasets/pages",
+    "fields": [{"name": "title", "selector": "h1", "required": True}],
+})
+report = job.run()
+print(report)
+```
+
+Create urls.txt with one HTTP(S) URL per line before running. Check pages_failed
+and records_rejected even when complete is true. Repeat unchanged input and
+configuration to resume; use a new directory for changed inputs.
+
+This is an alpha API. Current source supports CPython 3.8–3.13; Python 3.14 is not
+supported by the current native engine. Available wheels depend on the release
+platform matrix. Source builds require Rust, C/C++ tools, CMake and libclang.
+
+[Installation and full Python guide](https://github.com/Vamshavardhan50/crawlingo/blob/main/sdk/python/README.md) ·
+[API reference](https://crawlingo-docs.vercel.app/reference/dataset-job) ·
+[Release status](https://github.com/Vamshavardhan50/crawlingo/blob/main/guides/RELEASE_STATUS.md) ·
+[Measured scale](https://github.com/Vamshavardhan50/crawlingo/blob/main/SCALE_RESULTS.md)
+
+MIT license. No hosted API, semantic deduplication or checkpointed Parquet jobs
+are included in this dataset workflow. Performance depends on the source and workload.
+""" }
 license = {text = "MIT"}
-requires-python = ">=3.8"
+requires-python = ">=3.8,<3.14"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
@@ -28,7 +71,7 @@ Funding = "https://github.com/sponsors/Vamshavardhan50"
 crawlingo = "crawlingo.cli:main"
 
 [tool.maturin]
-bindings = "pyo3"
+locked = true
 features = ["python"]
 manifest-path = "../../Cargo.toml"
 module-name = "crawlingo._crawlingo_core"
@@ -51,4 +94,4 @@ archs = ["x86_64", "arm64"]
 environment = { PATH = "$HOME/.cargo/bin:$PATH", CIBW_BUILD_VERBOSITY = "1", MATURIN_NO_INSTALL_RUST = "1" }
 
 [tool.cibuildwheel.windows]
-archs = ["AMD64", "x86"]
+archs = ["AMD64"]

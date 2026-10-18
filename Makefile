@@ -2,8 +2,7 @@
 
 all: develop
 
-develop:
-	maturin develop --features python
+develop: python
 
 test:
 	cargo test --workspace
@@ -33,16 +32,7 @@ node-test:
 	cd sdk/nodejs && npm test
 
 release-check:
-	@cargo_version=$$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2); \
-	python_version=$$(grep '^version' sdk/python/pyproject.toml | head -1 | cut -d'"' -f2); \
-	node_version=$$(grep '"version"' sdk/nodejs/package.json | head -1 | cut -d'"' -f4); \
-	echo "Cargo: $$cargo_version"; \
-	echo "Python: $$python_version"; \
-	echo "Node.js: $$node_version"; \
-	if [ "$$cargo_version" != "$$python_version" ] || [ "$$cargo_version" != "$$node_version" ]; then \
-		echo "ERROR: Version mismatch!"; exit 1; \
-	fi; \
-	echo "All versions match: $$cargo_version"
+	node scripts/check-release.cjs
 
 # Quick smoke test for all SDKs
 smoke-test:
@@ -58,7 +48,7 @@ build-all:
 
 # Documentation
 docs:
-	cd docs-new && npm ci && npm run build
+	cd crawlingo-docs && npm ci && npm run build
 
 docs-dev:
-	cd docs-new && npm run dev
+	cd crawlingo-docs && npm run dev

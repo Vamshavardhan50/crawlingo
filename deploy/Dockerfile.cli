@@ -1,0 +1,14 @@
+FROM rust:1-bookworm AS build
+RUN apt-get update && apt-get install -y --no-install-recommends cmake clang libclang-dev perl pkg-config && rm -rf /var/lib/apt/lists/*
+WORKDIR /src
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+RUN cargo build --locked --release --features cli
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libstdc++6 && rm -rf /var/lib/apt/lists/* && useradd --uid 10001 --create-home worker && mkdir /work && chown worker:worker /work
+COPY --from=build /src/target/release/crawlingo /usr/local/bin/crawlingo
+WORKDIR /work
+USER worker
+STOPSIGNAL SIGTERM
+ENTRYPOINT ["crawlingo"]

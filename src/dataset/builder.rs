@@ -8,7 +8,6 @@ use crate::extraction::{ExtractionEngine, ExtractionType};
 use crate::matcher::auto_matcher;
 use crate::parser::document::Page;
 use crate::parser::streaming::HtmlParser;
-use crate::selector::SelectorQuery;
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -40,7 +39,7 @@ pub struct Dataset {
 }
 
 /// Holds the output fields and metadata of a dataset build.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DatasetResult {
     pub url: String,
     pub fields: HashMap<String, String>,
@@ -82,23 +81,41 @@ impl Dataset {
         &self,
         tree: &crate::parser::document::DomTree,
     ) -> Vec<HashMap<String, String>> {
-        use crate::selector::{css, regex_selector, text_anchor, xpath};
+        // Compatibility API. Fallible SDK/build paths use extract_from_tree_checked.
+        self.extract_from_tree_checked(tree).unwrap_or_else(|e| {
+            tracing::error!("structured extraction rejected: {e}");
+            Vec::new()
+        })
+    }
 
+    /// Legacy global selectors must have equal cardinality. Use DatasetJob.row_selector
+    /// when records can omit fields; position-zipping cannot infer those boundaries.
+    pub fn extract_from_tree_checked(
+        &self,
+        tree: &crate::parser::document::DomTree,
+    ) -> Result<Vec<HashMap<String, String>>> {
         // Collect all match index lists per field
         let collections: Vec<Vec<usize>> = self
             .fields
             .iter()
-            .map(|f| match f.selector_type.as_str() {
-                "xpath" => xpath::query(tree, &f.selector),
-                "text" => text_anchor::find(tree, &f.selector),
-                "after_text" => text_anchor::after(tree, &f.selector),
-                "before_text" => text_anchor::before(tree, &f.selector),
-                "regex" => regex_selector::query(tree, &f.selector).unwrap_or_default(),
-                _ => css::query(tree, &f.selector),
+            .map(|f| {
+                use crate::selector::SelectorQuery;
+                let q = SelectorQuery::from_type_str(&f.selector_type, &f.selector);
+                match q {
+                    other => crate::selector::SelectorEngine::query(tree, other),
+                }
             })
-            .collect();
+            .collect::<Result<_>>()?;
 
         let max_len = collections.iter().map(|c| c.len()).max().unwrap_or(0);
+        if collections
+            .iter()
+            .any(|c| !c.is_empty() && c.len() != max_len)
+        {
+            return Err(crate::error::CrawlingoError::DatasetError(
+                "ambiguous field alignment; use DatasetJob with row_selector".into(),
+            ));
+        }
         let mut records = Vec::with_capacity(max_len);
 
         for row_idx in 0..max_len {
@@ -106,25 +123,41 @@ impl Dataset {
             for (field_idx, field) in self.fields.iter().enumerate() {
                 let text = collections[field_idx]
                     .get(row_idx)
-                    .map(|&node_idx| tree.get_text(node_idx).trim().to_string())
+                    .map(|&node_idx| match &field.extract_type {
+                        ExtractionType::Attribute(attribute) => tree.nodes[node_idx]
+                            .attrs
+                            .get(attribute)
+                            .cloned()
+                            .unwrap_or_default(),
+                        other => ExtractionEngine::normalize_value(
+                            &tree.get_text(node_idx),
+                            other,
+                            &self.url,
+                        ),
+                    })
+                    .filter(|value| !value.is_empty())
+                    .or_else(|| field.default.clone())
                     .unwrap_or_default();
                 record.insert(field.name.clone(), text);
+            }
+            if let Some(schema) = &self.schema {
+                record.extend(schema.validate(&record)?);
             }
             records.push(record);
         }
 
-        records
+        Ok(records)
     }
 
     pub async fn build_structured(&self) -> Result<Vec<HashMap<String, String>>> {
-        use crate::engine::fetcher::{FetchManager, FetchRequest};
-        use crate::engine::pool::ConnectionPoolConfig;
+        use crate::engine::fetcher::FetchRequest;
         use crate::parser::streaming::HtmlParser;
 
         let headers = self.session.headers.read().unwrap().clone();
         let cookies = self.session.cookies.read().unwrap().clone();
-        let proxy = self.session.get_next_proxy();
+        let proxy = self.session.get_next_proxy_with_auth();
         let timeout_secs = *self.session.timeout_seconds.read().unwrap();
+        let retries = self.session.retries.read().unwrap().unwrap_or(3) as usize;
         let fetcher_tier = *self.session.fetcher_tier.read().unwrap();
         let browser_profile = self.session.browser_profile.read().unwrap().clone();
 
@@ -136,15 +169,20 @@ impl Dataset {
             cookies,
             proxy,
             timeout: std::time::Duration::from_secs(timeout_secs),
-            retries: 3,
+            retries,
         };
 
-        let rate_limiter = std::sync::Arc::new(crate::engine::rate_limiter::HostRateLimiter::new());
-        let manager = FetchManager::new(rate_limiter, ConnectionPoolConfig::default());
+        let manager = self.session.fetch_manager();
         let resp = manager.dispatch(req).await?;
+        if !(200..300).contains(&resp.status) {
+            return Err(crate::error::CrawlingoError::DatasetError(format!(
+                "HTTP {}",
+                resp.status
+            )));
+        }
         let page = HtmlParser::parse(resp)?;
 
-        Ok(self.extract_from_tree(page.dom_tree()))
+        self.extract_from_tree_checked(page.dom_tree())
     }
 
     /// Asynchronous core of the dataset build operation.
@@ -152,8 +190,9 @@ impl Dataset {
         // 1. Gather config from Session
         let headers = self.session.headers.read().unwrap().clone();
         let cookies = self.session.cookies.read().unwrap().clone();
-        let proxy = self.session.get_next_proxy();
+        let proxy = self.session.get_next_proxy_with_auth();
         let timeout_secs = *self.session.timeout_seconds.read().unwrap();
+        let retries = self.session.retries.read().unwrap().unwrap_or(3) as usize;
         let fetcher_tier = *self.session.fetcher_tier.read().unwrap();
         let browser_profile = self.session.browser_profile.read().unwrap().clone();
 
@@ -166,13 +205,19 @@ impl Dataset {
             cookies,
             proxy,
             timeout: std::time::Duration::from_secs(timeout_secs),
-            retries: 3,
+            retries,
         };
 
         // 3. Fetch using the session-wide manager so connection state and host rate limits
         //    are shared across every build rather than reset on each call.
         let manager = self.session.fetch_manager();
         let response = manager.dispatch(req).await?;
+        if !(200..300).contains(&response.status) {
+            return Err(crate::error::CrawlingoError::DatasetError(format!(
+                "HTTP {}",
+                response.status
+            )));
+        }
 
         // 4. Parse using HtmlParser producing Page
         let page = HtmlParser::parse(response)?;
@@ -195,20 +240,14 @@ impl Dataset {
         for f in &self.fields {
             let mut extracted_val = None;
 
-            let query = match f.selector_type.as_str() {
-                "xpath" => SelectorQuery::XPath(&f.selector),
-                "regex" => SelectorQuery::Regex(&f.selector),
-                "text" => SelectorQuery::TextAnchor(&f.selector),
-                "after_text" => SelectorQuery::AfterText(&f.selector),
-                "before_text" => SelectorQuery::BeforeText(&f.selector),
-                _ => SelectorQuery::Css(&f.selector),
-            };
+            let query =
+                crate::selector::SelectorQuery::from_type_str(&f.selector_type, &f.selector);
 
             // Resolve selector matches
-            let mut matches = page.query(query).unwrap_or_default();
+            let mut matches = page.query(query)?;
 
             // Auto-matching recovery logic
-            if matches.is_empty() && auto_match_enabled && f.selector_type == "css" {
+            if auto_match_enabled && f.selector_type == "css" {
                 // Open (and cache) the fingerprint store on first actual use.
                 if store.is_none() {
                     store = Some(self.session.get_fingerprint_store()?);
@@ -227,16 +266,23 @@ impl Dataset {
                     store_ref,
                     weights_opt,
                 ) {
-                    matches = vec![recovered_idx];
+                    if matches.is_empty() {
+                        matches = vec![recovered_idx];
+                    }
                 }
             }
 
             // Extract combined text, cleaned and typed per the field's `extract_type` (plain
             // text, price, date, or absolute URL normalization).
             if !matches.is_empty() {
-                let combined_text = page.get_nodes_combined_text(&matches);
-                let normalized =
-                    ExtractionEngine::normalize_value(&combined_text, &f.extract_type, page.url());
+                let normalized = match &f.extract_type {
+                    ExtractionType::Attribute(attr) => page.get_node_attr(&matches, attr),
+                    other => ExtractionEngine::normalize_value(
+                        &page.get_nodes_combined_text(&matches),
+                        other,
+                        page.url(),
+                    ),
+                };
                 if !normalized.is_empty() {
                     extracted_val = Some(normalized);
                 }
@@ -326,6 +372,9 @@ impl Dataset {
                     let schema = schema.clone();
                     let handle = handle.clone();
                     async move {
+                        if handle.is_closed() {
+                            return;
+                        }
                         let dataset = Dataset {
                             url,
                             fields,
@@ -337,7 +386,7 @@ impl Dataset {
                             fields.entry("url".to_string()).or_insert(r.url);
                             fields
                         });
-                        handle.push(result);
+                        let _ = handle.send(result).await;
                     }
                 })
                 .await;
@@ -466,8 +515,13 @@ impl PyDataset {
     }
 
     #[pyo3(signature = (page))]
-    pub fn extract_structured(&self, page: &crate::PyPage) -> Vec<HashMap<String, String>> {
-        self.inner.extract_from_tree(&page.tree)
+    pub fn extract_structured(
+        &self,
+        page: &crate::PyPage,
+    ) -> PyResult<Vec<HashMap<String, String>>> {
+        self.inner
+            .extract_from_tree_checked(&page.tree)
+            .map_err(Into::into)
     }
 
     pub fn build_structured(&self, py: Python<'_>) -> PyResult<Vec<HashMap<String, String>>> {

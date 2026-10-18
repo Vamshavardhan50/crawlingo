@@ -253,7 +253,7 @@ impl SitemapCrawler {
 
         // Build the downstream crawler seeded with all discovered URLs.
         let crawler = self.build_crawler(frontier);
-        crawler.crawl_async().await
+        crawler.crawl_async().await.map(|r| r.results)
     }
 
     async fn collect_urls(
@@ -304,9 +304,9 @@ impl SitemapCrawler {
             browser_profile: None,
             headers: self.session.read_headers(),
             cookies: self.session.read_cookies(),
-            proxy: self.session.get_next_proxy(),
+            proxy: self.session.get_next_proxy_with_auth(),
             timeout: Duration::from_secs(*self.session.timeout_seconds.read().unwrap()),
-            retries: 2,
+            retries: self.session.retries.read().unwrap().unwrap_or(2) as usize,
         };
         let resp = manager.dispatch(req).await?;
         let bytes = resp.body.to_vec();
@@ -468,6 +468,7 @@ mod tests {
 
         let mock_transport = Arc::new(
             MockTransport::new()
+                .with_html("https://example.com/robots.txt", "User-agent: *\nAllow: /")
                 .with_response(
                     "https://example.com/sitemap.xml",
                     MockResponse::html(URLSET_XML),
@@ -507,6 +508,7 @@ mod tests {
 
         let mock_transport = Arc::new(
             MockTransport::new()
+                .with_html("https://example.com/robots.txt", "User-agent: *\nAllow: /")
                 .with_response(
                     "https://example.com/sitemap-index.xml",
                     MockResponse::html(INDEX_XML),
@@ -548,6 +550,7 @@ mod tests {
 
         let mock_transport = Arc::new(
             MockTransport::new()
+                .with_html("https://example.com/robots.txt", "User-agent: *\nAllow: /")
                 .with_response(
                     "https://example.com/sitemap.xml.gz",
                     MockResponse {
