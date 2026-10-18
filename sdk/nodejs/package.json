@@ -39,7 +39,7 @@
   "devDependencies": {
     "@napi-rs/cli": "^2.18.4",
     "@types/node": "^25.9.3",
-    "typescript": "^5.4.5"
+    "typescript": "^7.0.2"
   },
   "repository": {
     "type": "git",
