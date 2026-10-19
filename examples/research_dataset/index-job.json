@@ -1,0 +1,18 @@
+{
+  "urls_file": "examples/research_dataset/index-urls.txt",
+  "output_dir": "work/research/index",
+  "row_selector": ".pep-zero-table tbody tr",
+  "fields": [
+    { "name": "pep_number", "selector": "td:nth-child(2)", "data_type": "integer", "required": true },
+    { "name": "title", "selector": "td:nth-child(3)", "required": true },
+    { "name": "relative_url", "selector": "td:nth-child(2) a.pep", "extract_type": "attr:href", "required": true },
+    { "name": "classification", "selector": "td:nth-child(1) abbr", "extract_type": "attr:title", "required": true }
+  ],
+  "concurrency": 2,
+  "checkpoint_pages": 4,
+  "max_response_bytes": 2097152,
+  "max_records_per_page": 2000,
+  "dedup_fields": ["relative_url"],
+  "respect_robots": true,
+  "format": "jsonl"
+}

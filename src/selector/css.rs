@@ -20,6 +20,8 @@ pub enum SelectorPart {
     Tag(String),
     Class(String),
     Id(String),
+    /// Positive, one-based element position. Zero represents an unsupported pseudo-class.
+    NthChild(usize),
     Attribute {
         name: String,
         match_type: AttributeMatch,
@@ -149,7 +151,12 @@ pub fn parse_selector(sel_str: &str) -> CompiledSelector {
                     // Start a class or id selector
                     let mut val = String::new();
                     i += 1;
-                    while i < chars.len() && chars[i] != '.' && chars[i] != '#' && chars[i] != '[' {
+                    while i < chars.len()
+                        && chars[i] != '.'
+                        && chars[i] != '#'
+                        && chars[i] != '['
+                        && chars[i] != ':'
+                    {
                         val.push(chars[i]);
                         i += 1;
                     }
@@ -160,6 +167,30 @@ pub fn parse_selector(sel_str: &str) -> CompiledSelector {
                     }
                     // Continue without incrementing i again (we stopped at a delimiter)
                     continue;
+                }
+                ':' => {
+                    if !current.is_empty() {
+                        parts.push(SelectorPart::Tag(std::mem::take(&mut current)));
+                    }
+                    let tail: String = chars[i + 1..].iter().collect();
+                    if let Some(argument) = tail.strip_prefix("nth-child(") {
+                        if let Some(end) = argument.find(')') {
+                            let number = &argument[..end];
+                            let position = if !number.is_empty()
+                                && number.bytes().all(|b| b.is_ascii_digit())
+                            {
+                                number.parse::<usize>().unwrap_or(0)
+                            } else {
+                                0
+                            };
+                            parts.push(SelectorPart::NthChild(position));
+                            i += "nth-child(".len() + number.chars().count() + 2;
+                            continue;
+                        }
+                    }
+                    // Unsupported or malformed pseudo-classes must never broaden a query.
+                    parts.push(SelectorPart::NthChild(0));
+                    break;
                 }
                 '[' => {
                     if !current.is_empty() {
@@ -208,7 +239,8 @@ pub fn get_or_compile(sel_str: &str) -> CompiledSelector {
 }
 
 /// Evaluates if a node matches a single compound selector group.
-fn match_group(node: &DomNode, group: &SelectorGroup) -> bool {
+fn match_group(tree: &DomTree, index: usize, group: &SelectorGroup) -> bool {
+    let node: &DomNode = &tree.nodes[index];
     for part in &group.parts {
         match part {
             SelectorPart::Tag(t) => {
@@ -232,6 +264,17 @@ fn match_group(node: &DomNode, group: &SelectorGroup) -> bool {
                         return false;
                     }
                 } else {
+                    return false;
+                }
+            }
+            SelectorPart::NthChild(position) => {
+                if *position == 0 {
+                    return false;
+                }
+                let Some(parent) = node.parent.and_then(|idx| tree.nodes.get(idx)) else {
+                    return false;
+                };
+                if parent.children.get(position - 1) != Some(&index) {
                     return false;
                 }
             }
@@ -286,8 +329,7 @@ pub fn selector_matches(tree: &DomTree, node_idx: usize, selector: &CompiledSele
     }
 
     let last_group_idx = selector.groups.len() - 1;
-    let leaf_node = &tree.nodes[node_idx];
-    if !match_group(leaf_node, &selector.groups[last_group_idx]) {
+    if !match_group(tree, node_idx, &selector.groups[last_group_idx]) {
         return false;
     }
 
@@ -301,8 +343,7 @@ pub fn selector_matches(tree: &DomTree, node_idx: usize, selector: &CompiledSele
     while group_idx > 0 {
         let current_node = &tree.nodes[current_node_idx];
         if let Some(parent_idx) = current_node.parent {
-            let parent_node = &tree.nodes[parent_idx];
-            if match_group(parent_node, &selector.groups[group_idx - 1]) {
+            if match_group(tree, parent_idx, &selector.groups[group_idx - 1]) {
                 group_idx -= 1;
             }
             current_node_idx = parent_idx;
@@ -330,6 +371,26 @@ pub fn query(tree: &DomTree, selector_str: &str) -> Vec<usize> {
 mod tests {
     use super::*;
     use crate::parser::streaming::parse_html;
+
+    #[test]
+    fn numbered_columns_exclude_neighboring_links() {
+        let tree = parse_html(b"<table><tbody><tr><td>SA</td><td><a>100</a></td><td class='title'><a>Unicode</a></td><td><a>2.0</a></td></tr></tbody></table>").unwrap();
+        let matches = query(&tree, "td:nth-child(3).title a");
+        assert_eq!(matches.len(), 1);
+        assert_eq!(tree.get_text(matches[0]), "Unicode");
+        assert_eq!(query(&tree, "td.title:nth-child(3)").len(), 1);
+        assert_eq!(query(&tree, "td:nth-child(2)").len(), 1);
+        for unsupported in [
+            "td:nth-child(0)",
+            "td:nth-child(-1)",
+            "td:nth-child(2n)",
+            "td:nth-child(odd)",
+            "td:nth-child(",
+            "td:unknown",
+        ] {
+            assert!(query(&tree, unsupported).is_empty(), "{unsupported}");
+        }
+    }
 
     #[test]
     fn test_selector_matching() {

@@ -1,5 +1,5 @@
 use crate::error::{CrawlingoError, Result};
-use crate::parser::document::{DomNode, DomTree};
+use crate::parser::document::{DomContent, DomNode, DomTree};
 use lol_html::{doc_text, element, HtmlRewriter, Settings};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -36,6 +36,7 @@ pub fn parse_html(html: &[u8]) -> Result<DomTree> {
             children: Vec::new(),
             tag: tag.clone(),
             text: String::new(),
+            content: Vec::new(),
             attrs,
             depth,
             html_snippet: format!("<{}>", tag),
@@ -80,7 +81,13 @@ pub fn parse_html(html: &[u8]) -> Result<DomTree> {
                 if let Some(node) = tree_mut.nodes.get_mut(active_node_idx) {
                     // Ignore scripts and stylesheet code blocks
                     if node.tag != "script" && node.tag != "style" {
+                        let start = node.text.len();
                         node.text.push_str(&text_content);
+                        let end = node.text.len();
+                        match node.content.last_mut() {
+                            Some(DomContent::Text(range)) if range.end == start => range.end = end,
+                            _ => node.content.push(DomContent::Text(start..end)),
+                        }
                     }
                 }
             }
@@ -135,6 +142,29 @@ impl HtmlParser {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mixed_inline_content_keeps_document_order() {
+        let tree =
+            parse_html("<p>Hello <b>world</b>, meet <a href='/'>研究</a>!</p>".as_bytes()).unwrap();
+        assert_eq!(tree.get_text(0), "Hello world, meet 研究!");
+        assert_eq!(
+            tree.get_outer_html(0),
+            "<p>Hello <b>world</b>, meet <a href=\"/\">研究</a>!</p>"
+        );
+    }
+
+    #[test]
+    fn inline_words_and_block_boundaries_are_distinct() {
+        let tree = parse_html(b"<div><p>data<em>set</em></p><p>A<br>B</p><script>ignored()</script><style>ignored</style></div>").unwrap();
+        assert_eq!(tree.get_text(0), "dataset A B");
+    }
+
+    #[test]
+    fn repeated_text_chunks_and_local_whitespace_survive() {
+        let tree = parse_html(b"<pre>  before\n<b>middle</b>\n  after  </pre>").unwrap();
+        assert_eq!(tree.get_text(0), "before\nmiddle\n  after");
+    }
 
     #[test]
     fn test_html_parsing_tree() {

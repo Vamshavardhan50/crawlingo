@@ -9,6 +9,9 @@ Python uses the equivalent version `1.0.0a2`. This source has not been published
 
 ### Dataset generation
 
+- Preserve document order for mixed inline text and reconstructed HTML.
+- Support positive-integer CSS `:nth-child(N)` for directory table columns.
+- Add a public research-directory example and measured collection/restart evidence.
 - Added Rust, Python, Node.js and CLI URL-file jobs with bounded processing.
 - Added scoped records, strict field validation and exact record/URL deduplication.
 - Added JSONL/CSV shards, cancellation, single-writer state and local resume.

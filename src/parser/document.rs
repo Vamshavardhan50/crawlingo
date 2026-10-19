@@ -26,12 +26,21 @@ pub struct FormDetails {
 
 /// A node in the custom in-memory DOM Tree.
 #[derive(Debug, Clone)]
+pub enum DomContent {
+    /// A UTF-8 byte range in the owning node's local text buffer.
+    Text(std::ops::Range<usize>),
+    Child(usize),
+}
+
+#[derive(Debug, Clone)]
 pub struct DomNode {
     pub index: usize,
     pub parent: Option<usize>,
     pub children: Vec<usize>,
     pub tag: String,
     pub text: String,
+    /// Text ranges and elements in document order, without duplicating text buffers.
+    pub content: Vec<DomContent>,
     pub attrs: HashMap<String, String>,
     pub depth: usize,
     pub html_snippet: String,
@@ -57,6 +66,9 @@ impl DomTree {
         if let Some(parent_idx) = node.parent {
             if parent_idx < self.nodes.len() {
                 self.nodes[parent_idx].children.push(new_idx);
+                self.nodes[parent_idx]
+                    .content
+                    .push(DomContent::Child(new_idx));
             }
         }
 
@@ -68,21 +80,67 @@ impl DomTree {
     pub fn get_text(&self, idx: usize) -> String {
         let mut result = String::new();
         self.gather_text(idx, &mut result);
-        result
+        result.trim().to_string()
     }
 
     fn gather_text(&self, idx: usize, buf: &mut String) {
         if let Some(node) = self.nodes.get(idx) {
-            // Append local text
-            let local_text = node.text.trim();
-            if !local_text.is_empty() {
-                if !buf.is_empty() && !buf.ends_with(' ') {
+            if matches!(node.tag.as_str(), "script" | "style") {
+                return;
+            }
+            let block = matches!(
+                node.tag.as_str(),
+                "address"
+                    | "article"
+                    | "aside"
+                    | "blockquote"
+                    | "br"
+                    | "dd"
+                    | "div"
+                    | "dl"
+                    | "dt"
+                    | "fieldset"
+                    | "figcaption"
+                    | "figure"
+                    | "footer"
+                    | "form"
+                    | "h1"
+                    | "h2"
+                    | "h3"
+                    | "h4"
+                    | "h5"
+                    | "h6"
+                    | "header"
+                    | "hr"
+                    | "li"
+                    | "main"
+                    | "nav"
+                    | "ol"
+                    | "p"
+                    | "pre"
+                    | "section"
+                    | "table"
+                    | "td"
+                    | "th"
+                    | "tr"
+                    | "ul"
+            );
+            let separate = |buf: &mut String| {
+                if !buf.is_empty() && !buf.ends_with(char::is_whitespace) {
                     buf.push(' ');
                 }
-                buf.push_str(local_text);
+            };
+            if block {
+                separate(buf);
             }
-            for &child_idx in &node.children {
-                self.gather_text(child_idx, buf);
+            for item in &node.content {
+                match item {
+                    DomContent::Text(range) => buf.push_str(&node.text[range.clone()]),
+                    DomContent::Child(child) => self.gather_text(*child, buf),
+                }
+            }
+            if block {
+                separate(buf);
             }
         }
     }
@@ -119,9 +177,11 @@ impl DomTree {
             ];
 
             if !self_closing_tags.contains(&tag.as_str()) {
-                buf.push_str(&node.text);
-                for &child_idx in &node.children {
-                    self.render_node_html(child_idx, buf);
+                for item in &node.content {
+                    match item {
+                        DomContent::Text(range) => buf.push_str(&node.text[range.clone()]),
+                        DomContent::Child(child) => self.render_node_html(*child, buf),
+                    }
                 }
                 buf.push_str("</");
                 buf.push_str(&tag);

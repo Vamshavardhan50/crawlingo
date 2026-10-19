@@ -1,0 +1,16 @@
+{
+  "urls_file": "work/research/detail-urls.txt",
+  "output_dir": "work/research/details",
+  "fields": [
+    { "name": "title", "selector": ".page-title", "required": true },
+    { "name": "canonical_url", "selector": "link[rel=canonical]", "extract_type": "attr:href", "required": true },
+    { "name": "document_text", "selector": "#pep-content", "required": true, "min_length": 100 }
+  ],
+  "concurrency": 2,
+  "checkpoint_pages": 4,
+  "max_response_bytes": 2097152,
+  "max_record_bytes": 262144,
+  "dedup_fields": ["canonical_url"],
+  "respect_robots": true,
+  "format": "jsonl"
+}

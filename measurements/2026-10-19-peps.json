@@ -1,0 +1,272 @@
+{
+  "date": "2026-10-19",
+  "source_base_commit": "74e0d509d6b0e848fefc772ddb0ce16a6c422f38",
+  "source_state": "Base commit plus the parser and selector fixes shipped with this evidence; engine file hashes identify the measured tree.",
+  "source_sha256": {
+    "src/parser/document.rs": "409eb1c5973d060fd543a613dd7ddaa512daf94f0cbf39558231db4adf339802",
+    "src/parser/streaming.rs": "fd6022fc7fd6c787593007a46139bf724f5d81fba63d7d82d9a64b1a6db8d325",
+    "src/selector/css.rs": "f2561374182f7991a53c8ddc87add0f0142356bec837d5d634cb81859ea75e5b",
+    "src/dataset/job.rs": "352afd2a7df874b6ebc12967efd171190494b3e4e03115f9e3c5f3f60d96f9f9",
+    "Cargo.lock": "9fce43b7438e0f07c6cace2668dd6b76cf1772440d963c84b73634ed78935fbe"
+  },
+  "robots_preflight_status": 404,
+  "directory": {
+    "captured_at_utc": "2026-10-19T15:23:55.25687+05:30",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "logical_cpus": 8,
+    "command": [
+      "target/release/crawlingo.exe",
+      "--config",
+      "examples\\research_dataset\\session.json",
+      "--rate-limit-rps",
+      "1",
+      "--timeout",
+      "30",
+      "dataset",
+      "examples\\research_dataset\\index-job.json"
+    ],
+    "rate_limit_rps_per_host": 1,
+    "job_config": {
+      "urls_file": "examples/research_dataset/index-urls.txt",
+      "output_dir": "work/research/index",
+      "row_selector": ".pep-zero-table tbody tr",
+      "fields": [
+        {
+          "name": "pep_number",
+          "selector": "td:nth-child(2)",
+          "data_type": "integer",
+          "required": true
+        },
+        {
+          "name": "title",
+          "selector": "td:nth-child(3)",
+          "required": true
+        },
+        {
+          "name": "relative_url",
+          "selector": "td:nth-child(2) a.pep",
+          "extract_type": "attr:href",
+          "required": true
+        },
+        {
+          "name": "classification",
+          "selector": "td:nth-child(1) abbr",
+          "extract_type": "attr:title",
+          "required": true
+        }
+      ],
+      "concurrency": 2,
+      "checkpoint_pages": 4,
+      "max_response_bytes": 2097152,
+      "max_records_per_page": 2000,
+      "dedup_fields": [
+        "relative_url"
+      ],
+      "respect_robots": true,
+      "format": "jsonl"
+    },
+    "binary_sha256": "e1dad09ffc0eca656ac1d3a7822f66b1cb8f4c22da9b1e931c506602fa8aea99",
+    "input_sha256": "d7e3de5cf42edf3bd654331517868abda95d089059134c54675d728f9550365f",
+    "session_sha256": "19c3c2b2b4bf191f5625c0c7ff7bdcd82fce813d7df8d942f343fa7c05b84901",
+    "memory_scope": "Rust CLI process only; Windows peak working set, sampled every 20ms; null on other systems.",
+    "initial": {
+      "exit_code": 0,
+      "process_wall_seconds": 4.669,
+      "peak_cli_working_set_bytes": 44015616,
+      "report": {
+        "source_lines": 1,
+        "pages_fetched": 1,
+        "pages_failed": 0,
+        "duplicate_urls": 0,
+        "records_written": 744,
+        "records_rejected": 0,
+        "duplicate_records": 0,
+        "shards": 1,
+        "complete": true,
+        "cancelled": false,
+        "elapsed_ms": 4620
+      },
+      "artifacts": {
+        "part-00000000.errors.jsonl": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "part-00000000.jsonl": {
+          "bytes": 151865,
+          "sha256": "719face7ca2996fb4719d66a81738191848a0c9b947515f0477272455bf5b152"
+        }
+      }
+    },
+    "verified_records": 744,
+    "resume": {
+      "exit_code": 0,
+      "process_wall_seconds": 0.067,
+      "peak_cli_working_set_bytes": 32141312,
+      "report": {
+        "source_lines": 1,
+        "pages_fetched": 1,
+        "pages_failed": 0,
+        "duplicate_urls": 0,
+        "records_written": 744,
+        "records_rejected": 0,
+        "duplicate_records": 0,
+        "shards": 1,
+        "complete": true,
+        "cancelled": false,
+        "elapsed_ms": 40
+      },
+      "shards_unchanged": true
+    }
+  },
+  "documents": {
+    "captured_at_utc": "2026-10-19T15:24:00.880253+05:30",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "logical_cpus": 8,
+    "command": [
+      "target/release/crawlingo.exe",
+      "--config",
+      "examples\\research_dataset\\session.json",
+      "--rate-limit-rps",
+      "1",
+      "--timeout",
+      "30",
+      "dataset",
+      "examples\\research_dataset\\detail-job.json"
+    ],
+    "rate_limit_rps_per_host": 1,
+    "job_config": {
+      "urls_file": "work/research/detail-urls.txt",
+      "output_dir": "work/research/details",
+      "fields": [
+        {
+          "name": "title",
+          "selector": ".page-title",
+          "required": true
+        },
+        {
+          "name": "canonical_url",
+          "selector": "link[rel=canonical]",
+          "extract_type": "attr:href",
+          "required": true
+        },
+        {
+          "name": "document_text",
+          "selector": "#pep-content",
+          "required": true,
+          "min_length": 100
+        }
+      ],
+      "concurrency": 2,
+      "checkpoint_pages": 4,
+      "max_response_bytes": 2097152,
+      "max_record_bytes": 262144,
+      "dedup_fields": [
+        "canonical_url"
+      ],
+      "respect_robots": true,
+      "format": "jsonl"
+    },
+    "binary_sha256": "e1dad09ffc0eca656ac1d3a7822f66b1cb8f4c22da9b1e931c506602fa8aea99",
+    "input_sha256": "869e1017b63dc131cf378ba8f503ebb93ccc7c9cd5c505b6443b2ebf1a09ece1",
+    "session_sha256": "19c3c2b2b4bf191f5625c0c7ff7bdcd82fce813d7df8d942f343fa7c05b84901",
+    "memory_scope": "Rust CLI process only; Windows peak working set, sampled every 20ms; null on other systems.",
+    "initial": {
+      "exit_code": 0,
+      "process_wall_seconds": 20.583,
+      "peak_cli_working_set_bytes": 40824832,
+      "report": {
+        "source_lines": 20,
+        "pages_fetched": 20,
+        "pages_failed": 0,
+        "duplicate_urls": 0,
+        "records_written": 20,
+        "records_rejected": 0,
+        "duplicate_records": 0,
+        "shards": 5,
+        "complete": true,
+        "cancelled": false,
+        "elapsed_ms": 20539
+      },
+      "artifacts": {
+        "part-00000000.errors.jsonl": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "part-00000000.jsonl": {
+          "bytes": 45090,
+          "sha256": "eb908ca7afaf77e942f73ce146c4e0b2ac258d25b61d053d75b3b820d7962bc0"
+        },
+        "part-00000001.errors.jsonl": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "part-00000001.jsonl": {
+          "bytes": 63848,
+          "sha256": "aa3fa91cbe6a58efe3089a275ad633bb02397c1f9888a5de4a8f04c8248d4af9"
+        },
+        "part-00000002.errors.jsonl": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "part-00000002.jsonl": {
+          "bytes": 54839,
+          "sha256": "887e1497aa28b7b452d141b04cd826c0a5667e7d65324ac8b73b0994097a03c6"
+        },
+        "part-00000003.errors.jsonl": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "part-00000003.jsonl": {
+          "bytes": 62419,
+          "sha256": "c70440aa90e91595d79b681d59e016e2555ed9443839e5f830c80f91619581f4"
+        },
+        "part-00000004.errors.jsonl": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "part-00000004.jsonl": {
+          "bytes": 86710,
+          "sha256": "975803e85084f14f6ecdb0a5fabae538c66c35e4198d825ab8e09825460473ae"
+        }
+      }
+    },
+    "verified_records": 20,
+    "resume": {
+      "exit_code": 0,
+      "process_wall_seconds": 0.087,
+      "peak_cli_working_set_bytes": 32301056,
+      "report": {
+        "source_lines": 20,
+        "pages_fetched": 20,
+        "pages_failed": 0,
+        "duplicate_urls": 0,
+        "records_written": 20,
+        "records_rejected": 0,
+        "duplicate_records": 0,
+        "shards": 5,
+        "complete": true,
+        "cancelled": false,
+        "elapsed_ms": 51
+      },
+      "shards_unchanged": true
+    }
+  },
+  "semantic_check": {
+    "independent_index_rows": 744,
+    "exported_directory_rows": 744,
+    "title_and_classification_mismatches": 0,
+    "pep_1_text_matches_source_character_order_ignoring_whitespace": true,
+    "scope": "All directory IDs/titles/classifications; PEP 1 text only. HTMLParser baseline, entity decoding, whitespace ignored. Other document bodies not semantically certified.",
+    "source_sha256": {
+      "index.html": "2ed472f9453080edc4191242b485680dbc0ae448c4019b67d9545bd3f133ff30",
+      "detail.html": "68b2774f9881d01fc3dbbd5bb5189bd6b6d11c4d531d03d48ee50fce4bdb7858"
+    }
+  },
+  "limitations": [
+    "One origin; two small workloads; no maximum-throughput claim.",
+    "Prior exploratory pilot exposed 522 contaminated titles; final corrected run is recorded here.",
+    "Original HTML and extracted source content are local artifacts, not distributed in this report.",
+    "Completed-job restart verified; no process-kill or disk-failure experiment.",
+    "The earlier million-page local fixture has not been rerun after these parser changes."
+  ]
+}

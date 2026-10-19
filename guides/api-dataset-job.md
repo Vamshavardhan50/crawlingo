@@ -4,6 +4,14 @@ Stream a URL file into validated JSONL or CSV shards. Construct a job, run it, i
 
 > Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
 
+## Use this API to build a dataset
+
+Start by defining the unit of observation, source identity and required fields. The research walkthrough runs this API through the CLI against a public directory, then collects a fixed sample of documents.
+
+- [Research dataset walkthrough](https://crawlingo-docs.vercel.app/research-datasets)
+- [Dataset design and quality](https://crawlingo-docs.vercel.app/dataset-design)
+- [Public-site measurements](https://crawlingo-docs.vercel.app/real-world-results)
+
 ## Import
 
 ### Python

@@ -23,7 +23,7 @@ or CSV datasets.
 
 ## What is it for?
 
-Use Crawlingo to collect product catalogs, articles, research data and recurring
+Use Crawlingo to collect research directories, document collections, product catalogs and recurring
 imports for your application. You define the URLs and field selectors; the engine
 handles collection, validation, deduplication and local export.
 
@@ -86,6 +86,9 @@ data. Repeating the unchanged job resumes it. Use a fresh directory for new inpu
 
 For a reproducible first run with known output, use the
 [local product catalog](examples/product_dataset/README.md).
+For research data from a public website, follow the
+[directory → document dataset walkthrough](examples/research_dataset/README.md).
+Read [dataset design](guides/dataset-design.md) before increasing volume.
 
 ## Use an SDK
 
@@ -116,12 +119,19 @@ dataset-job input.
 
 ## Scale and current scope
 
+A public research-site run produced **744 directory records and 20 document
+records**, with no failed pages or rejected rows. The document sample took
+20.539 seconds at one request per second. See the [quality checks and measured
+limits](PUBLIC_WEB_RESULTS.md); this is not a maximum-throughput benchmark.
+
 A local HTTP fixture run fetched **1 million pages and exported 1 million records**
 with 50 concurrent requests, zero page failures and zero rejected rows. Initial
 job time was 1,094.569 seconds; peak process working set was 181.5 MiB, including
 the fixture server and verification. These measurements describe that workload,
 not arbitrary websites. See [method and results](SCALE_RESULTS.md) and
 [performance tuning](guides/PERFORMANCE.md).
+That local fixture was measured on October 14 and has not been rerun after the
+latest parser changes.
 
 Current dataset jobs use local single-writer storage and JSONL/CSV checkpoints.
 Distributed scheduling, typed JSON output and checkpointed Parquet jobs are not

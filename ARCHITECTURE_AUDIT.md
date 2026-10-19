@@ -2,6 +2,45 @@
 
 Scope: current working tree, including existing uncommitted phase 1–3 changes.
 
+## Research dataset review — 2026-10-19
+
+The primary product remains a **dataset generator**. Use `DatasetJob` for large
+exports; `Crawler` and the collecting builder are appropriate for bounded
+discovery or interactive use. The PEP example exercises the production HTTP
+transport and job writer, with a separate normalization step.
+
+Correctness work in this review:
+
+- Preserve mixed text/element order in extracted text and reconstructed HTML.
+  Text ranges reference each node's buffer rather than copying every subtree.
+- Add positive-integer CSS `:nth-child(N)` for table columns. The public-directory
+  pilot exposed title contamination from neighboring version links; independent
+  field comparison, not row counts alone, detected it.
+- Add a reproducible research example, a CLI measurement runner, and an
+  independent source-HTML comparison. See [public-site results](PUBLIC_WEB_RESULTS.md).
+
+Remaining engineering limits, relevant to the next architecture work:
+
+1. The job-specific response-size check occurs after fetch. It does not itself
+   enforce a streaming download budget; transport and parser allocations remain.
+2. Ordered concurrent processing can wait behind a slow earlier page. Any move
+   to unordered processing must preserve deterministic deduplication and recovery.
+3. Checkpoints validate input and JobConfig, but not the engine revision or full
+   Session configuration. Pin these externally when resuming partial jobs.
+4. `Crawler` still returns collections; durable discovery needs its own bounded
+   interface before it becomes a million-URL producer.
+5. Exact deduplication is local to one job. Cross-worker pacing and global dataset
+   identity belong in an explicit coordinator, not concurrent writers to one DB.
+6. CSS/XPath coverage, HTML entity handling, non-UTF-8 decoding and Markdown
+   fidelity remain limited. The text-order fix is not a full parser replacement.
+7. CLI configuration-load errors currently warn and fall back to defaults. Use
+   explicit pacing flags for the measurement; fail-closed configuration handling
+   should precede wider unattended operation.
+
+Next priorities: source/schema manifests, streaming response budgets, representative
+text fixtures, process-kill/disk-failure recovery, and portable SDK release gates.
+Do not advertise a new maximum throughput from this small public-site sample.
+
 ## Verified findings before implementation
 
 - `dataset/stream.rs` uses an unbounded channel despite its constant-memory claim.

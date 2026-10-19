@@ -1,0 +1,6 @@
+{
+  "rate_limit_rps": 1.0,
+  "headers": {
+    "User-Agent": "CrawlingoDatasetEvaluation/1.0 (+https://github.com/Vamshavardhan50/crawlingo)"
+  }
+}
