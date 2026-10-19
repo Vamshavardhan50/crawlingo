@@ -44,10 +44,10 @@ gh api --method PUT repos/Vamshavardhan50/crawlingo/topics --input .github/topic
 
 The first command updates only the description and homepage. The second replaces
 the repository's topic list with the reviewed list. Neither changes visibility.
-The local environment used for this preparation did not have the GitHub CLI or
-an authenticated GitHub connector available to the task. The integration is now
-installed, but repository tools were not exposed in this session; these commands
-have not been applied.
+The description, homepage and topics were applied through the GitHub API on
+2026-10-19 using the existing repository authentication. The commands above remain
+available for future updates. Repository protection and release environments are
+separate settings and are not implied by this metadata update.
 
 ## Review and merge settings
 

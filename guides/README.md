@@ -24,6 +24,13 @@
 - [Deploy the documentation website](docs-hosting.md)
 - [Workspace organization](WORKSPACE.md)
 
+## Integrations
+
+- [Choose an integration boundary](integrations.md)
+- [Playwright and Puppeteer discovery](integrations-playwright.md)
+- [pandas, DuckDB and Parquet](integrations-data.md)
+- [Services, queues and scheduled workers](integrations-workers.md)
+
 The public website starts at `/`; developer documentation is at `/guides`, and
 the SDK reference index is at `/api-reference`.
 These guides describe the current source. Registry packages and hosted pages need
