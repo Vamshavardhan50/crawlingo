@@ -29,7 +29,7 @@ node --test tests/dataset_job.test.cjs
 
 The package includes JavaScript, declarations and native addons in dist/. The release matrix builds Linux x64 GNU, macOS Intel, macOS ARM64 and Windows x64 addons. These are build targets, not a claim that all platforms have passed the new release.
 
-Configure npm trusted publishing for the package owner, repository, release.yml and environment npm, with permission for direct npm publish. The workflow uses Node 22 and npm 11, with id-token: write for publication. Prereleases publish under next; stable versions use latest. Install a prerelease with npm install crawlingo@next.
+Configure npm trusted publishing for owner `Vamshavardhan50`, repository `crawlingo`, workflow `release.yml` and environment `npm`, with permission for direct npm publish. The workflow uses Node 22 and npm 11, with id-token: write for publication. The existing `NPM_TOKEN` repository secret is supplied as a fallback. Prereleases publish under `next`; stable versions use `latest`. Install a prerelease with `npm install crawlingo@next`.
 
 ### Inspect a local artifact
 
@@ -45,7 +45,7 @@ npm pack --dry-run
 
 ## Python → PyPI
 
-The workflow targets Python 3.8–3.13 wheels and a source distribution. The current engine does not support Python 3.14; the old published Windows 3.14 wheel is a different artifact. Wheel installation must be checked in a clean environment with the Python version and architecture you intend to support. The current local validation uses CPython 3.12 on Windows x64.
+The workflow targets Python 3.8–3.13 wheels and a source distribution. Python 3.14 is outside this release matrix; the old published Windows 3.14 wheel is a different artifact. Wheel installation must be checked in a clean environment with the Python version and architecture you intend to support. Local validation uses CPython 3.12 on Windows x64.
 
 Configure a PyPI trusted publisher for the owner, repository, release.yml and environment pypi. GitHub supplies the publishing identity; a PyPI password is not stored in the repository. TestPyPI uses its own project and publisher configuration if you add a rehearsal upload.
 
@@ -64,7 +64,9 @@ maturin sdist --out dist
 
 ## Rust → crates.io
 
-Inspect the crate contents and let Cargo compile the packaged source before uploading. The release workflow runs a dry run, then uses the CARGO_REGISTRY_TOKEN secret in the crates-io environment only for published releases. Configure that environment and grant the token access to this crate.
+Inspect the crate contents and let Cargo compile the packaged source before uploading. The workflow runs a dry run, then uses `rust-lang/crates-io-auth-action@v1` to obtain a short-lived publishing token in the `crates-io` environment for published releases. No long-lived crate token is required.
+
+In the Crawlingo crate settings on crates.io, add a GitHub trusted publisher with owner `Vamshavardhan50`, repository `crawlingo`, workflow `release.yml`, and environment `crates-io`. For PyPI, use the same owner/repository/workflow and environment `pypi` in the project's Publishing settings. Do not paste registry tokens into issues or chat.
 
 ### Repository root
 

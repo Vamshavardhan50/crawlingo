@@ -17,10 +17,17 @@ class DatasetJob:
 
     async def run_async(self) -> dict:
         loop = asyncio.get_running_loop()
+        future = loop.run_in_executor(None, self.run)
         try:
-            return await loop.run_in_executor(None, self.run)
+            return await asyncio.shield(future)
         except asyncio.CancelledError:
             self.cancel()
+            # Keep the native worker alive until it releases the output-directory lock.
+            # Shield prevents cancellation of the asyncio wrapper from hiding completion.
+            try:
+                await asyncio.shield(future)
+            except Exception:
+                pass
             raise
 
     def cancel(self) -> None:

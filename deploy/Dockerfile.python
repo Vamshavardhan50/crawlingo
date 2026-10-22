@@ -1,0 +1,22 @@
+FROM rust:1-bookworm AS rust
+FROM python:3.12-slim-bookworm AS build
+COPY --from=rust /usr/local/cargo /usr/local/cargo
+COPY --from=rust /usr/local/rustup /usr/local/rustup
+ENV CARGO_HOME=/usr/local/cargo RUSTUP_HOME=/usr/local/rustup PATH=/usr/local/cargo/bin:$PATH
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential cmake clang libclang-dev perl pkg-config && rm -rf /var/lib/apt/lists/*
+WORKDIR /src
+COPY Cargo.toml Cargo.lock LICENSE ./
+COPY src ./src
+COPY sdk/python ./sdk/python
+RUN python -m pip wheel --no-deps --wheel-dir /wheels ./sdk/python
+
+FROM python:3.12-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libstdc++6 && rm -rf /var/lib/apt/lists/* && useradd --uid 10001 --create-home worker && mkdir /data && chown worker:worker /data
+COPY --from=build /wheels /wheels
+RUN python -m pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
+COPY deploy/workers/python.py /opt/worker.py
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+WORKDIR /data
+USER worker
+STOPSIGNAL SIGTERM
+ENTRYPOINT ["python", "/opt/worker.py"]

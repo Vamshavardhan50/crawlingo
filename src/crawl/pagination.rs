@@ -243,7 +243,7 @@ pub fn generate_page_urls(url_template: &str, start_page: usize, max_pages: usiz
 use pyo3::prelude::*;
 
 #[cfg(feature = "python")]
-#[pyclass(name = "PaginationConfig")]
+#[pyclass(from_py_object, name = "PaginationConfig")]
 #[derive(Clone)]
 pub struct PyPaginationConfig {
     pub inner: PaginationConfig,

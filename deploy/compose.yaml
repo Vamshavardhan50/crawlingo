@@ -1,0 +1,61 @@
+name: crawlingo
+services:
+  fixture:
+    image: python:3.12-slim-bookworm
+    command: ["python", "/fixture/server.py"]
+    volumes:
+      - ./fixture:/fixture:ro
+    read_only: true
+    user: "10001:10001"
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+    networks: [dataset]
+
+  python:
+    profiles: [python]
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.python
+    init: true
+    stop_grace_period: 60s
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - ./config:/config:ro
+      - python-data:/data
+    depends_on:
+      fixture:
+        condition: service_healthy
+    networks: [dataset]
+
+  node:
+    profiles: [node]
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.nodejs
+    init: true
+    stop_grace_period: 60s
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - ./config:/config:ro
+      - node-data:/data
+    depends_on:
+      fixture:
+        condition: service_healthy
+    networks: [dataset]
+
+volumes:
+  python-data:
+  node-data:
+networks:
+  dataset:

@@ -1,0 +1,31 @@
+{
+  "urls_file": "/config/urls.txt",
+  "output_dir": "/data/research-demo",
+  "row_selector": "article",
+  "fields": [
+    {
+      "name": "id",
+      "selector": "h2",
+      "extract_type": "attr:data-id",
+      "required": true
+    },
+    {
+      "name": "title",
+      "selector": "h2",
+      "required": true
+    },
+    {
+      "name": "url",
+      "selector": "a",
+      "extract_type": "url",
+      "required": true
+    }
+  ],
+  "dedup_fields": [
+    "id"
+  ],
+  "concurrency": 2,
+  "checkpoint_pages": 1,
+  "respect_robots": true,
+  "format": "jsonl"
+}

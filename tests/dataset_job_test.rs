@@ -40,6 +40,35 @@ fn records(cfg: &JobConfig, shards: u64) -> Vec<serde_json::Value> {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn manifest_matches_committed_shards_and_detects_corruption() {
+    use sha2::{Digest, Sha256};
+    let dir = tempfile::tempdir().unwrap();
+    let cfg = config(dir.path(), "https://fixture.test/a\n");
+    let session = Arc::new(Session::new());
+    session.set_transport(Arc::new(
+        MockTransport::new().with_html("https://fixture.test/a", "<h1>Research</h1>"),
+    ));
+    let job = DatasetJob::new(cfg.clone(), session).unwrap();
+    job.run().await.unwrap();
+    let manifest: Vec<serde_json::Value> =
+        std::fs::read_to_string(cfg.output_dir.join("manifest.jsonl"))
+            .unwrap()
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+    assert_eq!(manifest[0]["storage_version"], 2);
+    assert_eq!(manifest.len(), 3);
+    for entry in &manifest[1..] {
+        let bytes = std::fs::read(cfg.output_dir.join(entry["name"].as_str().unwrap())).unwrap();
+        assert_eq!(entry["bytes"], bytes.len());
+        assert_eq!(entry["sha256"], format!("{:x}", Sha256::digest(&bytes)));
+    }
+    // A finished job still validates its existing output before reporting success.
+    std::fs::write(cfg.output_dir.join("part-00000000.jsonl"), b"damaged").unwrap();
+    assert!(job.run().await.unwrap_err().to_string().contains("corrupt"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn robots_uses_configured_agent_and_query_string() {
     let dir = tempfile::tempdir().unwrap();
     let mut cfg = config(

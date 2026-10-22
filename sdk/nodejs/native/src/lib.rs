@@ -51,6 +51,13 @@ pub struct JsSession {
 
 #[napi]
 impl JsSession {
+    #[napi(factory)]
+    pub fn from_config(path: Option<String>) -> napi::Result<Self> {
+        let config = crawlingo::config::CrawlingoConfig::load(path.as_deref().map(std::path::Path::new))
+            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+        Ok(Self { inner: Arc::new(Session::from_config(&config)) })
+    }
+
     #[napi(constructor)]
     pub fn new() -> Self {
         Self {
@@ -116,10 +123,10 @@ impl JsSession {
 
     #[napi]
     pub fn fetcher_tier(&self, tier: String) -> napi::Result<()> {
-        let tier_enum = if tier.to_lowercase() == "stealthy" {
-            FetcherTier::Stealthy
-        } else {
-            FetcherTier::Standard
+        let tier_enum = match tier.to_lowercase().as_str() {
+            "stealthy" => FetcherTier::Stealthy,
+            "standard" => FetcherTier::Standard,
+            _ => return Err(napi::Error::from_reason("Unsupported fetcher tier: this Node build supports standard or stealthy; use the Playwright adapter for rendered HTML")),
         };
         let mut t = self.inner.fetcher_tier.write()
             .map_err(|e| napi::Error::from_reason(e.to_string()))?;

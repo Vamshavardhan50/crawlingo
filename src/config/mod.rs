@@ -22,7 +22,7 @@ use std::time::Duration;
 /// Connection-pool settings, mirroring [`crate::engine::pool::ConnectionPoolConfig`] in a
 /// serializable form (durations as whole seconds).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct PoolConfigSpec {
     pub max_idle_per_host: usize,
     pub idle_timeout_secs: u64,
@@ -55,7 +55,7 @@ impl From<&PoolConfigSpec> for crate::engine::pool::ConnectionPoolConfig {
 
 /// Retry policy settings, mirroring [`crate::engine::retry::RetryPolicy`] in a serializable form.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct RetryConfigSpec {
     pub base_delay_ms: u64,
     pub max_delay_ms: u64,
@@ -94,7 +94,7 @@ impl From<&RetryConfigSpec> for crate::engine::retry::RetryPolicy {
 /// All fields are optional-with-defaults (`#[serde(default)]`) so a config file only needs to
 /// specify the values it wants to override.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct CrawlingoConfig {
     pub headers: HashMap<String, String>,
     pub proxy: Option<String>,
@@ -104,7 +104,7 @@ pub struct CrawlingoConfig {
     pub auto_match: bool,
     pub timeout_seconds: u64,
     pub fingerprint_path: Option<String>,
-    /// `"standard"` or `"stealthy"`. Mirrors `PySession::fetcher_tier`'s string convention.
+    /// `"standard"`, `"stealthy"`, or `"browser"` (requires the browser build feature).
     pub fetcher_tier: Option<String>,
     pub browser_profile: Option<String>,
     pub pool: PoolConfigSpec,
@@ -124,7 +124,7 @@ impl CrawlingoConfig {
         } else {
             Self::default()
         };
-        config.apply_env();
+        config.apply_env()?;
         Ok(config)
     }
 
@@ -137,7 +137,7 @@ impl CrawlingoConfig {
             ))
         })?;
 
-        match path.extension().and_then(|e| e.to_str()) {
+        let config: Self = match path.extension().and_then(|e| e.to_str()) {
             Some("toml") => toml::from_str(&contents).map_err(|e| {
                 CrawlingoError::ConfigError(format!(
                     "failed to parse TOML config {}: {e}",
@@ -155,7 +155,9 @@ impl CrawlingoConfig {
                 other,
                 path.display()
             ))),
-        }
+        }?;
+        config.validate()?;
+        Ok(config)
     }
 
     /// Overlays `CRAWLINGO_*` environment variables onto this config in place.
@@ -163,17 +165,16 @@ impl CrawlingoConfig {
     /// Recognized variables: `CRAWLINGO_PROXY`, `CRAWLINGO_PROXY_PROVIDER_URL`,
     /// `CRAWLINGO_RATE_LIMIT_RPS`, `CRAWLINGO_AUTO_MATCH`, `CRAWLINGO_TIMEOUT_SECONDS`,
     /// `CRAWLINGO_FINGERPRINT_PATH`, `CRAWLINGO_FETCHER_TIER`, `CRAWLINGO_BROWSER_PROFILE`.
-    /// Unset or unparseable variables are left as-is (the existing value is kept); a present but
-    /// invalid value is ignored with a `tracing::warn!` rather than failing the whole load, since
-    /// environment misconfiguration should degrade gracefully rather than crash the process.
-    pub fn apply_env(&mut self) {
-        self.apply_env_from(|key| std::env::var(key).ok());
+    /// Invalid values fail configuration loading before any requests are sent.
+    pub fn apply_env(&mut self) -> Result<()> {
+        self.apply_env_from(|key| std::env::var(key).ok())
     }
 
     /// Like [`CrawlingoConfig::apply_env`], but reads variables through a caller-supplied lookup
     /// function instead of the real process environment. Exists so tests can exercise env-layer
     /// precedence deterministically, without mutating (and racing on) global process state.
-    pub fn apply_env_from(&mut self, lookup: impl Fn(&str) -> Option<String>) {
+    pub fn apply_env_from(&mut self, lookup: impl Fn(&str) -> Option<String>) -> Result<()> {
+        let invalid = |key: &str| CrawlingoError::ConfigError(format!("invalid {key}"));
         if let Some(v) = lookup("CRAWLINGO_PROXY") {
             self.proxy = Some(v);
         }
@@ -183,20 +184,20 @@ impl CrawlingoConfig {
         if let Some(v) = lookup("CRAWLINGO_RATE_LIMIT_RPS") {
             match v.parse() {
                 Ok(rps) => self.rate_limit_rps = rps,
-                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_RATE_LIMIT_RPS={v:?}"),
+                Err(_) => return Err(invalid("CRAWLINGO_RATE_LIMIT_RPS")),
             }
         }
         if let Some(v) = lookup("CRAWLINGO_AUTO_MATCH") {
             match v.to_lowercase().as_str() {
                 "1" | "true" | "yes" => self.auto_match = true,
                 "0" | "false" | "no" => self.auto_match = false,
-                _ => tracing::warn!("ignoring invalid CRAWLINGO_AUTO_MATCH={v:?}"),
+                _ => return Err(invalid("CRAWLINGO_AUTO_MATCH")),
             }
         }
         if let Some(v) = lookup("CRAWLINGO_TIMEOUT_SECONDS") {
             match v.parse() {
                 Ok(secs) => self.timeout_seconds = secs,
-                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_TIMEOUT_SECONDS={v:?}"),
+                Err(_) => return Err(invalid("CRAWLINGO_TIMEOUT_SECONDS")),
             }
         }
         if let Some(v) = lookup("CRAWLINGO_FINGERPRINT_PATH") {
@@ -213,39 +214,94 @@ impl CrawlingoConfig {
         if let Some(v) = lookup("CRAWLINGO_POOL_MAX_IDLE_PER_HOST") {
             match v.parse() {
                 Ok(val) => self.pool.max_idle_per_host = val,
-                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_POOL_MAX_IDLE_PER_HOST={v:?}"),
+                Err(_) => return Err(invalid("CRAWLINGO_POOL_MAX_IDLE_PER_HOST")),
             }
         }
         if let Some(v) = lookup("CRAWLINGO_POOL_MAX_CLIENTS") {
             match v.parse() {
                 Ok(val) => self.pool.max_clients = val,
-                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_POOL_MAX_CLIENTS={v:?}"),
+                Err(_) => return Err(invalid("CRAWLINGO_POOL_MAX_CLIENTS")),
             }
         }
         if let Some(v) = lookup("CRAWLINGO_POOL_IDLE_TIMEOUT_SECS") {
             match v.parse() {
                 Ok(val) => self.pool.idle_timeout_secs = val,
-                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_POOL_IDLE_TIMEOUT_SECS={v:?}"),
+                Err(_) => return Err(invalid("CRAWLINGO_POOL_IDLE_TIMEOUT_SECS")),
             }
         }
         if let Some(v) = lookup("CRAWLINGO_RETRY_BASE_DELAY_MS") {
             match v.parse() {
                 Ok(val) => self.retry.base_delay_ms = val,
-                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_RETRY_BASE_DELAY_MS={v:?}"),
+                Err(_) => return Err(invalid("CRAWLINGO_RETRY_BASE_DELAY_MS")),
             }
         }
         if let Some(v) = lookup("CRAWLINGO_RETRY_MAX_DELAY_MS") {
             match v.parse() {
                 Ok(val) => self.retry.max_delay_ms = val,
-                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_RETRY_MAX_DELAY_MS={v:?}"),
+                Err(_) => return Err(invalid("CRAWLINGO_RETRY_MAX_DELAY_MS")),
             }
         }
         if let Some(v) = lookup("CRAWLINGO_RETRY_MULTIPLIER") {
             match v.parse() {
                 Ok(val) => self.retry.multiplier = val,
-                Err(_) => tracing::warn!("ignoring invalid CRAWLINGO_RETRY_MULTIPLIER={v:?}"),
+                Err(_) => return Err(invalid("CRAWLINGO_RETRY_MULTIPLIER")),
             }
         }
+        self.validate()
+    }
+
+    /// Checks values that could disable pacing, overflow timers, or select the wrong transport.
+    pub fn validate(&self) -> Result<()> {
+        let invalid = |message: &str| CrawlingoError::ConfigError(message.into());
+        if !self.rate_limit_rps.is_finite() || self.rate_limit_rps < 0.0 {
+            return Err(invalid(
+                "rate_limit_rps must be finite and nonnegative (0 disables pacing)",
+            ));
+        }
+        if self.timeout_seconds > 86400
+            || self.pool.idle_timeout_secs > 86400
+            || self.pool.tcp_keepalive_secs > 86400
+        {
+            return Err(invalid(
+                "timeout and pool durations must not exceed 86400 seconds",
+            ));
+        }
+        if self.pool.max_clients == 0 {
+            return Err(invalid("pool.max_clients must be positive"));
+        }
+        if !self.retry.multiplier.is_finite()
+            || self.retry.multiplier < 1.0
+            || self.retry.max_delay_ms < self.retry.base_delay_ms
+            || self.retry.max_delay_ms > 86_400_000
+        {
+            return Err(invalid("retry requires a finite multiplier >= 1 and 0 <= base_delay_ms <= max_delay_ms <= 86400000"));
+        }
+        if self
+            .retry
+            .retryable_statuses
+            .iter()
+            .any(|status| !(100..=599).contains(status))
+        {
+            return Err(invalid(
+                "retry.retryable_statuses contains an invalid HTTP status",
+            ));
+        }
+        if let Some(tier) = &self.fetcher_tier {
+            if !["standard", "stealthy", "browser"]
+                .iter()
+                .any(|value| tier.eq_ignore_ascii_case(value))
+            {
+                return Err(invalid(
+                    "fetcher_tier must be standard, stealthy, or browser",
+                ));
+            }
+            if tier.eq_ignore_ascii_case("browser") && !cfg!(feature = "browser") {
+                return Err(invalid(
+                    "fetcher_tier browser requires a build with the browser feature",
+                ));
+            }
+        }
+        Ok(())
     }
 }
 
@@ -266,7 +322,7 @@ impl std::fmt::Debug for CrawlingoConfig {
             .map(|p| crate::util::url::sanitize_proxy_url(p));
 
         f.debug_struct("CrawlingoConfig")
-            .field("headers", &self.headers)
+            .field("header_names", &self.headers.keys().collect::<Vec<_>>())
             .field("proxy", &sanitized_proxy)
             .field("proxy_pool", &sanitized_proxy_pool)
             .field("proxy_provider_url", &sanitized_provider)
@@ -286,6 +342,31 @@ impl std::fmt::Debug for CrawlingoConfig {
 mod tests {
     use super::*;
     use std::collections::HashMap as StdHashMap;
+
+    #[test]
+    fn configuration_rejects_typos_and_invalid_values() {
+        assert!(serde_json::from_str::<CrawlingoConfig>(r#"{"rate_limt_rps": 2}"#).is_err());
+        for rate in [f64::NAN, f64::INFINITY, -1.0] {
+            let cfg = CrawlingoConfig {
+                rate_limit_rps: rate,
+                ..Default::default()
+            };
+            assert!(cfg.validate().is_err());
+        }
+        let cfg = CrawlingoConfig {
+            fetcher_tier: Some("typo".into()),
+            ..Default::default()
+        };
+        assert!(cfg.validate().is_err());
+    }
+
+    #[test]
+    fn debug_never_contains_header_values() {
+        let mut cfg = CrawlingoConfig::default();
+        cfg.headers
+            .insert("Authorization".into(), "Bearer private-example".into());
+        assert!(!format!("{cfg:?}").contains("private-example"));
+    }
 
     #[test]
     fn defaults_round_trip_pool_and_retry_specs() {
@@ -370,7 +451,9 @@ mod tests {
         let mut env: StdHashMap<&str, &str> = StdHashMap::new();
         env.insert("CRAWLINGO_PROXY", "http://from-env.example.com");
         env.insert("CRAWLINGO_RATE_LIMIT_RPS", "9.5");
-        config.apply_env_from(|key| env.get(key).map(|v| v.to_string()));
+        config
+            .apply_env_from(|key| env.get(key).map(|v| v.to_string()))
+            .unwrap();
 
         assert_eq!(config.proxy.as_deref(), Some("http://from-env.example.com"));
         assert_eq!(config.rate_limit_rps, 9.5);
@@ -379,15 +462,16 @@ mod tests {
     }
 
     #[test]
-    fn invalid_env_value_is_ignored_not_fatal() {
+    fn invalid_env_value_fails_before_requests() {
         let mut config = CrawlingoConfig {
             rate_limit_rps: 1.0,
             ..Default::default()
         };
         let mut env: StdHashMap<&str, &str> = StdHashMap::new();
         env.insert("CRAWLINGO_RATE_LIMIT_RPS", "not-a-number");
-        config.apply_env_from(|key| env.get(key).map(|v| v.to_string()));
-        // Invalid value is ignored; original default is preserved rather than the load failing.
+        assert!(config
+            .apply_env_from(|key| env.get(key).map(|v| v.to_string()))
+            .is_err());
         assert_eq!(config.rate_limit_rps, 1.0);
     }
 
@@ -403,7 +487,9 @@ mod tests {
         env.insert("CRAWLINGO_RETRY_MAX_DELAY_MS", "5000");
         env.insert("CRAWLINGO_RETRY_MULTIPLIER", "2.5");
 
-        config.apply_env_from(|key| env.get(key).map(|v| v.to_string()));
+        config
+            .apply_env_from(|key| env.get(key).map(|v| v.to_string()))
+            .unwrap();
 
         assert_eq!(config.pool.max_idle_per_host, 42);
         assert_eq!(config.pool.max_clients, 99);

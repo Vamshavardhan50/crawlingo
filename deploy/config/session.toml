@@ -1,0 +1,11 @@
+rate_limit_rps = 2.0
+timeout_seconds = 20
+fetcher_tier = "standard"
+
+[headers]
+User-Agent = "CrawlingoDatasetDemo/1.0"
+
+[retry]
+base_delay_ms = 500
+max_delay_ms = 10000
+multiplier = 2.0

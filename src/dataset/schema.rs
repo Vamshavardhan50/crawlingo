@@ -186,7 +186,7 @@ mod tests {
 use pyo3::prelude::*;
 
 #[cfg(feature = "python")]
-#[pyclass(name = "FieldType", eq, eq_int)]
+#[pyclass(from_py_object, name = "FieldType", eq, eq_int)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PyFieldType {
     String,
@@ -208,7 +208,7 @@ impl From<PyFieldType> for FieldType {
 }
 
 #[cfg(feature = "python")]
-#[pyclass(name = "FieldConstraint")]
+#[pyclass(from_py_object, name = "FieldConstraint")]
 #[derive(Debug, Clone)]
 pub struct PyFieldConstraint {
     #[pyo3(get)]
@@ -233,7 +233,7 @@ impl PyFieldConstraint {
 }
 
 #[cfg(feature = "python")]
-#[pyclass(name = "DatasetSchema")]
+#[pyclass(from_py_object, name = "DatasetSchema")]
 #[derive(Debug, Clone, Default)]
 pub struct PyDatasetSchema {
     pub inner: DatasetSchema,

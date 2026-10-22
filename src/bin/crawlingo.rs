@@ -45,13 +45,8 @@ fn main() {
         rate_limit_rps: Option<f64>,
 
         /// Request timeout in seconds (overrides config).
-        #[arg(
-            long,
-            global = true,
-            env = "CRAWLINGO_TIMEOUT_SECONDS",
-            default_value = "30"
-        )]
-        timeout: u64,
+        #[arg(long, global = true, env = "CRAWLINGO_TIMEOUT_SECONDS")]
+        timeout: Option<u64>,
 
         #[command(subcommand)]
         command: Commands,
@@ -158,8 +153,8 @@ fn main() {
     // Load config (file + env), then build Session.
     let config_path = cli.config.as_deref();
     let mut config = CrawlingoConfig::load(config_path).unwrap_or_else(|e| {
-        eprintln!("warning: failed to load config: {e}; using defaults");
-        CrawlingoConfig::default()
+        eprintln!("{e}");
+        std::process::exit(1);
     });
 
     // Apply CLI overrides on top of config.
@@ -169,7 +164,18 @@ fn main() {
     if let Some(rps) = cli.rate_limit_rps {
         config.rate_limit_rps = rps;
     }
-    config.timeout_seconds = cli.timeout;
+    if let Some(timeout) = cli.timeout {
+        config.timeout_seconds = timeout;
+    }
+    if let Err(error) = config.validate() {
+        eprintln!("{error}");
+        std::process::exit(1);
+    }
+    let timeout_seconds = if config.timeout_seconds == 0 {
+        30
+    } else {
+        config.timeout_seconds
+    };
 
     let session = Arc::new(Session::from_config(&config));
 
@@ -236,7 +242,7 @@ fn main() {
                 headers: session.read_headers(),
                 cookies: session.read_cookies(),
                 proxy: session.get_next_proxy(),
-                timeout: std::time::Duration::from_secs(cli.timeout),
+                timeout: std::time::Duration::from_secs(timeout_seconds),
                 retries: 2,
             };
 
@@ -385,7 +391,7 @@ fn main() {
                     headers: session.read_headers(),
                     cookies: session.read_cookies(),
                     proxy: session.get_next_proxy(),
-                    timeout: std::time::Duration::from_secs(cli.timeout),
+                    timeout: std::time::Duration::from_secs(timeout_seconds),
                     retries: 2,
                 };
                 let resp = manager.dispatch(req).await?;

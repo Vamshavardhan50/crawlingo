@@ -7,6 +7,7 @@ use crate::parser::{document::Page, streaming::HtmlParser};
 use crate::selector::SelectorQuery;
 use futures::{stream, StreamExt};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, Read, Seek, SeekFrom, Write};
@@ -120,6 +121,49 @@ struct Checkpoint {
     report: JobReport,
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct FileIntegrity {
+    bytes: u64,
+    sha256: String,
+}
+
+fn file_integrity(path: &Path) -> Result<FileIntegrity> {
+    let mut file = File::open(path)?;
+    let mut digest = Sha256::new();
+    let mut buffer = [0u8; 65536];
+    let mut bytes = 0u64;
+    loop {
+        let n = file.read(&mut buffer)?;
+        if n == 0 {
+            break;
+        }
+        digest.update(&buffer[..n]);
+        bytes += n as u64;
+    }
+    Ok(FileIntegrity {
+        bytes,
+        sha256: format!("{:x}", digest.finalize()),
+    })
+}
+
+fn sync_directory(path: &Path) -> Result<()> {
+    #[cfg(unix)]
+    File::open(path)?.sync_all()?;
+    #[cfg(not(unix))]
+    let _ = path;
+    Ok(())
+}
+
+fn publish_json(path: &Path, value: &impl Serialize) -> Result<()> {
+    let temporary = path.with_extension("json.partial");
+    let mut file = File::create(&temporary)?;
+    serde_json::to_writer(&mut file, value).map_err(|e| error(e.to_string()))?;
+    file.sync_all()?;
+    drop(file);
+    std::fs::rename(temporary, path)?;
+    sync_directory(path.parent().unwrap())
+}
+
 #[derive(Clone)]
 pub struct DatasetJob {
     pub config: JobConfig,
@@ -158,20 +202,13 @@ impl DatasetJob {
             .cache_capacity(32 * 1024 * 1024)
             .open()?;
         let mut source = BufReader::new(File::open(&cfg.urls_file)?);
-        let mut hash = Xxh64::new(0);
-        let mut buffer = [0u8; 65536];
-        loop {
-            let n = source.read(&mut buffer)?;
-            if n == 0 {
-                break;
-            }
-            hash.update(&buffer[..n]);
-        }
-        let signature = json(&(1u32, cfg, hash.digest(), source.get_ref().metadata()?.len()))?;
+        let input = file_integrity(&cfg.urls_file)?;
+        // Storage v2 binds the input to SHA-256 and requires committed shard integrity data.
+        let signature = json(&(2u32, env!("CARGO_PKG_VERSION"), cfg, &input))?;
         match db.get(b"config")? {
             Some(previous) if previous.as_ref() != signature.as_slice() => {
                 return Err(error(
-                    "Input or configuration changed; use a new output directory",
+                    "Input, configuration, engine version or checkpoint format changed; use a new output directory",
                 ))
             }
             None => {
@@ -189,13 +226,21 @@ impl DatasetJob {
         // are overwritten by replay; consumers must use report.shards as the commit boundary.
         for index in 0..checkpoint.report.shards {
             for suffix in [&cfg.format, "errors.jsonl"] {
-                if !cfg
-                    .output_dir
-                    .join(format!("part-{index:08}.{suffix}"))
-                    .is_file()
-                {
+                let name = format!("part-{index:08}.{suffix}");
+                let path = cfg.output_dir.join(&name);
+                if !path.is_file() {
                     return Err(error(format!(
                         "Missing committed output shard {index}; restore the job directory"
+                    )));
+                }
+                let stored = db
+                    .get(format!("file:{name}"))?
+                    .ok_or_else(|| error(format!("Missing integrity metadata for {name}")))?;
+                let expected: FileIntegrity = serde_json::from_slice(&stored)
+                    .map_err(|e| error(format!("Invalid shard integrity metadata: {e}")))?;
+                if file_integrity(&path)? != expected {
+                    return Err(error(format!(
+                        "Committed output shard {name} is corrupt; restore the job directory"
                     )));
                 }
             }
@@ -364,6 +409,14 @@ impl DatasetJob {
             drop(errors);
             replace_uncommitted(&data_tmp, &data_path)?;
             replace_uncommitted(&errors_tmp, &errors_path)?;
+            sync_directory(&cfg.output_dir)?;
+            for path in [&data_path, &errors_path] {
+                let name = path.file_name().unwrap().to_string_lossy();
+                changes.insert(
+                    format!("file:{name}").as_bytes(),
+                    json(&file_integrity(path)?)?,
+                );
+            }
             report.shards += 1;
             checkpoint = Checkpoint { offset, report };
             changes.insert(b"checkpoint", json(&checkpoint)?);
@@ -373,7 +426,32 @@ impl DatasetJob {
         }
         checkpoint.report.elapsed_ms = start.elapsed().as_millis() as u64;
         let report_path = cfg.output_dir.join("report.json");
-        std::fs::write(report_path, json(&checkpoint.report)?)?;
+        // The Sled checkpoint is authoritative. These snapshots may lag after a hard kill;
+        // reopening the job verifies shards and regenerates them before consumers read them.
+        publish_json(&report_path, &checkpoint.report)?;
+        let manifest_path = cfg.output_dir.join("manifest.jsonl");
+        let temporary = cfg.output_dir.join("manifest.jsonl.partial");
+        let mut manifest = BufWriter::new(File::create(&temporary)?);
+        serde_json::to_writer(&mut manifest, &serde_json::json!({
+            "kind": "dataset", "storage_version": 2, "engine_version": env!("CARGO_PKG_VERSION"),
+            "input": input, "format": cfg.format, "fields": cfg.fields, "report": checkpoint.report,
+        })).map_err(|e| error(e.to_string()))?;
+        manifest.write_all(b"\n")?;
+        for item in db.scan_prefix(b"file:") {
+            let (key, value) = item?;
+            let integrity: FileIntegrity =
+                serde_json::from_slice(&value).map_err(|e| error(e.to_string()))?;
+            serde_json::to_writer(&mut manifest, &serde_json::json!({
+                "kind": "file", "name": String::from_utf8_lossy(&key[5..]), "bytes": integrity.bytes,
+                "sha256": integrity.sha256,
+            })).map_err(|e| error(e.to_string()))?;
+            manifest.write_all(b"\n")?;
+        }
+        manifest.flush()?;
+        manifest.get_ref().sync_all()?;
+        drop(manifest);
+        std::fs::rename(temporary, manifest_path)?;
+        sync_directory(&cfg.output_dir)?;
         Ok(checkpoint.report)
     }
 
@@ -505,7 +583,7 @@ impl PyDatasetJob {
     }
     fn run(&self, py: pyo3::Python<'_>) -> pyo3::PyResult<String> {
         let job = self.inner.clone();
-        let report = py.allow_threads(move || crate::TOKIO_RUNTIME.block_on(job.run()))?;
+        let report = py.detach(move || crate::TOKIO_RUNTIME.block_on(job.run()))?;
         serde_json::to_string(&report)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
     }
@@ -654,7 +732,7 @@ fn replace_uncommitted(from: &Path, to: &Path) -> Result<()> {
 }
 enum ShardWriter {
     Json(BufWriter<File>),
-    Csv(csv::Writer<File>, Vec<String>),
+    Csv(Box<csv::Writer<File>>, Vec<String>),
 }
 impl ShardWriter {
     fn new(path: &Path, cfg: &JobConfig) -> Result<Self> {
@@ -672,7 +750,7 @@ impl ShardWriter {
                 .collect();
             let mut writer = csv::Writer::from_writer(file);
             writer.write_record(&keys)?;
-            Ok(Self::Csv(writer, keys))
+            Ok(Self::Csv(Box::new(writer), keys))
         } else {
             Ok(Self::Json(BufWriter::new(file)))
         }

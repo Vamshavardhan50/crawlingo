@@ -1,0 +1,23 @@
+FROM rust:1-bookworm AS rust
+FROM node:22-bookworm AS build
+COPY --from=rust /usr/local/cargo /usr/local/cargo
+COPY --from=rust /usr/local/rustup /usr/local/rustup
+ENV CARGO_HOME=/usr/local/cargo RUSTUP_HOME=/usr/local/rustup PATH=/usr/local/cargo/bin:$PATH
+RUN apt-get update && apt-get install -y --no-install-recommends cmake clang libclang-dev perl pkg-config && rm -rf /var/lib/apt/lists/*
+WORKDIR /src
+COPY Cargo.toml Cargo.lock LICENSE ./
+COPY src ./src
+COPY sdk/nodejs ./sdk/nodejs
+WORKDIR /src/sdk/nodejs
+RUN npm ci && npm run build && npm run check:package
+
+FROM node:22-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libstdc++6 && rm -rf /var/lib/apt/lists/* && useradd --uid 10001 --create-home worker && mkdir /data && chown worker:worker /data
+COPY --from=build /src/sdk/nodejs/dist /opt/node_modules/crawlingo/dist
+COPY --from=build /src/sdk/nodejs/package.json /src/sdk/nodejs/LICENSE /opt/node_modules/crawlingo/
+COPY deploy/workers/node.cjs /opt/worker.cjs
+ENV NODE_ENV=production
+WORKDIR /data
+USER worker
+STOPSIGNAL SIGTERM
+ENTRYPOINT ["node", "/opt/worker.cjs"]

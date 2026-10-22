@@ -1,6 +1,6 @@
 # Release status and next SDK release
 
-Last audited: **2026-10-18**. Local changes are not published packages.
+Last audited: **2026-10-22**. Local changes are not published packages.
 
 ## What users can install today
 
@@ -39,8 +39,8 @@ released. Existing immutable registry versions must not be overwritten or reused
 | Python | CPython 3.8–3.13 where the wheel builder supports the platform; Linux x64/ARM64, macOS x64/ARM64, Windows x64 | Wheel import and dataset checks, source distribution metadata |
 
 These are intended targets. The revised hosted matrix has **not** passed yet.
-Current PyO3 does not support Python 3.14; the package metadata now rejects it
-instead of relying on a forward-compatibility override.
+The alpha.2 artifact matrix and package metadata target CPython 3.8–3.13.
+The patched PyO3 dependency does not by itself certify additional Python versions.
 
 ## Publication sequence
 
@@ -52,8 +52,11 @@ instead of relying on a forward-compatibility override.
    Python wheels/source, Rust crate, `release-manifest.json` and `SHA256SUMS`.
 4. Resolve every failing runtime/platform check. Review the documented local
    dataset example, cancellation and resume evidence before publishing.
-5. Configure the protected `npm`, `pypi` and `crates-io` environments and their
-   publishing credentials/identities as described in [publishing.md](publishing.md).
+5. Configure registry publishing identities as described in [publishing.md](publishing.md).
+   GitHub environments `npm`, `pypi` and `crates-io` were created on October 22,
+   restricted to main and release tags. Registry-side trusted publisher setup
+   still requires the package owner's account. An existing repository `NPM_TOKEN`
+   is available as a fallback; its validity has not been confirmed.
 6. Tag that commit `v1.0.0-alpha.2` and publish a GitHub **prerelease** using the
    [prepared notes](../releases/v1.0.0-alpha.2.md). The workflow rebuilds and gates
    all packages before any upload. npm prereleases use `next`.

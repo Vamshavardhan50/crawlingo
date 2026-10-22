@@ -143,7 +143,7 @@ pub fn detect_changes(
 use pyo3::prelude::*;
 
 #[cfg(feature = "python")]
-#[pyclass(name = "ChangeEvent")]
+#[pyclass(from_py_object, name = "ChangeEvent")]
 #[derive(Clone)]
 pub struct PyChangeEvent {
     #[pyo3(get)]

@@ -202,7 +202,7 @@ impl Default for DomTree {
 use pyo3::prelude::*;
 
 #[cfg(feature = "python")]
-#[pyclass(name = "Element")]
+#[pyclass(from_py_object, name = "Element")]
 #[derive(Clone)]
 pub struct PyElement {
     pub tree: Arc<DomTree>,
@@ -322,7 +322,7 @@ impl PyElement {
 
 /// PyO3 Python wrapper for a collection of elements.
 #[cfg(feature = "python")]
-#[pyclass(name = "ElementCollection")]
+#[pyclass(from_py_object, name = "ElementCollection")]
 #[derive(Clone)]
 pub struct PyElementCollection {
     pub tree: Arc<DomTree>,

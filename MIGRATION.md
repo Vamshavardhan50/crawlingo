@@ -27,7 +27,7 @@ contain failures. The [API reference](guides/api-dataset-job.md) describes handl
 ## Runtime requirements
 
 - Node.js: use 22 or newer for this SDK version.
-- Python: current PyO3 supports 3.8–3.13. Use 3.12 for the documented local build.
+- Python: this release targets 3.8–3.13. Use 3.12 for the documented local build.
   The old PyPI 3.14 wheel is not evidence that the current source supports 3.14.
 - Native source builds require Rust, C/C++ build tools, CMake and libclang.
 
@@ -36,7 +36,12 @@ contain failures. The [API reference](guides/api-dataset-job.md) describes handl
 Keep the complete output directory, including its `state/`, data and error shards.
 Resume requires the same configuration and unchanged URL-file contents. Use a new
 directory after changing either; copying only JSONL files does not transfer a checkpoint.
-The allocation changes do not intentionally change the dataset checkpoint format.
+The final alpha.2 source uses checkpoint format **2**, with SHA-256 hashes of the
+input and committed shards. Earlier development checkpoints have no integrity
+metadata and cannot resume in this version. Preserve their output and start a new
+job directory; do not delete or rewrite the old state. Engine version changes also
+require a new directory. Resume verifies all committed shards before fetching.
+`manifest.jsonl` lists the schema, input digest, final counters and per-file hashes.
 
 ## Persistent crawler frontier
 
@@ -58,6 +63,11 @@ Do not delete a queue as a generic upgrade step.
   these names are unnecessary.
 - Bulk jobs use `JobConfig`/`JobField`, with JSONL and CSV output. They do not inherit
   automatic selector healing from the existing Dataset builder.
+- Configuration files reject unknown keys. Invalid environment values now return
+  an error instead of being ignored. `apply_env()` and `apply_env_from()` return
+  `Result<()>`; callers must handle the result. CLI configuration failures exit 1.
+- Node `Session.fromConfig(path)` uses the same loader as Python `Session.from_config(path)`.
+  Unsupported Node fetcher tiers return an error instead of silently selecting HTTP.
 
 See [release status](guides/RELEASE_STATUS.md), [publishing](guides/publishing.md)
 and the [local product example](examples/product_dataset/README.md).

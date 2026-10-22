@@ -19,7 +19,7 @@ pub struct DatasetField {
     pub selector: String,
     pub selector_type: String, // "css", "xpath", "text", "regex", "after_text", "before_text"
     #[cfg(feature = "python")]
-    pub transform: Option<pyo3::PyObject>,
+    pub transform: Option<pyo3::Py<pyo3::PyAny>>,
     pub default: Option<String>,
     /// How the raw matched text is cleaned and typed (plain text, price, date, absolute URL, ...).
     /// Defaults to [`ExtractionType::Text`], which simply trims the combined text — identical to
@@ -101,9 +101,7 @@ impl Dataset {
             .map(|f| {
                 use crate::selector::SelectorQuery;
                 let q = SelectorQuery::from_type_str(&f.selector_type, &f.selector);
-                match q {
-                    other => crate::selector::SelectorEngine::query(tree, other),
-                }
+                crate::selector::SelectorEngine::query(tree, q)
             })
             .collect::<Result<_>>()?;
 
@@ -430,7 +428,7 @@ impl PyDataset {
         name: &str,
         selector: &str,
         selector_type: Option<&str>,
-        transform: Option<PyObject>,
+        transform: Option<Py<PyAny>>,
         default: Option<&str>,
         extract_type: Option<&str>,
     ) -> PyResult<Py<Self>> {
@@ -461,7 +459,7 @@ impl PyDataset {
     pub fn build(self_: PyRef<'_, Self>) -> PyResult<PyDatasetResult> {
         let py = self_.py();
         let inner = self_.inner.clone();
-        let res = py.allow_threads(move || inner.build())?;
+        let res = py.detach(move || inner.build())?;
 
         // Apply python transforms if present
         let mut final_fields = res.fields.clone();
@@ -486,10 +484,10 @@ impl PyDataset {
     }
 
     /// Build and run the dataset query asynchronously in background.
-    pub fn build_async(self_: PyRef<'_, Self>) -> PyResult<PyObject> {
+    pub fn build_async(self_: PyRef<'_, Self>) -> PyResult<Py<PyAny>> {
         let py = self_.py();
         let inner = self_.inner.clone();
-        let res = py.allow_threads(move || inner.build())?;
+        let res = py.detach(move || inner.build())?;
 
         // Apply python transforms if present
         let mut final_fields = res.fields.clone();
@@ -527,9 +525,7 @@ impl PyDataset {
     pub fn build_structured(&self, py: Python<'_>) -> PyResult<Vec<HashMap<String, String>>> {
         let inner = self.inner.clone();
         let res = py
-            .allow_threads(move || {
-                crate::TOKIO_RUNTIME.block_on(async { inner.build_structured().await })
-            })
+            .detach(move || crate::TOKIO_RUNTIME.block_on(async { inner.build_structured().await }))
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
         Ok(res)
     }
@@ -567,7 +563,7 @@ impl PyDataset {
 }
 
 #[cfg(feature = "python")]
-#[pyclass(name = "DatasetResult")]
+#[pyclass(from_py_object, name = "DatasetResult")]
 #[derive(Clone)]
 pub struct PyDatasetResult {
     pub inner: DatasetResult,

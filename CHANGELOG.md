@@ -21,6 +21,11 @@ Python uses the equivalent version `1.0.0a2`. This source has not been published
 
 ### SDKs and releases
 
+- Added strict shared session configuration and Node `Session.fromConfig()`.
+- Added SHA-256 input/shard integrity checks and `manifest.jsonl` (checkpoint format 2).
+- Updated patched native dependencies and migrated the Python bindings to PyO3 0.29.
+- Wait for native job cleanup when a Python async job is cancelled.
+- Added a dependency audit gate and crates.io trusted publishing to the release workflow.
 - Aligned manifests for the next version and retained Cargo lockfiles for release builds.
 - Declared the current Python 3.8–3.13 and Node.js 22+ source requirements.
 - Added an artifact gate, CLI archives, checksums and a release manifest.

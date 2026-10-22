@@ -3,8 +3,13 @@ import { JsSession } from './native.js';
 export class Session {
   public readonly inner: JsSession;
 
-  constructor() {
-    this.inner = new JsSession();
+  constructor(inner?: JsSession) {
+    this.inner = inner ?? new JsSession();
+  }
+
+  /** Load TOML/JSON and CRAWLINGO_* environment overrides with Rust validation. */
+  public static fromConfig(path?: string): Session {
+    return new Session(JsSession.fromConfig(path));
   }
 
   public headers(headers: Record<string, string>): this {

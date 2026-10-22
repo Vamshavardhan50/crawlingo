@@ -498,7 +498,7 @@ impl Crawler {
 use pyo3::prelude::*;
 
 #[cfg(feature = "python")]
-#[pyclass(name = "CrawlResult")]
+#[pyclass(from_py_object, name = "CrawlResult")]
 #[derive(Clone)]
 pub struct PyCrawlResult {
     pub inner: CrawlResult,
@@ -628,7 +628,7 @@ impl PyCrawl {
 
     pub fn crawl(&self, py: Python<'_>) -> PyResult<Vec<HashMap<String, String>>> {
         let result = py
-            .allow_threads(|| self.inner.crawl())
+            .detach(|| self.inner.crawl())
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
         Ok(result.results.into_iter().map(|r| r.fields).collect())

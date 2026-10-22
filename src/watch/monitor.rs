@@ -43,11 +43,11 @@ use pyo3::prelude::*;
 #[pyclass(name = "Watch")]
 pub struct PyWatch {
     pub inner: Watch,
-    pub on_change_cb: Option<PyObject>,
-    pub on_price_change_cb: Option<PyObject>,
-    pub on_stock_change_cb: Option<PyObject>,
-    pub on_added_cb: Option<PyObject>,
-    pub on_removed_cb: Option<PyObject>,
+    pub on_change_cb: Option<Py<PyAny>>,
+    pub on_price_change_cb: Option<Py<PyAny>>,
+    pub on_stock_change_cb: Option<Py<PyAny>>,
+    pub on_added_cb: Option<Py<PyAny>>,
+    pub on_removed_cb: Option<Py<PyAny>>,
 }
 
 #[cfg(feature = "python")]
@@ -74,7 +74,7 @@ impl PyWatch {
         name: &str,
         selector: &str,
         selector_type: Option<&str>,
-        transform: Option<PyObject>,
+        transform: Option<Py<PyAny>>,
         default: Option<&str>,
         extract_type: Option<&str>,
     ) -> PyResult<Py<Self>> {
@@ -99,31 +99,31 @@ impl PyWatch {
     }
 
     /// Register callback function called on any change event.
-    pub fn on_change(mut self_: PyRefMut<'_, Self>, cb: PyObject) -> PyResult<Py<Self>> {
+    pub fn on_change(mut self_: PyRefMut<'_, Self>, cb: Py<PyAny>) -> PyResult<Py<Self>> {
         self_.on_change_cb = Some(cb);
         Ok(self_.into())
     }
 
     /// Register callback function called on price changes.
-    pub fn on_price_change(mut self_: PyRefMut<'_, Self>, cb: PyObject) -> PyResult<Py<Self>> {
+    pub fn on_price_change(mut self_: PyRefMut<'_, Self>, cb: Py<PyAny>) -> PyResult<Py<Self>> {
         self_.on_price_change_cb = Some(cb);
         Ok(self_.into())
     }
 
     /// Register callback function called on stock changes.
-    pub fn on_stock_change(mut self_: PyRefMut<'_, Self>, cb: PyObject) -> PyResult<Py<Self>> {
+    pub fn on_stock_change(mut self_: PyRefMut<'_, Self>, cb: Py<PyAny>) -> PyResult<Py<Self>> {
         self_.on_stock_change_cb = Some(cb);
         Ok(self_.into())
     }
 
     /// Register callback function called when element is added.
-    pub fn on_element_added(mut self_: PyRefMut<'_, Self>, cb: PyObject) -> PyResult<Py<Self>> {
+    pub fn on_element_added(mut self_: PyRefMut<'_, Self>, cb: Py<PyAny>) -> PyResult<Py<Self>> {
         self_.on_added_cb = Some(cb);
         Ok(self_.into())
     }
 
     /// Register callback function called when element is removed.
-    pub fn on_element_removed(mut self_: PyRefMut<'_, Self>, cb: PyObject) -> PyResult<Py<Self>> {
+    pub fn on_element_removed(mut self_: PyRefMut<'_, Self>, cb: Py<PyAny>) -> PyResult<Py<Self>> {
         self_.on_removed_cb = Some(cb);
         Ok(self_.into())
     }
@@ -157,7 +157,7 @@ impl PyWatch {
         let on_removed = self.on_removed_cb.clone();
 
         // Release the GIL during sleep and fetches, re-acquiring it only to run callbacks
-        py.allow_threads(move || {
+        py.detach(move || {
             crate::TOKIO_RUNTIME.block_on(async {
                 let mut interval = tokio::time::interval(Duration::from_secs(interval_sec));
                 let mut previous_data = HashMap::new();
@@ -171,7 +171,7 @@ impl PyWatch {
                             tracing::info!("Watch tick checking: {}", url);
                             let mut dataset = Dataset::new(&url, session.clone());
                             // Clone fields using GIL inside tick if needed
-                            Python::with_gil(|py| {
+                            Python::attach(|py| {
                                 for f in &field_templates {
                                     dataset.add_field(DatasetField {
                                         name: f.name.clone(),
@@ -185,7 +185,7 @@ impl PyWatch {
                             });
 
                             if let Ok(mut res) = dataset.build_async().await {
-                                Python::with_gil(|py| {
+                                Python::attach(|py| {
                                     for field_def in &field_templates {
                                         if let Some(ref trans_fn) = field_def.transform {
                                             if let Some(val) = res.fields.get_mut(&field_def.name) {
@@ -203,7 +203,7 @@ impl PyWatch {
                                 if !previous_data.is_empty() {
                                     let changes = detect_changes(&url, &previous_data, &res.fields);
                                     for change in changes {
-                                        Python::with_gil(|py| {
+                                        Python::attach(|py| {
                                             let py_evt = crate::change::detector::PyChangeEvent::from(change.clone());
                                             let py_evt_obj = py_evt.into_pyobject(py).unwrap();
 

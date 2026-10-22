@@ -47,6 +47,7 @@ export const enum JsFieldType {
   Boolean = 3
 }
 export declare class JsSession {
+  static fromConfig(path?: string | undefined | null): JsSession
   constructor()
   headers(headers: Record<string, string>): void
   cookies(cookies: Record<string, string>): void

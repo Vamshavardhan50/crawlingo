@@ -107,24 +107,23 @@ impl PyPage {
         let manager = session_arc.fetch_manager();
 
         // 3. Dispatch fetch through shared FetchManager (reuses connection pool & rate limiter)
-        let result: Result<crate::parser::document::Page, CrawlingoError> =
-            py.allow_threads(move || {
-                TOKIO_RUNTIME.block_on(async {
-                    let req = FetchRequest {
-                        url: url_str,
-                        tier: effective_tier,
-                        browser_profile: session_arc.browser_profile.read().unwrap().clone(),
-                        headers: effective_headers,
-                        cookies: effective_cookies,
-                        proxy: effective_proxy,
-                        timeout: std::time::Duration::from_secs(effective_timeout_sec),
-                        retries: effective_retries,
-                    };
-                    let resp = manager.dispatch(req).await?;
-                    let page = HtmlParser::parse(resp)?;
-                    Ok(page)
-                })
-            });
+        let result: Result<crate::parser::document::Page, CrawlingoError> = py.detach(move || {
+            TOKIO_RUNTIME.block_on(async {
+                let req = FetchRequest {
+                    url: url_str,
+                    tier: effective_tier,
+                    browser_profile: session_arc.browser_profile.read().unwrap().clone(),
+                    headers: effective_headers,
+                    cookies: effective_cookies,
+                    proxy: effective_proxy,
+                    timeout: std::time::Duration::from_secs(effective_timeout_sec),
+                    retries: effective_retries,
+                };
+                let resp = manager.dispatch(req).await?;
+                let page = HtmlParser::parse(resp)?;
+                Ok(page)
+            })
+        });
 
         let page = result?;
 
@@ -212,7 +211,7 @@ impl PyPage {
 }
 
 #[cfg(feature = "python")]
-#[pyclass(name = "DownloadResult")]
+#[pyclass(from_py_object, name = "DownloadResult")]
 #[derive(Clone)]
 pub struct PyDownloadResult {
     #[pyo3(get)]
@@ -289,7 +288,7 @@ impl PyDownloader {
         let dest_path = std::path::Path::new(dest);
         let url_str = url.to_string();
 
-        let res = py.allow_threads(move || downloader.download_to_file(&url_str, dest_path))?;
+        let res = py.detach(move || downloader.download_to_file(&url_str, dest_path))?;
         Ok(PyDownloadResult {
             url: res.url,
             status: res.status,
@@ -315,7 +314,7 @@ impl PyDownloader {
         };
 
         let url_str = url.to_string();
-        let (res, body) = py.allow_threads(move || downloader.download_to_memory(&url_str))?;
+        let (res, body) = py.detach(move || downloader.download_to_memory(&url_str))?;
         Ok((
             PyDownloadResult {
                 url: res.url,
@@ -331,7 +330,7 @@ impl PyDownloader {
 }
 
 #[cfg(feature = "python")]
-#[pyclass(name = "SitemapEntry")]
+#[pyclass(from_py_object, name = "SitemapEntry")]
 #[derive(Clone)]
 pub struct PySitemapEntry {
     #[pyo3(get)]
@@ -432,7 +431,7 @@ impl PySitemap {
         let session = self_.session.clone();
         let max_depth = self_.max_depth;
 
-        let entries = py.allow_threads(move || {
+        let entries = py.detach(move || {
             let crawler = crate::crawl::sitemap::SitemapCrawler::new(&sitemap_url, session)
                 .with_max_depth(max_depth);
 
@@ -496,7 +495,7 @@ impl PySitemap {
         let max_depth = self_.max_depth;
         let crawler_template = self_.crawler_template.clone();
 
-        let res = py.allow_threads(move || {
+        let res = py.detach(move || {
             let crawler = crate::crawl::sitemap::SitemapCrawler::new(&sitemap_url, session)
                 .with_max_depth(max_depth)
                 .with_crawler_template(crawler_template);
@@ -519,7 +518,7 @@ pub fn sitemap_url_for_origin(origin: &str) -> String {
 
 /// The core FFI PyO3 binary module.
 #[cfg(feature = "python")]
-#[pymodule]
+#[pymodule(gil_used = true)]
 fn _crawlingo_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyPage>()?;
     m.add_class::<crate::parser::document::PyElement>()?;

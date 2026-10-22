@@ -15,8 +15,8 @@ Windows Python 3.14 wheel and source archive. That artifact is not this dataset
 API. Build the matching extension before running these examples.
 
 The source declares Python 3.8–3.13; use Python 3.12 for the verified local build.
-The current PyO3 dependency does not
-support Python 3.14. Install Rust, C/C++ build tools, CMake and libclang first.
+Python 3.14 is outside this release's artifact matrix and package metadata.
+Install Rust, C/C++ build tools, CMake and libclang first.
 
 From the repository root:
 

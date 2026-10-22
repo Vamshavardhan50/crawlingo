@@ -30,6 +30,8 @@ pub struct Session {
     /// initialised by [`Session::fetch_manager`]; overridable in tests via
     /// [`Session::set_transport`].
     pub fetch_manager: RwLock<Option<Arc<FetchManager>>>,
+    pool_config: ConnectionPoolConfig,
+    retry_policy: crate::engine::retry::RetryPolicy,
     /// Cross-cutting layers (caching, auth, metrics, ...) wrapped around every fetch. Must be
     /// populated via [`Session::add_middleware`] *before* [`Session::fetch_manager`] is first
     /// called (directly or via a `Dataset`/`Crawler` operation) — like `pool_config`/
@@ -55,7 +57,7 @@ impl Session {
     /// setter called afterward simply overwrites the corresponding field as normal, so explicit
     /// configuration always wins over what was loaded from a file or environment variable.
     pub fn from_config(config: &crate::config::CrawlingoConfig) -> Self {
-        let session = Self::new();
+        let mut session = Self::new();
         *session.headers.write().unwrap() = config.headers.clone();
         *session.proxy.write().unwrap() = config.proxy.clone();
         *session.proxy_pool.write().unwrap() = config.proxy_pool.clone();
@@ -71,17 +73,17 @@ impl Session {
         if let Some(ref tier) = config.fetcher_tier {
             *session.fetcher_tier.write().unwrap() = if tier.eq_ignore_ascii_case("stealthy") {
                 FetcherTier::Stealthy
+            } else if tier.eq_ignore_ascii_case("browser") {
+                FetcherTier::Browser
             } else {
                 FetcherTier::Standard
             };
         }
         *session.browser_profile.write().unwrap() = config.browser_profile.clone();
 
-        let manager = FetchManager::new(Arc::new(HostRateLimiter::new()), (&config.pool).into())
-            .with_rate_limit_rps(session.rate_limit_rps.clone())
-            .with_retry_policy((&config.retry).into())
-            .with_middleware(&session.middleware.read().unwrap());
-        *session.fetch_manager.write().unwrap() = Some(Arc::new(manager));
+        // Defer manager creation so auth/cache layers added after from_config are honored.
+        session.pool_config = (&config.pool).into();
+        session.retry_policy = (&config.retry).into();
 
         session
     }
@@ -108,6 +110,8 @@ impl Session {
             proxy_provider_url: RwLock::new(None),
             fingerprint_store: RwLock::new(None),
             fetch_manager: RwLock::new(None),
+            pool_config: ConnectionPoolConfig::default(),
+            retry_policy: crate::engine::retry::RetryPolicy::default(),
             middleware: RwLock::new(middleware),
             metrics,
             retries: RwLock::new(None),
@@ -188,12 +192,10 @@ impl Session {
             return manager.clone();
         }
         let manager = Arc::new(
-            FetchManager::new(
-                Arc::new(HostRateLimiter::new()),
-                ConnectionPoolConfig::default(),
-            )
-            .with_rate_limit_rps(self.rate_limit_rps.clone())
-            .with_middleware(&self.middleware.read().unwrap()),
+            FetchManager::new(Arc::new(HostRateLimiter::new()), self.pool_config.clone())
+                .with_rate_limit_rps(self.rate_limit_rps.clone())
+                .with_retry_policy(self.retry_policy.clone())
+                .with_middleware(&self.middleware.read().unwrap()),
         );
         *guard = Some(manager.clone());
         manager
@@ -353,6 +355,8 @@ impl Session {
             browser_profile: RwLock::new(self.browser_profile.read().unwrap().clone()),
             similarity_weights: RwLock::new(self.similarity_weights.read().unwrap().clone()),
             fetch_manager: RwLock::new(None),
+            pool_config: self.pool_config.clone(),
+            retry_policy: self.retry_policy.clone(),
             metrics: Arc::new(crate::metrics::Metrics::new()),
             middleware: RwLock::new(MiddlewareStack::new()),
             retry_backoff: RwLock::new(*self.retry_backoff.read().unwrap()),
@@ -577,7 +581,7 @@ mod tests {
 use pyo3::prelude::*;
 
 #[cfg(feature = "python")]
-#[pyclass(name = "Session")]
+#[pyclass(from_py_object, name = "Session")]
 #[derive(Clone)]
 pub struct PySession {
     pub inner: Arc<Session>,
@@ -842,7 +846,7 @@ impl PySession {
     /// Returns a snapshot of this session's aggregated fetch metrics as a dict: `requests`,
     /// `successes`, `failures`, `bytes_in`, `status_counts` (status code -> count), `per_host`
     /// (host -> `{requests, successes, failures}`), and `avg_latency_ms`.
-    pub fn metrics(&self, py: Python<'_>) -> PyResult<PyObject> {
+    pub fn metrics(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let snapshot = self.inner.metrics();
         let json = serde_json::to_string(&snapshot)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
