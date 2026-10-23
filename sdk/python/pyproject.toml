@@ -95,7 +95,7 @@ archs = ["x86_64", "aarch64"]
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
-environment = { PATH = "$HOME/.cargo/bin:$PATH", CIBW_BUILD_VERBOSITY = "1", MATURIN_NO_INSTALL_RUST = "1" }
+environment = { PATH = "$HOME/.cargo/bin:$PATH", CIBW_BUILD_VERBOSITY = "1", MATURIN_NO_INSTALL_RUST = "1", MACOSX_DEPLOYMENT_TARGET = "10.12" }
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]

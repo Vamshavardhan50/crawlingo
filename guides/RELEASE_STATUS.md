@@ -96,7 +96,10 @@ verified on October 23 with owner `Vamshavardhan50`, repository `crawlingo`,
 workflow `release.yml` and environment `pypi`. crates.io publisher setup remains
 unconfirmed. The Linux wheel build now compiles and repairs successfully, but
 its first test invocation used the repository root instead of the SDK directory;
-the workflow now uses cibuildwheel's `{package}` path.
+the workflow now uses cibuildwheel's `{package}` path. The remaining macOS Intel
+failure was packaging metadata: the compiled extension requires macOS 10.12 while
+cibuildwheel defaulted to 10.9. The workflow and Python metadata now set
+`MACOSX_DEPLOYMENT_TARGET=10.12`.
 
 ## Remaining technical gates
 

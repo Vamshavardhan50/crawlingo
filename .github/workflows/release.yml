@@ -200,7 +200,7 @@ jobs:
             curl https://sh.rustup.rs -sSf | sh -s -- -y &&
             (if command -v yum; then yum install -y clang; else apt-get update && apt-get install -y clang libclang-dev; fi)
           CIBW_ENVIRONMENT_LINUX: PATH=/root/.cargo/bin:$PATH MATURIN_NO_INSTALL_RUST=1
-          CIBW_ENVIRONMENT_MACOS: PATH=$HOME/.cargo/bin:$PATH MATURIN_NO_INSTALL_RUST=1
+          CIBW_ENVIRONMENT_MACOS: PATH=$HOME/.cargo/bin:$PATH MATURIN_NO_INSTALL_RUST=1 MACOSX_DEPLOYMENT_TARGET=10.12
       - uses: actions/upload-artifact@v4
         with:
           name: python-wheels-${{ matrix.os }}
