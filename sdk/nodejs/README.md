@@ -15,6 +15,12 @@ npm `1.0.0-alpha.1` tarball does not include `DatasetJob` and contains a Windows
 addon only. Build the native library and TypeScript wrapper together.
 Native compilation requires Rust, C/C++ build tools, CMake and libclang.
 
+The release targets Linux x64 GNU (glibc 2.35+), macOS Intel/Apple Silicon and
+Windows x64. The Linux addon is built on Ubuntu 22.04 and checked in Node's
+Debian 12 container. Linux ARM64 and Alpine/musl prebuilt addons are not included;
+build from source on those targets. Check release status before relying on a
+platform's prepared artifacts.
+
 From the repository root:
 
 ```sh

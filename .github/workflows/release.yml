@@ -49,7 +49,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
           - os: macos-15-intel
             target: x86_64-apple-darwin
@@ -99,7 +99,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             file: crawlingo-native.linux-x64-gnu.node
           - os: macos-15-intel
@@ -146,6 +146,13 @@ jobs:
       - name: Run implemented API suite
         working-directory: sdk/nodejs
         run: npm run test:all
+      - name: Check Debian 12 consumer compatibility
+        if: runner.os == 'Linux'
+        working-directory: sdk/nodejs
+        run: >-
+          docker run --rm --mount type=bind,src="$PWD",dst=/package,readonly
+          node:22-bookworm-slim
+          node --test /package/tests/dataset_job.test.cjs
       - uses: actions/upload-artifact@v4
         with:
           name: node-addon-${{ matrix.target }}

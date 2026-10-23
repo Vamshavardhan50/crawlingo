@@ -86,7 +86,7 @@ package correction needs a new version and a complete build.
 
 ## Node.js → npm
 
-The package includes JavaScript, declarations and native addons in dist/. The release matrix builds Linux x64 GNU, macOS Intel, macOS ARM64 and Windows x64 addons. These are build targets, not a claim that all platforms have passed the new release.
+The package includes JavaScript, declarations and native addons in dist/. The release matrix builds Linux x64 GNU (glibc 2.35+), macOS Intel, macOS ARM64 and Windows x64 addons. The Linux CLI and Node addon use Ubuntu 22.04 to avoid requiring the newer glibc from `ubuntu-latest`; the Node dataset suite also runs in `node:22-bookworm-slim`. Linux ARM64 and musl prebuilt Node addons are not included. These are build targets, not a claim that all platforms have passed the new release.
 
 Configure npm trusted publishing for owner `Vamshavardhan50`, repository `crawlingo`, workflow `release.yml` and environment `npm`, with permission for direct npm publish. The workflow uses Node 22 and npm 11, with id-token: write for publication. The existing `NPM_TOKEN` repository secret is supplied as a fallback. Prereleases publish under `next`; stable versions use `latest`. Install a prerelease with `npm install crawlingo@next`.
 

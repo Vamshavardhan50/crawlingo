@@ -1,12 +1,12 @@
 # Release status and next SDK release
 
-Last audited: **2026-10-22**. Local changes are not published packages.
+Last updated: **2026-10-23** (registry versions audited October 22). Local changes are not published packages.
 
 ## What users can install today
 
 | Channel | Observed version | What was verified |
 | --- | --- | --- |
-| GitHub | `v1.0.0-alpha.1`, published 2026-07-19 | No release body or uploaded assets; `prerelease` is incorrectly false for an alpha |
+| GitHub | `v1.0.0-alpha.1`, published 2026-07-19 | Prerelease label and factual package limitations corrected October 23; no uploaded assets |
 | npm latest | `0.1.2` | Archive contains only the Windows x64 native addon; no DatasetJob wrapper |
 | npm alpha | `1.0.0-alpha.1` | Same native platform limitation; no DatasetJob wrapper |
 | PyPI | `0.1.2` | One CPython 3.14 Windows x64 wheel and one source archive |
@@ -34,9 +34,9 @@ released. Existing immutable registry versions must not be overwritten or reused
 | Artifact | Build targets | Release checks |
 | --- | --- | --- |
 | Rust crate | Source package | Locked dependency resolution and Cargo package compilation |
-| CLI | Linux x64 GNU, macOS x64/ARM64, Windows x64 | Host build, archive with license |
-| npm | Node.js 22+; the same four native targets | Native SDK/API checks, complete addon set, clean consumer import |
-| Python | CPython 3.8–3.13 where the wheel builder supports the platform; Linux x64/ARM64, macOS x64/ARM64, Windows x64 | Wheel import and dataset checks, source distribution metadata |
+| CLI | Linux x64 GNU (glibc 2.35+), macOS x64/ARM64, Windows x64 | Host build, archive with license |
+| npm | Node.js 22+; the same four native targets | Native SDK/API checks, Debian 12 consumer check, complete addon set, clean consumer import |
+| Python | CPython 3.8–3.13 where the wheel builder supports the platform; Linux x64/ARM64 (glibc 2.28+), macOS x64/ARM64, Windows x64 | Wheel import and dataset checks, source distribution metadata |
 
 These are intended targets. The revised hosted matrix has **not** passed yet.
 The alpha.2 artifact matrix and package metadata target CPython 3.8–3.13.
@@ -69,9 +69,29 @@ replace a release asset or claim all registries are synchronized after a partial
 
 ## Existing GitHub release repair
 
-Mark `v1.0.0-alpha.1` as a prerelease and add factual notes describing its Windows
-npm artifact and missing dataset API. Do not attach the new alpha.2 binaries to
-that old tag. These hosted changes have not been applied locally.
+Completed October 23: `v1.0.0-alpha.1` is now marked as a prerelease and has factual
+notes describing its Windows npm artifact and missing dataset API. The historical
+tag and package contents were preserved. No alpha.2 binaries were attached to it.
+
+## Release preparation evidence — October 23
+
+- Removed the unused Chromium downloader feature that broke browser compilation.
+- The manual release build passed the dependency audit; Linux core tests, browser
+  feature compilation and CLI packaging passed at commit `f6882fd`.
+- CI passed Rust checks on Linux/macOS, Node 22 on Linux/Windows, and Python
+  3.12/3.13 on Linux/Windows at `f6882fd`. Remaining jobs were still running when
+  this entry was written; this is not a completed matrix claim.
+- A Python source distribution from `1de5760` rebuilt into a CPython 3.12 Windows
+  wheel independently of the checkout. Its installed import and dataset/resume
+  checks passed. The later `f6882fd` change adjusts Linux wheel tooling and docs.
+- The first Linux wheel build exposed an outdated Clang in manylinux2014. The
+  corrected configuration uses manylinux_2_28 for x64 and ARM64.
+- Inspection of the first Linux Node addon found glibc 2.38 symbols. Its release
+  builder was changed to Ubuntu 22.04 and a Debian 12 consumer check was added;
+  the revised artifact still needs its hosted result.
+
+The new SDK versions remain unpublished. Registry trusted publisher setup still
+requires the owner to sign in and save the configuration in each registry.
 
 ## Remaining technical gates
 
