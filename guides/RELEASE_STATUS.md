@@ -55,7 +55,8 @@ The patched PyO3 dependency does not by itself certify additional Python version
 5. Configure registry publishing identities as described in [publishing.md](publishing.md).
    GitHub environments `npm`, `pypi` and `crates-io` were created on October 22,
    restricted to main and release tags. Registry-side trusted publisher setup
-   still requires the package owner's account. An existing repository `NPM_TOKEN`
+   was confirmed for PyPI on October 23; crates.io setup still requires the
+   package owner's account. An existing repository `NPM_TOKEN`
    is available as a fallback; its validity has not been confirmed.
 6. Tag that commit `v1.0.0-alpha.2` and publish a GitHub **prerelease** using the
    [prepared notes](../releases/v1.0.0-alpha.2.md). The workflow rebuilds and gates
@@ -90,8 +91,12 @@ tag and package contents were preserved. No alpha.2 binaries were attached to it
   builder was changed to Ubuntu 22.04 and a Debian 12 consumer check was added;
   the revised artifact still needs its hosted result.
 
-The new SDK versions remain unpublished. Registry trusted publisher setup still
-requires the owner to sign in and save the configuration in each registry.
+The new SDK versions remain unpublished. PyPI's saved GitHub publisher was
+verified on October 23 with owner `Vamshavardhan50`, repository `crawlingo`,
+workflow `release.yml` and environment `pypi`. crates.io publisher setup remains
+unconfirmed. The Linux wheel build now compiles and repairs successfully, but
+its first test invocation used the repository root instead of the SDK directory;
+the workflow now uses cibuildwheel's `{package}` path.
 
 ## Remaining technical gates
 

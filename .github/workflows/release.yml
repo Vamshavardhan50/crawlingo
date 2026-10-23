@@ -70,6 +70,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+          shared-key: release-core-${{ matrix.os }}
       - run: cargo test --locked --lib --tests
       - run: cargo check --locked --features cli,browser
       - name: Build CLI
@@ -119,6 +120,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: sdk/nodejs/native -> target
+          shared-key: release-node-${{ matrix.os }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -192,8 +194,8 @@ jobs:
           CIBW_ARCHS: ${{ matrix.archs }}
           CIBW_SKIP: '*-musllinux_*'
           CIBW_TEST_COMMAND: >-
-            python {project}/tests/test_import.py &&
-            python {project}/tests/test_dataset_job.py
+            python "{package}/tests/test_import.py" &&
+            python "{package}/tests/test_dataset_job.py"
           CIBW_BEFORE_ALL_LINUX: >-
             curl https://sh.rustup.rs -sSf | sh -s -- -y &&
             (if command -v yum; then yum install -y clang; else apt-get update && apt-get install -y clang libclang-dev; fi)
