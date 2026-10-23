@@ -86,7 +86,7 @@ jobs:
           mkdir cli-release
           cp "target/release/$binary" LICENSE cli-release/
           tar -czf "crawlingo-$version-$TARGET.tar.gz" -C cli-release .
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cli-${{ matrix.target }}
           path: crawlingo-*.tar.gz
@@ -155,7 +155,7 @@ jobs:
           docker run --rm --mount type=bind,src="$PWD",dst=/package,readonly
           node:22-bookworm-slim
           node --test /package/tests/dataset_job.test.cjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: node-addon-${{ matrix.target }}
           path: sdk/nodejs/${{ matrix.file }}
@@ -201,7 +201,7 @@ jobs:
             (if command -v yum; then yum install -y clang; else apt-get update && apt-get install -y clang libclang-dev; fi)
           CIBW_ENVIRONMENT_LINUX: PATH=/root/.cargo/bin:$PATH MATURIN_NO_INSTALL_RUST=1
           CIBW_ENVIRONMENT_MACOS: PATH=$HOME/.cargo/bin:$PATH MATURIN_NO_INSTALL_RUST=1 MACOSX_DEPLOYMENT_TARGET=10.12
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: python-wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
@@ -241,7 +241,7 @@ jobs:
           npm init -y
           npm install --ignore-scripts "../sdk/nodejs/crawlingo-$version.tgz"
           node -e "if (typeof require('crawlingo').DatasetJob !== 'function') throw Error('Missing DatasetJob')"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: npm-package
           path: sdk/nodejs/*.tgz
@@ -263,7 +263,7 @@ jobs:
       - run: maturin sdist --out ../../dist
         working-directory: sdk/python
       - run: python -m twine check dist/*
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: python-distributions
           path: dist/*
@@ -296,7 +296,7 @@ jobs:
           mkdir -p crate-dist
           cp "$crate" crate-dist/
           echo "Prepared crate-dist/crawlingo-$version.crate"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: rust-crate
           path: crate-dist/*.crate
@@ -336,7 +336,7 @@ jobs:
           path: release-assets
       - name: Verify complete artifact set and write SHA-256 manifest
         run: node scripts/release-manifest.cjs release-assets
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-assets
           path: release-assets/*
