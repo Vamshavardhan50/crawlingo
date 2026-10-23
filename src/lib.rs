@@ -1,3 +1,57 @@
+//! # Crawlingo: web pages into datasets
+//!
+//! Crawlingo is a local Rust engine with Python and Node.js bindings. Use
+//! [`dataset::DatasetJob`] for bounded URL-file processing, validation, exact
+//! deduplication, JSONL/CSV shards, cancellation and checkpoint resume. Use
+//! [`dataset::builder::Dataset`] for small, in-memory extraction results.
+//!
+//! ## Start with a dataset job
+//!
+//! ```no_run
+//! use crawlingo::dataset::{DatasetJob, JobConfig};
+//! use crawlingo::engine::session::Session;
+//! use std::sync::Arc;
+//!
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! let config: JobConfig = serde_json::from_reader(std::fs::File::open("job.json")?)?;
+//! let job = DatasetJob::new(config, Arc::new(Session::new()))?;
+//! let report = job.run().await?;
+//! println!("written={}, failed={}", report.records_written, report.pages_failed);
+//! # Ok(()) }
+//! ```
+//!
+//! Input paths are relative to the process working directory. Keep one active
+//! writer per output directory. Resume with unchanged input and configuration;
+//! individual page failures remain visible in error shards and report counters.
+//! A completed report does not imply that every page or record succeeded.
+//!
+//! ## Choose an entry point
+//!
+//! | Task | API |
+//! | --- | --- |
+//! | Bulk dataset generation | [`dataset::DatasetJob`], [`dataset::JobConfig`] |
+//! | Request defaults and connection reuse | [`engine::session::Session`] |
+//! | Inspect parsed content | [`Page`], [`selector`] |
+//! | Small extraction results | [`dataset::builder::Dataset`] |
+//! | Linked-page discovery | [`crawl::crawler::Crawler`] |
+//! | Sitemap discovery | [`crawl::sitemap`] |
+//! | File downloads | [`engine::download::Downloader`] |
+//! | Retry and pacing policy | [`engine::retry`], [`engine::rate_limiter`] |
+//! | Auth, caching and instrumentation | [`engine::auth`], [`engine::cache`], [`metrics`] |
+//! | Typed failures | [`error::CrawlingoError`] |
+//!
+//! ## Features and integration boundaries
+//!
+//! The default build uses HTTP. The `browser` feature enables local Chromium/CDP
+//! rendering and needs an installed browser. The `cli` feature builds the
+//! `crawlingo` executable. The `python` feature builds PyO3 bindings; the public
+//! Python wrapper has its own API and is not identical to every Rust method.
+//!
+//! This is not a hosted API, distributed queue or universal browser automation
+//! framework. HTTP throughput depends on the workload and source. See the
+//! [developer guide](https://crawlingo-docs.vercel.app/guides) for workflows,
+//! binding-specific limitations, deployment and recorded measurements.
+
 use once_cell::sync::Lazy;
 #[cfg(feature = "python")]
 use std::collections::HashMap;

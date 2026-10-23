@@ -104,6 +104,23 @@ The [DatasetJob reference](guides/api-dataset-job.md) covers complete examples,
 configuration, return values, cancellation and errors. Field values are currently
 strings, including validated numbers and booleans.
 
+### Complete API documentation
+
+The documentation source includes a generated reference for every Node package
+export and Python public export, reachable result types and hook helpers. Each
+entry includes signatures, parameters, return types, source locations and known
+binding limitations. See the [reference maintenance guide](guides/API_REFERENCE.md)
+for inventory generation, Markdown exports and release requirements.
+
+Build the Rust module, type and trait reference directly from this checkout:
+
+```sh
+cargo doc --locked --no-deps --lib --features browser --open
+```
+
+The SDK release workflow also prepares a versioned rustdoc archive. API presence
+in source is separate from runtime validation and registry availability.
+
 ## Connect your tools
 
 | Workflow | Integration |

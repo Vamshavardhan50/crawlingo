@@ -44,8 +44,8 @@ pub struct Session {
     /// [`Session::metrics`].
     pub metrics: Arc<crate::metrics::Metrics>,
     pub retries: RwLock<Option<u32>>,
-    pub retry_backoff: RwLock<Option<f64>>,
-    pub retry_delay: RwLock<Option<u32>>,
+    pub retry_backoff: Arc<RwLock<Option<f64>>>,
+    pub retry_delay: Arc<RwLock<Option<u32>>>,
     pub proxy_username: RwLock<Option<String>>,
     pub proxy_password: RwLock<Option<String>>,
 }
@@ -115,8 +115,8 @@ impl Session {
             middleware: RwLock::new(middleware),
             metrics,
             retries: RwLock::new(None),
-            retry_backoff: RwLock::new(None),
-            retry_delay: RwLock::new(None),
+            retry_backoff: Arc::new(RwLock::new(None)),
+            retry_delay: Arc::new(RwLock::new(None)),
             proxy_username: RwLock::new(None),
             proxy_password: RwLock::new(None),
         }
@@ -195,6 +195,7 @@ impl Session {
             FetchManager::new(Arc::new(HostRateLimiter::new()), self.pool_config.clone())
                 .with_rate_limit_rps(self.rate_limit_rps.clone())
                 .with_retry_policy(self.retry_policy.clone())
+                .with_retry_overrides(self.retry_backoff.clone(), self.retry_delay.clone())
                 .with_middleware(&self.middleware.read().unwrap()),
         );
         *guard = Some(manager.clone());
@@ -209,6 +210,8 @@ impl Session {
         let manager = Arc::new(
             FetchManager::with_transport(Arc::new(HostRateLimiter::new()), transport)
                 .with_rate_limit_rps(self.rate_limit_rps.clone())
+                .with_retry_policy(self.retry_policy.clone())
+                .with_retry_overrides(self.retry_backoff.clone(), self.retry_delay.clone())
                 .with_middleware(&self.middleware.read().unwrap()),
         );
         *self.fetch_manager.write().unwrap() = Some(manager);
@@ -359,8 +362,8 @@ impl Session {
             retry_policy: self.retry_policy.clone(),
             metrics: Arc::new(crate::metrics::Metrics::new()),
             middleware: RwLock::new(MiddlewareStack::new()),
-            retry_backoff: RwLock::new(*self.retry_backoff.read().unwrap()),
-            retry_delay: RwLock::new(*self.retry_delay.read().unwrap()),
+            retry_backoff: Arc::new(RwLock::new(*self.retry_backoff.read().unwrap())),
+            retry_delay: Arc::new(RwLock::new(*self.retry_delay.read().unwrap())),
         }
     }
 

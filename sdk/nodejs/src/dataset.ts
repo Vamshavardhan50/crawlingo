@@ -2,6 +2,7 @@ import { JsDataset, JsDatasetResult, JsPage, saveStructuredJson, saveStructuredC
 import { Session } from './session';
 import type { Page } from './page';
 import { DatasetSchema } from './schema';
+import { callNative, callNativeAsync, ExportError } from './errors';
 
 export class DatasetResult {
   constructor(private readonly inner: JsDatasetResult) {}
@@ -11,15 +12,15 @@ export class DatasetResult {
   }
 
   public async toJson(path: string): Promise<void> {
-    await this.inner.toJson(path);
+    await callNativeAsync(() => this.inner.toJson(path), ExportError);
   }
 
   public async toCsv(path: string): Promise<void> {
-    await this.inner.toCsv(path);
+    await callNativeAsync(() => this.inner.toCsv(path), ExportError);
   }
 
   public async toParquet(path: string): Promise<void> {
-    await this.inner.toParquet(path);
+    await callNativeAsync(() => this.inner.toParquet(path), ExportError);
   }
 }
 
@@ -73,7 +74,7 @@ export class Dataset {
   }
 
   public async build(): Promise<DatasetResult> {
-    const raw = await this.inner.build();
+    const raw = await callNativeAsync(() => this.inner.build());
     return new DatasetResult(raw);
   }
 
@@ -83,14 +84,14 @@ export class Dataset {
    */
   public extractStructured(page: Page | JsPage): Array<Record<string, string>> {
     const jsPage = (page as any).nativePage ?? page;
-    return this.inner.extractStructured(jsPage) as Array<Record<string, string>>;
+    return callNative(() => this.inner.extractStructured(jsPage)) as Array<Record<string, string>>;
   }
 
   /**
    * Fetch the page URL and extract structured multi-row records entirely in Rust.
    */
   public async buildStructured(): Promise<Array<Record<string, string>>> {
-    return this.inner.buildStructured() as Promise<Array<Record<string, string>>>;
+    return callNativeAsync(() => this.inner.buildStructured()) as Promise<Array<Record<string, string>>>;
   }
 
   /**
@@ -98,7 +99,7 @@ export class Dataset {
    * Implemented entirely in Rust via native FFI.
    */
   public static saveJson(records: Array<Record<string, string>>, path: string): void {
-    saveStructuredJson(records as any, path);
+    callNative(() => saveStructuredJson(records as any, path), ExportError);
   }
 
   /**
@@ -106,6 +107,6 @@ export class Dataset {
    * Implemented entirely in Rust via native FFI.
    */
   public static saveCsv(records: Array<Record<string, string>>, path: string): void {
-    saveStructuredCsv(records as any, path);
+    callNative(() => saveStructuredCsv(records as any, path), ExportError);
   }
 }

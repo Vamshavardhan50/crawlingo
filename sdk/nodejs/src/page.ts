@@ -1,6 +1,7 @@
 import { fetchPage as nativeFetchPage, JsPage } from './native.js';
 import { ElementCollection } from './element';
 import { Session } from './session';
+import { callNative, callNativeAsync, FetchError, SelectorError } from './errors';
 
 export class Page {
   constructor(public readonly nativePage: JsPage) {}
@@ -20,7 +21,7 @@ export class Page {
       session?: Session;
     }
   ): Promise<Page> {
-    const raw = await nativeFetchPage(
+    const raw = await callNativeAsync(() => nativeFetchPage(
       url,
       options?.autoMatch ?? false,
       options?.timeout,
@@ -29,7 +30,7 @@ export class Page {
       options?.proxy,
       options?.browserProfile,
       options?.session?.inner
-    );
+    ), FetchError);
     return new Page(raw);
   }
 
@@ -70,6 +71,6 @@ export class Page {
   }
 
   public regex(pattern: string): ElementCollection {
-    return new ElementCollection(this.nativePage.regex(pattern));
+    return new ElementCollection(callNative(() => this.nativePage.regex(pattern), SelectorError));
   }
 }

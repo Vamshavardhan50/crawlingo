@@ -5,7 +5,6 @@ use napi::bindgen_prelude::*;
 use crawlingo::engine::session::Session;
 use crawlingo::parser::document::DomTree;
 use crawlingo::engine::fetcher::{FetchRequest, FetcherTier};
-use crawlingo::engine::pool::ConnectionPoolConfig;
 use crawlingo::selector::{css, xpath, text_anchor, regex_selector};
 use crawlingo::dataset::builder::{Dataset, DatasetField, DatasetResult};
 use crawlingo::dataset::job::DatasetJob;
@@ -54,7 +53,7 @@ impl JsSession {
     #[napi(factory)]
     pub fn from_config(path: Option<String>) -> napi::Result<Self> {
         let config = crawlingo::config::CrawlingoConfig::load(path.as_deref().map(std::path::Path::new))
-            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+            .map_err(|e| to_napi_error(e, "", "configuration"))?;
         Ok(Self { inner: Arc::new(Session::from_config(&config)) })
     }
 
@@ -78,6 +77,50 @@ impl JsSession {
         let mut c = self.inner.cookies.write()
             .map_err(|e| napi::Error::from_reason(e.to_string()))?;
         *c = cookies;
+        Ok(())
+    }
+
+    #[napi]
+    pub fn get_cookies(&self) -> napi::Result<HashMap<String, String>> {
+        Ok(self.inner.cookies.read().map_err(|e| napi::Error::from_reason(e.to_string()))?.clone())
+    }
+
+    #[napi]
+    pub fn delete_cookie(&self, name: String) -> napi::Result<()> {
+        self.inner.cookies.write().map_err(|e| napi::Error::from_reason(e.to_string()))?.remove(&name);
+        Ok(())
+    }
+
+    #[napi]
+    pub fn clear_cookies(&self) -> napi::Result<()> {
+        self.inner.cookies.write().map_err(|e| napi::Error::from_reason(e.to_string()))?.clear();
+        Ok(())
+    }
+
+    #[napi]
+    pub fn retries(&self, count: f64) -> napi::Result<()> {
+        if !count.is_finite() || count < 0.0 || count > u32::MAX as f64 || count.fract() != 0.0 {
+            return Err(napi::Error::from_reason("retries must be an integer between 0 and 4294967295"));
+        }
+        *self.inner.retries.write().map_err(|e| napi::Error::from_reason(e.to_string()))? = Some(count as u32);
+        Ok(())
+    }
+
+    #[napi]
+    pub fn retry_backoff(&self, factor: f64) -> napi::Result<()> {
+        if !factor.is_finite() || factor < 1.0 {
+            return Err(napi::Error::from_reason("retryBackoff must be finite and >= 1"));
+        }
+        *self.inner.retry_backoff.write().map_err(|e| napi::Error::from_reason(e.to_string()))? = Some(factor);
+        Ok(())
+    }
+
+    #[napi]
+    pub fn retry_delay(&self, seconds: f64) -> napi::Result<()> {
+        if !seconds.is_finite() || seconds < 0.0 || seconds > 86_400.0 || seconds.fract() != 0.0 {
+            return Err(napi::Error::from_reason("retryDelay must be an integer between 0 and 86400 seconds"));
+        }
+        *self.inner.retry_delay.write().map_err(|e| napi::Error::from_reason(e.to_string()))? = Some(seconds as u32);
         Ok(())
     }
 
@@ -171,28 +214,7 @@ impl JsSession {
 
     #[napi]
     pub fn clone(&self) -> napi::Result<JsSession> {
-        let cloned = Session::new();
-        *cloned.headers.write().unwrap() = self.inner.headers.read().unwrap().clone();
-        *cloned.cookies.write().unwrap() = self.inner.cookies.read().unwrap().clone();
-        *cloned.proxy.write().unwrap() = self.inner.proxy.read().unwrap().clone();
-        *cloned.rate_limit_rps.write().unwrap() = *self.inner.rate_limit_rps.read().unwrap();
-        *cloned.auto_match.write().unwrap() = *self.inner.auto_match.read().unwrap();
-        *cloned.timeout_seconds.write().unwrap() = *self.inner.timeout_seconds.read().unwrap();
-        *cloned.fingerprint_path.write().unwrap() = self.inner.fingerprint_path.read().unwrap().clone();
-        *cloned.fetcher_tier.write().unwrap() = *self.inner.fetcher_tier.read().unwrap();
-        *cloned.browser_profile.write().unwrap() = self.inner.browser_profile.read().unwrap().clone();
-        *cloned.similarity_weights.write().unwrap() = self.inner.similarity_weights.read().unwrap().clone();
-        *cloned.proxy_pool.write().unwrap() = self.inner.proxy_pool.read().unwrap().clone();
-        cloned.proxy_index.store(
-            self.inner.proxy_index.load(std::sync::atomic::Ordering::SeqCst),
-            std::sync::atomic::Ordering::SeqCst,
-        );
-        *cloned.proxy_provider_url.write().unwrap() = self.inner.proxy_provider_url.read().unwrap().clone();
-        *cloned.retries.write().unwrap() = *self.inner.retries.read().unwrap();
-        *cloned.retry_backoff.write().unwrap() = *self.inner.retry_backoff.read().unwrap();
-        *cloned.retry_delay.write().unwrap() = *self.inner.retry_delay.read().unwrap();
-        *cloned.proxy_username.write().unwrap() = self.inner.proxy_username.read().unwrap().clone();
-        *cloned.proxy_password.write().unwrap() = self.inner.proxy_password.read().unwrap().clone();
+        let cloned = self.inner.clone_session();
         Ok(JsSession {
             inner: Arc::new(cloned),
         })
@@ -279,7 +301,7 @@ impl JsPage {
     #[napi]
     pub fn regex(&self, pattern: String) -> napi::Result<JsElementCollection> {
         let indices = regex_selector::query(&self.tree, &pattern)
-            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+            .map_err(|e| to_napi_error(e, &self.url, "selector"))?;
         Ok(JsElementCollection {
             tree: self.tree.clone(),
             node_indices: indices,
@@ -288,17 +310,36 @@ impl JsPage {
 }
 
 fn to_napi_error(err: crawlingo::error::CrawlingoError, url: &str, stage: &str) -> napi::Error {
+    use crawlingo::error::CrawlingoError as E;
+    let error_type = match &err {
+        E::FetchError(_) | E::HttpClientError(_) => "FetchError",
+        E::ParseError(_) => "ParseError",
+        E::SelectorError(_) => "SelectorError",
+        E::AutoMatchFailed => "AutoMatchFailed",
+        E::TimeoutError { .. } => "TimeoutError",
+        E::RateLimitError { .. } => "RateLimitError",
+        E::ChangeDetectionError(_) => "ChangeDetectionError",
+        E::ExportError(_) | E::CsvError(_) | E::ParquetError(_) | E::ArrowError(_) => "ExportError",
+        E::DnsError(_) => "DnsError",
+        E::FingerprintStoreError(_) | E::SledError(_) | E::BincodeError(_) => "FingerprintStoreError",
+        _ => "CrawlingoError",
+    };
     let error_code = match &err {
         crawlingo::error::CrawlingoError::ParseError(_) => "INVALID_HTML",
         crawlingo::error::CrawlingoError::TimeoutError { .. } => "TIMEOUT",
         crawlingo::error::CrawlingoError::RateLimitError { .. } => "RATE_LIMIT",
         crawlingo::error::CrawlingoError::FetchError(_) | crawlingo::error::CrawlingoError::HttpClientError(_) => "FETCH_FAILED",
         crawlingo::error::CrawlingoError::AutoMatchFailed => "AUTO_MATCH_FAILED",
+        E::SelectorError(_) => "SELECTOR_FAILED",
+        E::DnsError(_) => "DNS_FAILED",
+        E::ChangeDetectionError(_) => "CHANGE_DETECTION_FAILED",
+        E::ExportError(_) | E::CsvError(_) | E::ParquetError(_) | E::ArrowError(_) => "EXPORT_FAILED",
+        E::FingerprintStoreError(_) | E::SledError(_) | E::BincodeError(_) => "FINGERPRINT_STORE_FAILED",
         _ => "GENERIC_FAILURE",
     };
 
     let suggestion = match &err {
-        crawlingo::error::CrawlingoError::ParseError(_) => "Falling back to HTML5 parser.",
+        crawlingo::error::CrawlingoError::ParseError(_) => "Check the response content type and HTML encoding.",
         crawlingo::error::CrawlingoError::TimeoutError { .. } => "Increase request timeout or check target server responsiveness.",
         crawlingo::error::CrawlingoError::RateLimitError { .. } => "Implement exponential backoff or reduce request rate.",
         crawlingo::error::CrawlingoError::FetchError(_) | crawlingo::error::CrawlingoError::HttpClientError(_) => "Check network connectivity, headers, proxy configuration, or target URL status.",
@@ -320,6 +361,9 @@ fn to_napi_error(err: crawlingo::error::CrawlingoError, url: &str, stage: &str) 
         "url": url,
         "stage": stage,
         "error_code": error_code,
+        "error_type": error_type,
+        "seconds": match &err { E::TimeoutError { seconds } => Some(*seconds), _ => None },
+        "host": match &err { E::RateLimitError { host } => Some(host.as_str()), _ => None },
         "message": err.to_string(),
         "recoverable": recoverable,
         "suggestion": suggestion,
@@ -340,30 +384,19 @@ pub async fn fetch_page(
     browser_profile: Option<String>,
     session: Option<&JsSession>,
 ) -> napi::Result<JsPage> {
-    let headers_val = headers.unwrap_or_default();
-    let cookies_val = cookies.unwrap_or_default();
-    let timeout_val = timeout.unwrap_or(30) as u64;
-
-    let (headers_f, cookies_f, proxy_f, _rate_limit_rps_f, timeout_f, fetcher_tier_f, browser_profile_f) = if let Some(s) = session {
-        let h = s.inner.headers.read().unwrap().clone();
-        let c = s.inner.cookies.read().unwrap().clone();
-        let p = s.inner.proxy.read().unwrap().clone();
-        let r = *s.inner.rate_limit_rps.read().unwrap();
-        let t = *s.inner.timeout_seconds.read().unwrap();
-        let tier = *s.inner.fetcher_tier.read().unwrap();
-        let b = s.inner.browser_profile.read().unwrap().clone();
-        (h, c, p, r, t, tier, b)
+    let active = session.map(|s| s.inner.clone()).unwrap_or_else(|| Arc::new(Session::new()));
+    let mut headers_f = active.read_headers();
+    headers_f.extend(headers.unwrap_or_default());
+    let mut cookies_f = active.read_cookies();
+    cookies_f.extend(cookies.unwrap_or_default());
+    let timeout_f = timeout.map(u64::from).unwrap_or_else(|| *active.timeout_seconds.read().unwrap());
+    let fetcher_tier_f = if session.is_none() && auto_match {
+        FetcherTier::Stealthy
     } else {
-        (
-            headers_val,
-            cookies_val,
-            proxy,
-            0.0,
-            timeout_val,
-            if auto_match { FetcherTier::Stealthy } else { FetcherTier::Standard },
-            browser_profile,
-        )
+        *active.fetcher_tier.read().unwrap()
     };
+    let browser_profile_f = browser_profile.or_else(|| active.browser_profile.read().unwrap().clone());
+    let proxy_f = proxy.or_else(|| active.get_next_proxy_with_auth());
 
     let req = FetchRequest {
         url: url.clone(),
@@ -373,11 +406,10 @@ pub async fn fetch_page(
         cookies: cookies_f,
         proxy: proxy_f,
         timeout: std::time::Duration::from_secs(timeout_f),
-        retries: 3,
+        retries: active.retries.read().unwrap().unwrap_or(3) as usize,
     };
 
-    let rate_limiter = Arc::new(crawlingo::engine::rate_limiter::HostRateLimiter::new());
-    let manager = crawlingo::engine::fetcher::FetchManager::new(rate_limiter, ConnectionPoolConfig::default());
+    let manager = active.fetch_manager();
     let resp = manager.dispatch(req).await
         .map_err(|e| to_napi_error(e, &url, "network"))?;
     let page = crawlingo::parser::streaming::HtmlParser::parse(resp)
@@ -469,12 +501,12 @@ impl JsDatasetJob {
     #[napi(constructor)]
     pub fn new(config_json: String, session: &JsSession) -> napi::Result<Self> {
         let config = serde_json::from_str(&config_json).map_err(|e| napi::Error::from_reason(e.to_string()))?;
-        let inner = DatasetJob::new(config, session.inner.clone()).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+        let inner = DatasetJob::new(config, session.inner.clone()).map_err(|e| to_napi_error(e, "", "dataset_job"))?;
         Ok(Self { inner })
     }
     #[napi]
     pub async fn run(&self) -> napi::Result<String> {
-        let report = self.inner.run().await.map_err(|e| napi::Error::from_reason(e.to_string()))?;
+        let report = self.inner.run().await.map_err(|e| to_napi_error(e, "", "dataset_job"))?;
         serde_json::to_string(&report).map_err(|e| napi::Error::from_reason(e.to_string()))
     }
     #[napi]
@@ -662,7 +694,7 @@ impl JsCrawl {
     #[napi(factory)]
     pub fn resumable(start_url: String, session: &JsSession, path: String) -> napi::Result<Self> {
         let crawler = Crawler::resumable(&start_url, session.inner.clone(), std::path::Path::new(&path))
-            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+            .map_err(|e| to_napi_error(e, &start_url, "crawler"))?;
         Ok(Self { crawler })
     }
 
@@ -832,8 +864,7 @@ impl JsWatch {
                                 previous_data = res.fields;
                             }
                             Err(e) => {
-                                let err_msg = format!("Watch check failed for {}: {}", url, e);
-                                let _ = tsfn.call(Err(napi::Error::from_reason(err_msg)), ThreadsafeFunctionCallMode::NonBlocking);
+                                let _ = tsfn.call(Err(to_napi_error(e, &url, "watch")), ThreadsafeFunctionCallMode::NonBlocking);
                             }
                         }
                     }
@@ -931,7 +962,7 @@ impl JsDownloader {
 
         let dest_path = std::path::PathBuf::from(dest);
         let res = downloader.download_to_file_async(&url, &dest_path).await
-            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+            .map_err(|e| to_napi_error(e, &url, "download"))?;
         Ok(JsDownloadResult::from(res))
     }
 
@@ -947,7 +978,7 @@ impl JsDownloader {
         };
 
         let (res, body) = downloader.download_to_memory_async(&url).await
-            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+            .map_err(|e| to_napi_error(e, &url, "download"))?;
         Ok(JsMemoryDownloadResult {
             result: JsDownloadResult::from(res),
             data: Buffer::from(body),
@@ -1064,32 +1095,32 @@ impl JsSitemap {
                     cookies: crawler.session.cookies.read().unwrap().clone(),
                     proxy: crawler.session.get_next_proxy(),
                     timeout: std::time::Duration::from_secs(*crawler.session.timeout_seconds.read().unwrap()),
-                    retries: 2,
+                    retries: crawler.session.retries.read().unwrap().unwrap_or(2) as usize,
                 };
-                if let Ok(resp) = manager.dispatch(req).await {
-                    if let Ok(parsed) = crawlingo::crawl::sitemap::parse_sitemap(&resp.body) {
-                        match parsed {
-                            crawlingo::crawl::sitemap::ParsedSitemap::Urlset(entries) => {
-                                results.extend(entries.into_iter().map(|e| JsSitemapEntry {
-                                    loc: e.loc,
-                                    lastmod: e.lastmod,
-                                    changefreq: e.changefreq,
-                                    priority: e.priority,
-                                }));
-                            }
-                            crawlingo::crawl::sitemap::ParsedSitemap::Index(entries) => {
-                                for entry in entries {
-                                    queue.push((entry.loc, depth + 1));
-                                }
-                            }
+                let resp = manager.dispatch(req).await
+                    .map_err(|e| to_napi_error(e, &url, "sitemap"))?;
+                let parsed = crawlingo::crawl::sitemap::parse_sitemap(&resp.body)
+                    .map_err(|e| to_napi_error(e, &url, "sitemap"))?;
+                match parsed {
+                    crawlingo::crawl::sitemap::ParsedSitemap::Urlset(entries) => {
+                        results.extend(entries.into_iter().map(|e| JsSitemapEntry {
+                            loc: e.loc,
+                            lastmod: e.lastmod,
+                            changefreq: e.changefreq,
+                            priority: e.priority,
+                        }));
+                    }
+                    crawlingo::crawl::sitemap::ParsedSitemap::Index(entries) => {
+                        for entry in entries {
+                            queue.push((entry.loc, depth + 1));
                         }
                     }
                 }
             }
-            results
+            Ok::<_, napi::Error>(results)
         }).await.map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
-        Ok(entries)
+        entries
     }
 
     #[napi]
@@ -1105,7 +1136,7 @@ impl JsSitemap {
                 .with_crawler_template(crawler_template);
             crawler.fetch_async().await
         }).await.map_err(|e| napi::Error::from_reason(e.to_string()))?
-        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+        .map_err(|e| to_napi_error(e, &self.sitemap_url, "sitemap"))?;
 
         let results = res.into_iter().map(|item| JsDatasetResult { inner: item }).collect();
         Ok(results)
@@ -1209,6 +1240,6 @@ impl JsDatasetSchema {
 
     #[napi]
     pub fn validate(&self, record: HashMap<String, String>) -> napi::Result<HashMap<String, String>> {
-        self.inner.validate(&record).map_err(|e| napi::Error::from_reason(e.to_string()))
+        self.inner.validate(&record).map_err(|e| to_napi_error(e, "", "schema"))
     }
 }

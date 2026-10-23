@@ -1,5 +1,6 @@
 import { JsDatasetJob } from './native.js';
 import { Session } from './session';
+import { callNative, callNativeAsync } from './errors';
 
 /** Shared JSON configuration understood by the Rust engine, Python SDK and CLI. */
 export interface JobField {
@@ -47,8 +48,8 @@ export interface JobReport {
 export class DatasetJob {
   private readonly inner: JsDatasetJob;
   constructor(config: JobConfig, session: Session = new Session()) {
-    this.inner = new JsDatasetJob(JSON.stringify(config), session.inner);
+    this.inner = callNative(() => new JsDatasetJob(JSON.stringify(config), session.inner));
   }
-  async run(): Promise<JobReport> { return JSON.parse(await this.inner.run()) as JobReport; }
+  async run(): Promise<JobReport> { return JSON.parse(await callNativeAsync(() => this.inner.run())) as JobReport; }
   cancel(): void { this.inner.cancel(); }
 }

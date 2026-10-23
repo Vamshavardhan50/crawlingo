@@ -112,7 +112,7 @@ impl Downloader {
             cookies: self.session.read_cookies(),
             proxy: self.session.get_next_proxy(),
             timeout: Duration::from_secs(*self.session.timeout_seconds.read().unwrap()),
-            retries: 2,
+            retries: self.session.retries.read().unwrap().unwrap_or(2) as usize,
         };
 
         let manager = self.session.fetch_manager();
@@ -195,7 +195,7 @@ impl Downloader {
             cookies: self.session.read_cookies(),
             proxy: self.session.get_next_proxy(),
             timeout: Duration::from_secs(*self.session.timeout_seconds.read().unwrap()),
-            retries: 2,
+            retries: self.session.retries.read().unwrap().unwrap_or(2) as usize,
         };
         let manager = self.session.fetch_manager();
         let resp = manager.dispatch(req).await?;

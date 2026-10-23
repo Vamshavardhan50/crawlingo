@@ -7,6 +7,7 @@
 import { Session } from './session';
 import { DatasetResult } from './dataset';
 import { JsSitemap, sitemapUrlForOrigin as _sitemapUrlForOrigin } from './native.js';
+import { callNativeAsync } from './errors';
 
 /** A single `<url>` entry from a leaf sitemap `<urlset>`. */
 export interface SitemapEntry {
@@ -76,7 +77,7 @@ export class Sitemap {
 
   /** Fetch the sitemap and return all discovered URL entries without crawling. */
   public async listUrls(): Promise<SitemapEntry[]> {
-    const raw = await this.inner.listUrls();
+    const raw = await callNativeAsync(() => this.inner.listUrls());
     return raw.map(e => ({
       loc: e.loc,
       lastmod: e.lastmod ?? undefined,
@@ -89,7 +90,7 @@ export class Sitemap {
    * Fetch the sitemap, crawl, and return all collected DatasetResult[].
    */
   public async build(): Promise<DatasetResult[]> {
-    const raw = await this.inner.run();
+    const raw = await callNativeAsync(() => this.inner.run());
     return raw.map(r => new DatasetResult(r));
   }
 }

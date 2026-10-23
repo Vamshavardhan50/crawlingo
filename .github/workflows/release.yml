@@ -271,20 +271,42 @@ jobs:
   package-crate:
     needs: [verify-version, test-core, build-node-addons, python-wheels]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: sudo apt-get update && sudo apt-get install -y clang libclang-dev cmake
       - run: cargo package --locked --list
-      - run: cargo publish --locked --dry-run
+      - name: Check registry packaging without publishing
+        run: cargo publish --locked --dry-run --target-dir target/crate-release
+      # Do not rely on publish --dry-run retaining its temporary upload archive.
+      - name: Build the distributable crate
+        run: cargo package --locked --target-dir target/crate-release
+      - name: Stage the verified crate archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1)
+          crate="target/crate-release/package/crawlingo-$version.crate"
+          if [[ ! -s "$crate" ]]; then
+            echo "::error::Cargo did not produce the expected nonempty archive: $crate"
+            exit 1
+          fi
+          tar -tzf "$crate" > /dev/null
+          mkdir -p crate-dist
+          cp "$crate" crate-dist/
+          echo "Prepared crate-dist/crawlingo-$version.crate"
       - uses: actions/upload-artifact@v4
         with:
           name: rust-crate
-          path: target/package/*.crate
+          path: crate-dist/*.crate
           if-no-files-found: error
 
+  rustdoc:
+    uses: ./.github/workflows/rustdoc.yml
+
   release-artifacts:
-    needs: [package-npm, package-python, package-crate]
+    needs: [package-npm, package-python, package-crate, rustdoc]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -307,6 +329,10 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: rust-crate
+          path: release-assets
+      - uses: actions/download-artifact@v4
+        with:
+          name: rust-docs
           path: release-assets
       - name: Verify complete artifact set and write SHA-256 manifest
         run: node scripts/release-manifest.cjs release-assets

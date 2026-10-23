@@ -6,6 +6,7 @@
 
 import { Session } from './session';
 import { JsDownloader } from './native.js';
+import { callNativeAsync, FetchError } from './errors';
 
 /** The result of a completed download. */
 export interface DownloadResult {
@@ -49,7 +50,7 @@ export class Downloader {
    * Download `url` to a local file at `dest`.
    */
   public async download(url: string, dest: string): Promise<DownloadResult> {
-    const res = await this.inner.download(url, dest);
+    const res = await callNativeAsync(() => this.inner.download(url, dest), FetchError);
     return {
       url: res.url,
       status: res.status,
@@ -64,7 +65,7 @@ export class Downloader {
    * Download `url` into memory and return `{ result, data }`.
    */
   public async downloadToMemory(url: string): Promise<{ result: DownloadResult; data: Buffer }> {
-    const { result, data } = await this.inner.downloadToMemory(url);
+    const { result, data } = await callNativeAsync(() => this.inner.downloadToMemory(url), FetchError);
     return {
       result: {
         url: result.url,

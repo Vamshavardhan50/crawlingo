@@ -2,7 +2,7 @@
 
 Collect a directory, choose a reproducible sample, extract documents, and produce records that can be traced back to their sources.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="purpose"></a>
 
 ## Start with the dataset you need
 
@@ -15,6 +15,8 @@ The PEP site also publishes a metadata API. Prefer a maintained API or bulk down
 - [Python PEP directory and metadata API](https://peps.python.org/)
 - [Complete runnable example](https://github.com/Vamshavardhan50/crawlingo/tree/main/examples/research_dataset)
 
+<a id="model"></a>
+
 ## Two related datasets
 
 Keep these datasets separate. A directory may be complete while only 20 of its documents have been collected. Directory coverage and document coverage need different denominators.
@@ -24,6 +26,8 @@ Keep these datasets separate. A directory may be complete while only 20 of its d
 | Directory | One listed proposal | PEP number or canonical URL | Title, classification, source URL |
 | Documents | One sampled proposal page | Canonical document URL | Title, extracted document text, source URL |
 | Derived analysis | A cleaned record, section or text chunk | Document ID + transformation version + chunk index | Normalized text, parent ID, source citation |
+
+<a id="prepare"></a>
 
 ## 1. Build the CLI and inspect the source
 
@@ -39,7 +43,9 @@ cargo build --locked --release --features cli --bin crawlingo
 - Robots checks stay enabled. A missing robots.txt is not a content license; record the source’s applicable reuse terms separately.
 - Run commands from the repository root: configuration paths are relative to the working directory, not the JSON file.
 
-- [Native build prerequisites](https://crawlingo-docs.vercel.app/installation)
+- [Native build prerequisites](installation.md)
+
+<a id="directory"></a>
 
 ## 2. Extract the directory
 
@@ -91,6 +97,8 @@ cargo run --locked --release --features cli -- --config examples/research_datase
 }
 ```
 
+<a id="sample"></a>
+
 ## 3. Freeze a small document sample
 
 The script reads only committed data shards, checks the directory report, converts proposal numbers to integers, resolves links to the expected HTTPS origin, and writes work/research/directory.jsonl and work/research/detail-urls.txt. It makes no network calls.
@@ -104,6 +112,8 @@ The script refuses to replace already prepared files. Keep the URL file unchange
 ```shell
 python examples/research_dataset/prepare_details.py --limit 20
 ```
+
+<a id="documents"></a>
 
 ## 4. Collect the document records
 
@@ -119,8 +129,10 @@ Use a known article section selector when you need an abstract or main body. The
 cargo run --locked --release --features cli -- --config examples/research_dataset/session.json --rate-limit-rps 1 dataset examples/research_dataset/detail-job.json
 ```
 
-- [Selectors and supported syntax](https://crawlingo-docs.vercel.app/selectors)
-- [Dataset schema](https://crawlingo-docs.vercel.app/schema)
+- [Selectors and supported syntax](selectors.md)
+- [Dataset schema](schema.md)
+
+<a id="quality"></a>
 
 ## 5. Check quality before analysis
 
@@ -131,8 +143,10 @@ cargo run --locked --release --features cli -- --config examples/research_datase
 - Record source coverage and sample selection. Twenty correct documents do not prove completeness of the directory or all linked documents.
 - Keep raw shards unchanged. Decode entities and apply cleaning in a derived dataset with a versioned transformation.
 
-- [Design and validate a dataset](https://crawlingo-docs.vercel.app/dataset-design)
-- [Measured public-site results](https://crawlingo-docs.vercel.app/real-world-results)
+- [Design and validate a dataset](dataset-design.md)
+- [Measured public-site results](real-world-results.md)
+
+<a id="provenance"></a>
 
 ## 6. Keep an evidence manifest
 
@@ -142,7 +156,9 @@ Your runner should also store collection start/end times, engine revision, URL-f
 
 Store the original and derived dataset versions together. For retrieval or AI workflows, cite the source document and keep each chunk connected to its parent record. Embedding, train/test splitting, near-duplicate detection and factual validation belong in downstream processing.
 
-- [pandas, DuckDB and derived datasets](https://crawlingo-docs.vercel.app/integrations/data)
+- [pandas, DuckDB and derived datasets](integrations-data.md)
+
+<a id="repeat"></a>
 
 ## 7. Resume, then plan the next collection
 
@@ -152,5 +168,5 @@ For a new collection date, keep the old output and create new input/configuratio
 
 For large research runs, discover and freeze URLs first, pilot the schema, then partition approved sources into independent jobs with distinct directories. Per-session rate limits do not coordinate multiple processes. A scheduler must enforce each source’s combined request budget.
 
-- [Recovery semantics](https://crawlingo-docs.vercel.app/recovery)
-- [Worker orchestration](https://crawlingo-docs.vercel.app/integrations/workers)
+- [Recovery semantics](recovery.md)
+- [Worker orchestration](integrations-workers.md)

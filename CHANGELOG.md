@@ -21,6 +21,11 @@ Python uses the equivalent version `1.0.0a2`. This source has not been published
 
 ### SDKs and releases
 
+- Build and stage an explicit verified `.crate` archive after the publish dry run, preventing missing-artifact uploads.
+- Export the Node SDK error hierarchy with typed native failure conversion and error causes.
+- Add Node session retry count, exponential backoff and delay setters, plus cookie read/delete/clear methods.
+- Route Node page requests through the shared session manager and honor per-request overrides.
+- Preserve retry configuration in cloned sessions and apply updates without rebuilding connection pools.
 - Added strict shared session configuration and Node `Session.fromConfig()`.
 - Added SHA-256 input/shard integrity checks and `manifest.jsonl` (checkpoint format 2).
 - Updated patched native dependencies and migrated the Python bindings to PyO3 0.29.
@@ -34,6 +39,9 @@ Python uses the equivalent version `1.0.0a2`. This source has not been published
 
 ### Documentation and project maintenance
 
+- Added generated Node/Python member references and an explicit binding-gap inventory.
+- Added a required Rust API documentation release artifact and repaired intra-doc links.
+- Added website snapshot provenance checks, complete Markdown exports and checksummed documentation bundles.
 - Replaced unsupported performance comparisons with scoped measurements.
 - Added API references, usage/deployment guides and copying controls in the website.
 - Added issue forms, contribution/security policies, code ownership and dependency updates.

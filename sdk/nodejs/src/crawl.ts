@@ -2,6 +2,7 @@ import { JsCrawl } from './native.js';
 import { Session } from './session';
 import { DatasetResult } from './dataset';
 import { PaginationConfig } from './pagination';
+import { callNative, callNativeAsync } from './errors';
 
 export class Crawl {
   private readonly inner: JsCrawl;
@@ -14,7 +15,7 @@ export class Crawl {
   }
 
   public static resumable(startUrl: string, session: Session, path: string): Crawl {
-    const inner = JsCrawl.resumable(startUrl, session.inner, path);
+    const inner = callNative(() => JsCrawl.resumable(startUrl, session.inner, path));
     return new Crawl(startUrl, session, inner);
   }
 
@@ -75,7 +76,7 @@ export class Crawl {
   }
 
   public async run(): Promise<DatasetResult[]> {
-    const raw = await this.inner.run();
+    const raw = await callNativeAsync(() => this.inner.run());
     return raw.map(r => new DatasetResult(r));
   }
 }

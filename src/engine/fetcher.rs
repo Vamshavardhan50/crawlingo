@@ -14,6 +14,24 @@ use wreq_util::Emulation;
 /// A boxed, `Send` future — the return type used by the object-safe [`Transport`] trait.
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
+/// Keep transport error categories intact across SDK boundaries.
+fn transport_error(error: wreq::Error, timeout: Duration) -> CrawlingoError {
+    use std::error::Error;
+    if error.is_timeout() {
+        return CrawlingoError::TimeoutError { seconds: timeout.as_secs() };
+    }
+    // wreq exposes is_connect(), but no DNS predicate. Its connector attaches this
+    // exact marker to DNS failures in the source chain (not the top-level message).
+    let mut source = error.source();
+    while let Some(cause) = source {
+        if cause.to_string() == "dns error" {
+            return CrawlingoError::DnsError("host name could not be resolved".into());
+        }
+        source = cause.source();
+    }
+    CrawlingoError::FetchError(error.to_string())
+}
+
 /// The fetcher tier mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FetcherTier {
@@ -145,7 +163,7 @@ pub trait Transport: Send + Sync {
 
 /// Strategy for executing fetches via standard HTTP client pooling and emulation.
 ///
-/// Holds a bounded, thread-safe cache of [`wreq::Client`]s keyed by [`TransportKey`]. Each client
+/// Holds a bounded, thread-safe cache of [`wreq::Client`]s keyed by an internal transport key. Each client
 /// owns a connection pool configured from the [`ConnectionPoolConfig`], so reusing a client across
 /// requests is what makes keep-alive connection reuse actually happen. Clients are created lazily
 /// on first use for a given configuration and evicted in LRU order once the cache exceeds
@@ -272,7 +290,7 @@ impl HttpFetcher {
         let resp = req_builder
             .send()
             .await
-            .map_err(|e| CrawlingoError::FetchError(e.to_string()))?;
+            .map_err(|e| transport_error(e, request.timeout))?;
         let elapsed = start_time.elapsed();
 
         let timings = ResponseTimings {
@@ -328,7 +346,7 @@ impl HttpFetcher {
         let mut stream = resp.bytes_stream();
         let mut body = bytes::BytesMut::new();
         while let Some(chunk) = stream.next().await {
-            let chunk = chunk.map_err(|e| CrawlingoError::FetchError(e.to_string()))?;
+            let chunk = chunk.map_err(|e| transport_error(e, request.timeout))?;
             if chunk.len() > self.max_response_bytes.saturating_sub(body.len()) {
                 return Err(CrawlingoError::FetchError(
                     "response exceeds byte limit".into(),
@@ -445,6 +463,8 @@ pub struct FetchManager {
     http_strategy: Arc<dyn Transport>,
     browser_strategy: Arc<dyn Transport>,
     retry_policy: RetryPolicy,
+    retry_backoff: Option<Arc<std::sync::RwLock<Option<f64>>>>,
+    retry_delay: Option<Arc<std::sync::RwLock<Option<u32>>>>,
     rate_limit_rps: Arc<std::sync::RwLock<f64>>,
 }
 
@@ -463,6 +483,8 @@ impl FetchManager {
             http_strategy: Arc::new(HttpFetcher::new(pool_config)),
             browser_strategy,
             retry_policy: RetryPolicy::default(),
+            retry_backoff: None,
+            retry_delay: None,
             rate_limit_rps: Arc::new(std::sync::RwLock::new(0.0)),
         }
     }
@@ -482,6 +504,8 @@ impl FetchManager {
             http_strategy: Arc::new(HttpFetcher::new(pool_config)),
             browser_strategy: Arc::new(BrowserFetcher::from_manager(browser_manager)),
             retry_policy: RetryPolicy::default(),
+            retry_backoff: None,
+            retry_delay: None,
             rate_limit_rps: Arc::new(std::sync::RwLock::new(0.0)),
         }
     }
@@ -500,6 +524,8 @@ impl FetchManager {
             http_strategy: transport.clone(),
             browser_strategy: transport,
             retry_policy: RetryPolicy::default(),
+            retry_backoff: None,
+            retry_delay: None,
             rate_limit_rps: Arc::new(std::sync::RwLock::new(0.0)),
         }
     }
@@ -513,6 +539,18 @@ impl FetchManager {
     /// Overrides the manager's [`RetryPolicy`]. Chainable.
     pub fn with_retry_policy(mut self, policy: RetryPolicy) -> Self {
         self.retry_policy = policy;
+        self
+    }
+
+    /// Share session overrides without rebuilding connection pools or rate limiters.
+    /// Each dispatch snapshots the settings; changes affect subsequent requests.
+    pub fn with_retry_overrides(
+        mut self,
+        backoff: Arc<std::sync::RwLock<Option<f64>>>,
+        delay: Arc<std::sync::RwLock<Option<u32>>>,
+    ) -> Self {
+        self.retry_backoff = Some(backoff);
+        self.retry_delay = Some(delay);
         self
     }
 
@@ -540,6 +578,21 @@ impl FetchManager {
         let parsed_url = crate::util::url::UrlValidator::default().validate(&request.url)?;
         let host = parsed_url.host_str().unwrap_or("");
 
+        let mut retry_policy = self.retry_policy.clone();
+        if let Some(factor) = self.retry_backoff.as_ref().and_then(|v| *v.read().unwrap()) {
+            if !factor.is_finite() || factor < 1.0 {
+                return Err(CrawlingoError::ConfigError("retry backoff must be finite and >= 1".into()));
+            }
+            retry_policy.multiplier = factor;
+        }
+        if let Some(seconds) = self.retry_delay.as_ref().and_then(|v| *v.read().unwrap()) {
+            if seconds > 86_400 {
+                return Err(CrawlingoError::ConfigError("retry delay must be <= 86400 seconds".into()));
+            }
+            retry_policy.base_delay = Duration::from_secs(seconds.into());
+            retry_policy.max_delay = retry_policy.max_delay.max(retry_policy.base_delay);
+        }
+
         let mut attempt = 0;
 
         loop {
@@ -561,7 +614,7 @@ impl FetchManager {
                     })
                 });
 
-            match self.retry_policy.decide(attempt, request.retries, &res) {
+            match retry_policy.decide(attempt, request.retries, &res) {
                 RetryDecision::Return => return res,
                 RetryDecision::Retry(delay) => {
                     tracing::warn!(

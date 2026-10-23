@@ -2,7 +2,7 @@
 
 Practical dataset workflows, the fields they need, and the boundaries to check before starting.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="catalogs"></a>
 
 ## Product and directory catalogs
 
@@ -18,7 +18,9 @@ Choose identity deliberately. Deduplicating on a SKU keeps one record per produc
 | Identity | sku for one record per product |
 | Output | CSV for review, JSONL for a software pipeline |
 
-- [Product fixture and configuration](https://crawlingo-docs.vercel.app/examples)
+- [Product fixture and configuration](product-example.md)
+
+<a id="articles"></a>
 
 ## Article and documentation collections
 
@@ -26,8 +28,10 @@ Create one record per page with a title, a body and source metadata. Use a minim
 
 For text datasets, inspect paragraph order, whitespace, boilerplate and missing sections. The current HTML parser can place local text before descendant text in mixed-content elements. Required-field validation does not establish document fidelity. Crawlingo also does not split text into model tokens, build embeddings, label examples or select a training/evaluation split. Those are downstream steps.
 
-- [Article configuration recipe](https://crawlingo-docs.vercel.app/cookbook#articles)
-- [Schema and validation](https://crawlingo-docs.vercel.app/schema)
+- [Article configuration recipe](cookbook.md#articles)
+- [Schema and validation](schema.md)
+
+<a id="analysis"></a>
 
 ## Repeatable data collection for analysis
 
@@ -35,7 +39,9 @@ Make the collection process inspectable by retaining its URL file, configuration
 
 A completed report can include failed pages or rejected rows. Decide what completeness means for your project before running the large job: for example, whether every source must succeed or whether a reviewed set of missing sources is acceptable. The engine reports counts; it does not choose an acceptable error rate for you.
 
-- [Read the job report](https://crawlingo-docs.vercel.app/report-reference)
+- [Read the job report](report-reference.md)
+
+<a id="monitoring"></a>
 
 ## Change monitoring
 
@@ -43,8 +49,10 @@ The existing Watch API polls selected page fields and calls your callback when i
 
 A callback does not automatically create a historical dataset, send a notification or persist an audit log. Your application owns those actions. Choose a polling interval appropriate for the source and keep monitoring results separate from dataset-job progress. Change classification is heuristic, so inspect representative changes before automating a consequential response.
 
-- [Watch API](https://crawlingo-docs.vercel.app/watch)
-- [Change event fields](https://crawlingo-docs.vercel.app/change-detection)
+- [Watch API](watch.md)
+- [Change event fields](change-detection.md)
+
+<a id="applications"></a>
 
 ## A dataset feature inside your application
 
@@ -52,8 +60,10 @@ A backend can accept a prepared collection request, write its URL file, start a 
 
 Run the native SDK on a server process. The Node addon is not browser JavaScript. If end users can submit arbitrary URLs, your service needs its own destination and access policy: the library URL validator is not an SSRF security boundary.
 
-- [Developer walkthrough](https://crawlingo-docs.vercel.app/developer-tutorial)
-- [Deploy a worker](https://crawlingo-docs.vercel.app/deployment)
+- [Developer walkthrough](developer-tutorial.md)
+- [Deploy a worker](deployment.md)
+
+<a id="fit"></a>
 
 ## Decide whether the current engine fits
 

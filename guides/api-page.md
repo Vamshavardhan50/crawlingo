@@ -2,7 +2,7 @@
 
 Fetch and inspect an individual page to develop selectors before creating a bulk dataset job.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="create"></a>
 
 ## Create a page
 
@@ -25,8 +25,10 @@ import { Page } from 'crawlingo';
 
 const page = await Page.create('https://example.com/', { timeout: 30 });
 console.log(page.status, page.title());
-console.log(page.css('h1').text());
+console.log(page.css('h1').text);
 ```
+
+<a id="options"></a>
 
 ## Fetch options
 
@@ -41,6 +43,8 @@ console.log(page.css('h1').text());
 | auto_match | autoMatch | boolean: enable supported selector recovery. |
 | retries | Not exposed | Python constructor argument; do not assume a Node option exists. |
 | Not exposed | browserProfile | Node option string for a transport profile. |
+
+<a id="members"></a>
 
 ## Properties and selector methods
 
@@ -57,11 +61,13 @@ console.log(page.css('h1').text());
 | before_text(text) | beforeText(text) | ElementCollection before matching text. |
 | regex(pattern) | regex(pattern) | ElementCollection from a regular-expression query. |
 
-- [Selector examples and limitations](https://crawlingo-docs.vercel.app/selectors)
+- [Selector examples and limitations](selectors.md)
+
+<a id="bulk"></a>
 
 ## From one page to a dataset
 
 Use Page to inspect a representative page and select a record container. Check pages with missing fields too. Page retains HTML and parsed content; do not retain a million Page objects in an application list. Move the extraction rule into DatasetJob fields and feed it a URL file.
 
-- [DatasetJob API](https://crawlingo-docs.vercel.app/reference/dataset-job)
-- [Complete developer tutorial](https://crawlingo-docs.vercel.app/developer-tutorial)
+- [DatasetJob API](api-dataset-job.md)
+- [Complete developer tutorial](developer-tutorial.md)

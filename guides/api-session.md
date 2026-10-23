@@ -2,7 +2,7 @@
 
 Configure request behavior before creating a job. Python uses snake_case methods; Node.js uses camelCase.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="create"></a>
 
 ## Create and pass a session
 
@@ -34,7 +34,9 @@ const report = await new DatasetJob(config, session).run();
 console.log(report);
 ```
 
-- [Create job.json](https://crawlingo-docs.vercel.app/reference/job-config#minimal)
+- [Create job.json](api-job-config.md#minimal)
+
+<a id="requests"></a>
 
 ## Request configuration methods
 
@@ -50,6 +52,8 @@ These setters return the session for chaining. Configure them before the first r
 | proxy_pool(proxies) | proxyPool(proxies) | list[str] / string[] | Configure a set of proxy URLs. |
 | proxy_provider(url) | proxyProvider(url) | URL string; Node also accepts null | Configure a proxy-provider URL. |
 
+<a id="transport"></a>
+
 ## Transport and selector recovery
 
 A transport profile does not guarantee access to a target site. Configure browser rendering only through a build and API that expose it.
@@ -62,15 +66,17 @@ A transport profile does not guarantee access to a target site. Configure browse
 | fingerprint_path(path) | fingerprintPath(path) | Location for stored selector fingerprints. |
 | auto_match_weights(weights) | autoMatchWeights(weights) | Dictionary / record of numeric matching weights. |
 
-- [Selector recovery scope](https://crawlingo-docs.vercel.app/auto-match)
-- [Authentication examples](https://crawlingo-docs.vercel.app/authentication)
+- [Selector recovery scope](auto-match.md)
+- [Authentication examples](authentication.md)
+
+<a id="ownership"></a>
 
 ## Ownership and binding differences
 
 clone() returns another Session wrapper backed by the native clone operation. destroy() invokes native cleanup and returns None / void; avoid destroying a session while its jobs are running.
 
-Python also provides helpers such as basic_auth, bearer_auth, from_config, metrics, page and dataset. The current Node Session class does not expose those helpers. Use headers for Node authentication and Page.create(url, { session }) for page inspection. Consult the source for additional Python helpers instead of translating names by assumption.
+Both bindings load config: Python Session.from_config(path) and Node Session.fromConfig(path). Python additionally provides basic_auth, bearer_auth, metrics, page and dataset helpers. Node exposes retries, retryDelay, retryBackoff, getCookies, deleteCookie and clearCookies; the public Python wrapper does not yet expose those methods. Read the language-specific signatures.
 
-- [Page methods](https://crawlingo-docs.vercel.app/reference/page)
-- [Python SDK guide](https://crawlingo-docs.vercel.app/sdk/python)
-- [Node.js SDK guide](https://crawlingo-docs.vercel.app/sdk/nodejs)
+- [Every Node Session member](reference/node/session.md)
+- [Every Python Session member](reference/python/session.md)
+- [Page methods](api-page.md)

@@ -2,7 +2,7 @@
 
 Move from the sample catalog to an application-owned job: configuration, selectors, validation, execution and incremental consumption.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="contract"></a>
 
 ## 1. Define the record contract first
 
@@ -16,6 +16,8 @@ Decide which fields are required, which may be empty, and which defaults are mea
 | name | Required text | A product without a name is incomplete for this example. |
 | price | Required finite float string | Reject nonnumeric text while retaining a parseable value. |
 | _source_url / _row | Added by the engine | Trace the record back to its source location. |
+
+<a id="html"></a>
 
 ## 2. Match fields within their row
 
@@ -36,7 +38,9 @@ Do not assume every page has the same template. Sample empty prices, optional la
 </article>
 ```
 
-- [Selector syntax and extraction options](https://crawlingo-docs.vercel.app/selectors)
+- [Selector syntax and extraction options](selectors.md)
+
+<a id="config"></a>
 
 ## 3. Write a bounded job configuration
 
@@ -86,7 +90,9 @@ checkpoint_pages bounds how many input lines are handled before advancing the ch
 }
 ```
 
-- [Complete configuration reference](https://crawlingo-docs.vercel.app/dataset-jobs#limits)
+- [Complete configuration reference](dataset-jobs.md#limits)
+
+<a id="session"></a>
 
 ## 4. Separate request policy from record rules
 
@@ -122,7 +128,9 @@ const report = await job.run();
 console.log(report);
 ```
 
-- [Session options](https://crawlingo-docs.vercel.app/session)
+- [Session options](session.md)
+
+<a id="quality"></a>
 
 ## 5. Treat the report as part of the result
 
@@ -144,7 +152,9 @@ else:
 print(outcome)
 ```
 
-- [Report and error reference](https://crawlingo-docs.vercel.app/report-reference)
+- [Report and error reference](report-reference.md)
+
+<a id="consume"></a>
 
 ## 6. Stream the committed output
 
@@ -191,6 +201,8 @@ for (let shard = 0; shard < report.shards; shard++) {
 }
 ```
 
+<a id="csv"></a>
+
 ## 7. Use CSV when the consumer expects a table
 
 Set format to csv and choose a fresh output directory. Each data shard uses the declared field columns followed by _source_url and _row. Every shard has a header. The error files remain JSONL.
@@ -212,6 +224,8 @@ for shard in range(report["shards"]):
             print(row["sku"], row["name"])
 ```
 
+<a id="lifecycle"></a>
+
 ## 8. Integrate the job lifecycle
 
 Create one worker owner for each output directory. A service can persist a job ID, input/configuration paths and a process status in its own database. That service database is separate from Crawlingo’s checkpoint store.
@@ -220,7 +234,9 @@ In Node, await job.run() and request cancellation from your signal handler. In P
 
 Do not mark an application job “succeeded” merely because a process exited or complete is true. Use an explicit outcome policy, preserve the report, and keep fatal exceptions separate from per-page errors.
 
-- [Worker deployment](https://crawlingo-docs.vercel.app/deployment)
+- [Worker deployment](deployment.md)
+
+<a id="larger"></a>
 
 ## 9. Grow the workload in stages
 
@@ -231,5 +247,5 @@ Do not mark an application job “succeeded” merely because a process exited o
 - Exercise cancellation and resume before scheduling unattended work.
 - Keep the source revision, configuration and measurement method with each benchmark result.
 
-- [Production operating guide](https://crawlingo-docs.vercel.app/production-guide)
-- [Million-page measurement](https://crawlingo-docs.vercel.app/benchmarks)
+- [Production operating guide](production-guide.md)
+- [Million-page measurement](benchmarks.md)

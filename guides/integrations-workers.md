@@ -2,7 +2,7 @@
 
 Run Crawlingo behind an API or scheduler with explicit ownership, retries and output publication.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="architecture"></a>
 
 ## Keep long jobs in a worker
 
@@ -19,6 +19,8 @@ Download    ← completed dataset     ← publication step
 - Persist your own queued/running/failed/published states. report.json is an engine report, not a queue or a live status service.
 - Validate submitted destinations and file paths in the application. Do not accept arbitrary output directories from an API caller.
 - Use durable storage for both shards and state. An ephemeral container filesystem cannot provide restart recovery.
+
+<a id="python"></a>
 
 ## A Python worker entry point
 
@@ -43,6 +45,8 @@ if report["pages_failed"] or report["records_rejected"]:
 ```
 
 - The same synchronous entry point can run inside a queue task. In an async worker, await DatasetJob(config).run_async(). Cancellation requests a cooperative stop; wait for the worker to exit before starting a replacement on the same directory.
+
+<a id="node"></a>
 
 ## A Node.js worker entry point
 
@@ -70,6 +74,8 @@ try {
 }
 ```
 
+<a id="scheduler"></a>
+
 ## cron, Airflow and CI jobs
 
 Build the CLI once in your worker image. Configure the scheduler to run the command below with a fixed working directory and a persistent mounted job directory. In Airflow, the task or container operator runs the same command; this guide does not require a custom Crawlingo operator.
@@ -88,8 +94,10 @@ crawlingo dataset /work/job.json
 
 - A retry uses the same immutable inputs and directory. A scheduled refresh uses a new directory for that collection date. A finished job resumes without refetching completed URLs; it does not refresh pages or retry previously committed failures automatically. A process killed by the OS may return a different exit status.
 
-- [Container and storage setup](https://crawlingo-docs.vercel.app/deployment)
-- [Recovery and retry semantics](https://crawlingo-docs.vercel.app/recovery)
+- [Container and storage setup](deployment.md)
+- [Recovery and retry semantics](recovery.md)
+
+<a id="publish"></a>
 
 ## Publish a finished dataset
 
@@ -99,4 +107,4 @@ crawlingo dataset /work/job.json
 - Use stable record keys to make downstream retries idempotent. Dataset deduplication is scoped to a job, not your entire database.
 
 - [FastAPI: background work considerations](https://fastapi.tiangolo.com/tutorial/background-tasks/)
-- [Processing the output](https://crawlingo-docs.vercel.app/integrations/data)
+- [Processing the output](integrations-data.md)

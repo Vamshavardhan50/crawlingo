@@ -1,4 +1,5 @@
 import { JsDatasetSchema, JsFieldType } from './native.js';
+import { callNative } from './errors';
 
 export enum FieldType {
   String = 0,
@@ -32,6 +33,6 @@ export class DatasetSchema {
   }
 
   public validate(record: Record<string, string>): Record<string, string> {
-    return this.inner.validate(record);
+    return callNative(() => this.inner.validate(record));
   }
 }

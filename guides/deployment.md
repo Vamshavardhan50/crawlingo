@@ -2,7 +2,7 @@
 
 Run the SDK in a backend process with persistent storage, predictable limits and a clear restart procedure.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="choose"></a>
 
 ## Choose a runtime
 
@@ -13,6 +13,8 @@ Run the SDK in a backend process with persistent storage, predictable limits and
 | Container job platform | Run the same worker image with a persistent volume and one replica per job directory. Configure termination grace time. |
 | React / Next.js application | Queue work from the server and let a separate worker run the native SDK. Display the report in the frontend. |
 | Vercel / Netlify docs hosting | Host the documentation website. A million-page job needs a worker and storage outside the docs deployment. |
+
+<a id="container"></a>
 
 ## Build a CLI worker image
 
@@ -32,14 +34,18 @@ docker run --rm --init --stop-timeout 120 \
 
 - [Worker Dockerfile and operating notes](https://github.com/Vamshavardhan50/crawlingo/tree/main/deploy)
 
+<a id="sdk"></a>
+
 ## Use Python or Node in your own worker
 
 Build or install a package for the worker OS, CPU and runtime. A Windows .node or .pyd file cannot be copied into a Linux image. Until the new release is published, use the source installation guides. Node is a server runtime dependency; the addon cannot execute in a browser or edge isolate.
 
 Use DatasetJob.run() in Python or await job.run() in Node. Pass an explicit output directory per job. Send job.cancel() when your worker is shutting down, await completion, and only then release its volume. The Rust CLI handles Ctrl+C and SIGTERM.
 
-- [Python integration](https://crawlingo-docs.vercel.app/sdk/python)
-- [Node integration](https://crawlingo-docs.vercel.app/sdk/nodejs)
+- [Python integration](sdk-python.md)
+- [Node integration](sdk-nodejs.md)
+
+<a id="operate"></a>
 
 ## Operate and resume
 
@@ -51,5 +57,5 @@ Local Sled storage is the checkpoint backend. Shared network filesystems and mul
 - After interruption, run the unchanged configuration with the same input and directory. Resume before consuming output after a hard crash.
 - Back up a stopped job as a unit. Treat input or schema changes as a new job.
 
-- [Recovery details](https://crawlingo-docs.vercel.app/recovery)
-- [Resource limits](https://crawlingo-docs.vercel.app/dataset-jobs#limits)
+- [Recovery details](recovery.md)
+- [Resource limits](dataset-jobs.md#limits)

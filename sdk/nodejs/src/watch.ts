@@ -1,5 +1,6 @@
 import { JsWatch } from './native.js';
 import { Session } from './session';
+import { toCrawlingoError, ChangeDetectionError } from './errors';
 
 export interface WatchChangeEvent {
   url: string;
@@ -37,7 +38,7 @@ export class Watch {
   public run(callback: (err: Error | null, event: WatchChangeEvent) => void): void {
     this.inner.run((err, evt) => {
       if (err) {
-        callback(err, null as any);
+        callback(toCrawlingoError(err, ChangeDetectionError), null as any);
         return;
       }
       callback(null, {

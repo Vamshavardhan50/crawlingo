@@ -2,7 +2,7 @@
 
 Plan capacity, observe progress, handle shutdown and understand the limits of the current single-node engine.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="baseline"></a>
 
 ## Start with a representative baseline
 
@@ -10,7 +10,9 @@ A small sample should represent the hard cases in your real input, not only the 
 
 Measure the workload with the same build profile and session policy you intend to use later. Keep the source revision, machine, concurrency, checkpoint settings and payload characteristics with the result. Comparing one release build to another debug build is not a useful throughput comparison.
 
-- [Recorded scale method](https://crawlingo-docs.vercel.app/benchmarks)
+- [Recorded scale method](benchmarks.md)
+
+<a id="budget"></a>
 
 ## Budget memory and disk separately
 
@@ -19,6 +21,8 @@ The input URL file is read in batches, but concurrent responses, DOMs, extracted
 Disk grows with data shards, error shards, exact identity values and checkpoint storage. Exact deduplication retains comparison data so a hash collision does not silently discard a distinct record. Large identity values can therefore increase storage cost.
 
 Measure output and state growth on your sample, then extrapolate with headroom. Watch available disk throughout a long run. Disk-full and power-loss behavior still need broader fault acceptance; do not describe the current checkpoint design as a guarantee against every storage failure.
+
+<a id="tuning"></a>
 
 ## Tune one limit at a time
 
@@ -33,7 +37,9 @@ These settings are part of the job configuration signature. Change them in a new
 | max_records_per_page | A valid page contains more rows than the configured bound. | More extracted records may be retained per page. |
 | max_record_bytes | A legitimate record contains large text fields. | Larger accepted records affect buffers, output size and deduplication storage. |
 
-- [Limits and defaults](https://crawlingo-docs.vercel.app/dataset-jobs#limits)
+- [Limits and defaults](dataset-jobs.md#limits)
+
+<a id="ownership"></a>
 
 ## Make job ownership explicit
 
@@ -43,6 +49,8 @@ If your application runs several jobs, it must decide how many workers may run a
 
 Shared network filesystems, multi-host state writers and remote shard commits have not been validated. Partitioning a URL file across separate jobs is possible at the application layer, but deduplication remains local to each job unless you implement a later global reconciliation step.
 
+<a id="shutdown"></a>
+
 ## Handle shutdown and restart
 
 Request cancellation, await the active run and then release its storage. The Rust CLI responds to Ctrl+C and Unix SIGTERM. SDK applications should connect their own lifecycle handlers to job.cancel(). A cancelled run discards its uncommitted batch, so some GET requests can be repeated on resume.
@@ -51,8 +59,10 @@ Keep the URL file, job configuration, state directory and output shards together
 
 Use a stopped job directory for a coherent backup. Copying selected shards while the writer is active does not capture a complete checkpoint snapshot.
 
-- [Recovery contract](https://crawlingo-docs.vercel.app/recovery)
-- [Deployment template](https://crawlingo-docs.vercel.app/deployment)
+- [Recovery contract](recovery.md)
+- [Deployment template](deployment.md)
+
+<a id="observability"></a>
 
 ## Observe outcomes without inventing live metrics
 
@@ -60,7 +70,9 @@ The current job API returns a final report and writes report.json for the latest
 
 Track page failures, rejected rows, duplicates, accepted records, elapsed time and storage growth. Preserve error shards and the exact configuration for investigation. A higher request rate is useful only when it produces the correct records at an acceptable resource cost.
 
-- [Counter meanings and outcomes](https://crawlingo-docs.vercel.app/report-reference)
+- [Counter meanings and outcomes](report-reference.md)
+
+<a id="quality"></a>
 
 ## Review changes in the source
 
@@ -68,7 +80,9 @@ Selectors can continue matching after a site redesign while extracting the wrong
 
 DatasetJob keeps explicit selectors stable. Heuristic selector recovery is available in the separate Dataset builder, not silently enabled in bulk jobs. If a selector needs to change, review it and create a new job configuration/output directory.
 
-- [Selector recovery scope](https://crawlingo-docs.vercel.app/auto-match)
+- [Selector recovery scope](auto-match.md)
+
+<a id="release"></a>
 
 ## Separate local evidence from a production promise
 
@@ -76,5 +90,5 @@ The million-page acceptance result is a real local HTTP workload with verified r
 
 Before a release, install packaged SDK artifacts in clean target environments and run the representative workload there. The repository includes a revised release workflow, but successful local builds do not mean its full hosted matrix or registry publication has run. Docker and cloud deployment templates also need validation on the intended platform.
 
-- [SDK publishing steps](https://crawlingo-docs.vercel.app/publishing)
-- [Remaining implementation gates](https://crawlingo-docs.vercel.app/roadmap)
+- [SDK publishing steps](publishing.md)
+- [Remaining implementation gates](roadmap.md)

@@ -1,6 +1,6 @@
 //! Fetch metrics aggregation.
 //!
-//! [`MetricsLayer`] is a [`Layer`](crate::engine::middleware::Layer) that wraps a `Transport` and
+//! [`MetricsLayer`] is a [`Layer`] that wraps a `Transport` and
 //! records every fetch attempt into a shared [`Metrics`] sink. Every [`crate::engine::session::Session`]
 //! carries its own `Metrics` (see `Session::metrics()`), with a `MetricsLayer` wired in as the
 //! outermost middleware layer automatically — no opt-in required, matching rate limiting and retry

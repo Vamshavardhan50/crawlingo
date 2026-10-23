@@ -1,6 +1,6 @@
 # Release status and next SDK release
 
-Last updated: **2026-10-23** (registry versions audited October 22). Local changes are not published packages.
+Last updated: **2026-10-24** (registry versions audited October 22). Local changes are not published packages.
 
 ## What users can install today
 
@@ -38,7 +38,8 @@ released. Existing immutable registry versions must not be overwritten or reused
 | npm | Node.js 22+; the same four native targets | Native SDK/API checks, Debian 12 consumer check, complete addon set, clean consumer import |
 | Python | CPython 3.8–3.13 where the wheel builder supports the platform; Linux x64/ARM64 (glibc 2.28+), macOS x64/ARM64, Windows x64 | Wheel import and dataset checks, source distribution metadata |
 
-These are intended targets. The revised hosted matrix has **not** passed yet.
+The end-to-end release has **not** passed yet. The October 23 run completed the
+platform build jobs, then failed during Rust crate artifact upload; see below.
 The alpha.2 artifact matrix and package metadata target CPython 3.8–3.13.
 The patched PyO3 dependency does not by itself certify additional Python versions.
 
@@ -67,6 +68,26 @@ The patched PyO3 dependency does not by itself certify additional Python version
 Publication across three registries is not atomic. If one upload fails after
 another succeeds, inspect which versions exist before rerunning. Never silently
 replace a release asset or claim all registries are synchronized after a partial run.
+
+## Crate artifact repair — October 24
+
+Inspected [Release run 39957907214](https://github.com/Vamshavardhan50/crawlingo/actions/runs/39957907214)
+at engine commit `c76f4bd`. Audit, version validation, all core/Node/Python matrix
+jobs, npm packaging and Python packaging succeeded. `package-crate` completed its
+Cargo publish dry run but failed when uploading `target/package/*.crate`, because
+no matching file remained. The Node `punycode` deprecation warning was not the
+upload failure. Publication jobs were skipped.
+
+The prepared workflow now runs an explicit, verified `cargo package` after the
+publish dry run. Both commands use `target/crate-release`; the staging step
+requires the exact versioned archive to be nonempty, checks its tar structure,
+then copies it into `crate-dist/` for upload. Missing artifacts still fail the job.
+The corrected workflow needs to be pushed and run before claiming a hosted fix.
+
+The obsolete GitHub Pages `main/docs` publishing configuration was turned off on
+October 24. GitHub rejected direct disabling of its generated Pages workflow, so
+its publishing source was removed instead. Historical workflow entries can
+remain visible. Documentation hosting is maintained separately in Vercel.
 
 ## Existing GitHub release repair
 

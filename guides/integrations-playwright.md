@@ -2,13 +2,15 @@
 
 Discover links with a browser, then hand a stable URL file to a dataset job.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="fit"></a>
 
 ## 1. Choose the right browser boundary
 
 Use this pattern when a listing needs JavaScript or interaction, but each destination page contains the fields you need in its HTTP response. The browser runs only for discovery. The dataset job owns fetching, field validation, deduplication and checkpoints.
 
 If the data exists only after JavaScript runs on each destination, this URL handoff is insufficient. Crawlingo will fetch the destination again without the Playwright page state. See the rendered-content section before choosing this design.
+
+<a id="install"></a>
 
 ## 2. Prepare the tools
 
@@ -28,7 +30,9 @@ npm install playwright
 npx playwright install chromium
 ```
 
-- [Crawlingo source installation](https://crawlingo-docs.vercel.app/installation)
+- [Crawlingo source installation](installation.md)
+
+<a id="discover"></a>
 
 ## 3. Save the discovered URLs
 
@@ -98,6 +102,8 @@ try {
 }
 ```
 
+<a id="run"></a>
+
 ## 4. Run a dataset job
 
 Inspect urls.txt, then keep it unchanged for the lifetime of the job. Save job.json below in the same directory. Replace h1 with the field selector in the destination response. This example produces one title record per page.
@@ -147,7 +153,9 @@ if (!report.complete || report.cancelled || report.pages_failed || report.record
 }
 ```
 
-- [Output and recovery contract](https://crawlingo-docs.vercel.app/reference/dataset-job)
+- [Output and recovery contract](api-dataset-job.md)
+
+<a id="puppeteer"></a>
 
 ## Using Puppeteer instead
 
@@ -184,6 +192,8 @@ try {
 }
 ```
 
+<a id="rendered-content"></a>
+
 ## When the destination also needs JavaScript
 
 page.content() returns the rendered document HTML. The current Python and Node Page wrappers have no public from_html / fromHtml constructor, and DatasetJob accepts a URL file rather than HTML records. Do not pass HTML to Page.create: it expects a URL.
@@ -192,8 +202,10 @@ For a browser-owned extraction workflow, keep extraction in Playwright or Puppet
 
 Playwright cookies, local storage, authentication and proxy configuration are not shared automatically. Session HTTP settings must be configured separately. A copied cookie may still be insufficient for a site whose state lives in the browser. Start with public destinations and inspect the actual response before scaling.
 
-- [Session reference](https://crawlingo-docs.vercel.app/reference/session)
-- [Rust browser tier](https://crawlingo-docs.vercel.app/advanced)
+- [Session reference](api-session.md)
+- [Rust browser tier](advanced.md)
+
+<a id="sources"></a>
 
 ## API sources
 

@@ -2,7 +2,7 @@
 
 A measured research-directory collection, with quality checks, restart evidence and explicit limits.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="results"></a>
 
 ## Python PEP directory · 19 October 2026
 
@@ -19,6 +19,8 @@ Both jobs completed with zero page failures, rejected records and duplicate reco
 - [Full report and method](https://github.com/Vamshavardhan50/crawlingo/blob/main/PUBLIC_WEB_RESULTS.md)
 - [Machine-readable evidence](https://github.com/Vamshavardhan50/crawlingo/blob/main/measurements/2026-10-19-peps.json)
 
+<a id="method"></a>
+
 ## How it was measured
 
 - Windows 11, eight logical CPUs, release-mode native CLI; no browser rendering or mocked transport.
@@ -28,6 +30,8 @@ Both jobs completed with zero page failures, rejected records and duplicate reco
 - Memory is Windows peak working set for the Rust CLI child, sampled every 20 ms. It excludes Python, build tools and the remote server.
 - One final measured run after an exploratory pilot. Network variability and source changes are not controlled.
 
+<a id="quality"></a>
+
 ## Correct records matter more than successful requests
 
 The exploratory run produced 744 rows, but 522 titles included a neighboring version link. A successful HTTP status and matching row count did not detect it. Numbered table-column selectors fixed the extraction; the final example uses td:nth-child(3) for titles.
@@ -35,6 +39,8 @@ The exploratory run produced 744 rows, but 522 titles included a neighboring ver
 An independent HTMLParser comparison found zero ID/title/classification mismatches across the corrected 744-row directory. Every exported record also passed required-value, provenance and uniqueness checks.
 
 The parser now preserves mixed inline text in document order. PEP 1 text matched the independently parsed source character order after entity decoding and ignoring whitespace. Only this document body received that semantic comparison; the other 19 did not.
+
+<a id="scope"></a>
 
 ## What remains unproven
 
@@ -44,8 +50,10 @@ The parser now preserves mixed inline text in document order. PEP 1 text matched
 - Full HTML/Markdown fidelity and scientific correctness of all collected documents.
 - The earlier million-page local fixture has not been rerun after these parser changes.
 
-- [Separate local million-page evidence](https://crawlingo-docs.vercel.app/benchmarks)
+- [Separate local million-page evidence](benchmarks.md)
 - [Architecture review](https://github.com/Vamshavardhan50/crawlingo/blob/main/ARCHITECTURE_AUDIT.md)
+
+<a id="reproduce"></a>
 
 ## Reproduce a small sample
 
@@ -60,8 +68,10 @@ python examples/research_dataset/prepare_details.py --limit 20
 python scripts/measure-public-dataset.py examples/research_dataset/detail-job.json target/research-evidence/details.json
 ```
 
-- [Step-by-step research walkthrough](https://crawlingo-docs.vercel.app/research-datasets)
+- [Step-by-step research walkthrough](research-datasets.md)
 - [Independent source comparison instructions](https://github.com/Vamshavardhan50/crawlingo/tree/main/examples/research_dataset)
+
+<a id="million"></a>
 
 ## How much can your project collect?
 
@@ -69,4 +79,4 @@ There is no single public-web maximum. Estimate pages needed from accepted uniqu
 
 At one allowed page per second, a million single-record pages take at least 11.6 days of request time. Twenty accepted records per page reduces the requirement to 50,000 pages, or at least 13.9 hours at that rate. These are arithmetic examples; this run did not fetch a million public pages.
 
-- [Capacity planning and resource bounds](https://crawlingo-docs.vercel.app/dataset-design#capacity)
+- [Capacity planning and resource bounds](dataset-design.md#capacity)

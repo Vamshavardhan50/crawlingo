@@ -2,7 +2,7 @@
 
 Write explicit extraction rules and test them against representative page shapes.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="columns"></a>
 
 ## Select a table column
 
@@ -14,7 +14,9 @@ Use td:nth-child(3) for the third element child of a row. Positive integer posit
 {"name":"title","selector":"td:nth-child(3)","required":true}
 ```
 
-- [Research directory example](https://crawlingo-docs.vercel.app/research-datasets)
+- [Research directory example](research-datasets.md)
+
+<a id="css"></a>
 
 ## CSS and row scope
 
@@ -29,12 +31,16 @@ These are entries in the fields array of a job with row_selector set to article.
 ]
 ```
 
+<a id="alternatives"></a>
+
 ## Other selector modes
 
 Job selector_type accepts css, xpath, regex, text, after_text and before_text. These are the project’s implementations, not promises of complete browser CSS or full XPath standards compliance. Regular expressions are compiled during configuration validation.
+
+<a id="drift"></a>
 
 ## Handle layout changes
 
 Required fields and rejection reports expose broken extraction. DatasetJob does not silently recover selectors. The existing Dataset builder can optionally use stored fingerprints for heuristic CSS recovery.
 
-- [Selector recovery](https://crawlingo-docs.vercel.app/auto-match)
+- [Selector recovery](auto-match.md)

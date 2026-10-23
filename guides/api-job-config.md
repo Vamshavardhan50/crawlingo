@@ -2,7 +2,7 @@
 
 The shared configuration contract for Python, Node.js, Rust and the CLI. JSON keys use snake_case in every binding.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="minimal"></a>
 
 ## Minimal configuration
 
@@ -18,6 +18,8 @@ Save this as job.json and create urls.txt with one HTTP(S) URL per line. Paths a
 }
 ```
 
+<a id="input"></a>
+
 ## Input and extraction
 
 | Property | Type | Default | Behavior |
@@ -27,8 +29,10 @@ Save this as job.json and create urls.txt with one HTTP(S) URL per line. Paths a
 | fields | JobField[] / Vec<JobField> | Required | At least one field. Names must be unique, nonempty and cannot begin with _. |
 | row_selector | string / Option<String> | Omitted | CSS container for each record. Omit for one record per page. |
 
-- [JobField options and validation](https://crawlingo-docs.vercel.app/schema)
-- [Row container example](https://crawlingo-docs.vercel.app/dataset-jobs#row-containers)
+- [JobField options and validation](schema.md)
+- [Row container example](dataset-jobs.md#row-containers)
+
+<a id="limits"></a>
 
 ## Concurrency and resource limits
 
@@ -43,7 +47,9 @@ These limits apply to separate buffers; their sum is not a total memory guarante
 | max_records_per_page | integer | 1000 | Positive maximum row containers per page. |
 | max_record_bytes | integer | 262144 (256 KiB) | Positive maximum serialized extracted field bytes per record. |
 
-- [Capacity planning](https://crawlingo-docs.vercel.app/production-guide)
+- [Capacity planning](production-guide.md)
+
+<a id="export"></a>
 
 ## Identity, source policy and output
 
@@ -55,6 +61,8 @@ Changing any serialized configuration or the URL-file content makes it a differe
 | dedup_fields | string[] | [] | Empty means all extracted fields; otherwise every name must be declared in fields. Metadata is excluded. |
 | respect_robots | boolean | true | Apply robots rules and crawl delay using the session User-Agent. |
 | format | "jsonl" \| "csv" | "jsonl" | Fixed-schema shards. CSV includes a header in every data shard. |
+
+<a id="typed"></a>
 
 ## TypeScript contract
 
@@ -83,4 +91,4 @@ interface JobConfig {
 }
 ```
 
-- [DatasetJob constructor and methods](https://crawlingo-docs.vercel.app/reference/dataset-job)
+- [DatasetJob constructor and methods](api-dataset-job.md)

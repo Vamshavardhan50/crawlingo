@@ -12,6 +12,7 @@ const files = fs.readdirSync(directory).filter(name => !['release-manifest.json'
 const required = [
   `crawlingo-${version}.tgz`, `crawlingo-${version}.crate`,
   `crawlingo-${pythonVersion}.tar.gz`,
+  `crawlingo-${version}-rustdoc.tar.gz`,
   ...targets.map(target => `crawlingo-${version}-${target}.tar.gz`),
 ];
 for (const name of required) assert.ok(files.includes(name), `Missing release artifact: ${name}`);

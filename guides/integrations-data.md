@@ -2,13 +2,15 @@
 
 Read completed output incrementally, convert field types, and produce an analytical dataset.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="input"></a>
 
 ## Start with committed output
 
 Run the product example first. The snippets below read its output directory from examples/product_dataset. Review report.json before importing records. Use only part-XXXXXXXX.jsonl files: a broad *.jsonl glob also matches error shards. Crawlingo stores validated field values as strings, so define downstream types deliberately.
 
-- [Run the product example](https://crawlingo-docs.vercel.app/examples)
+- [Run the product example](product-example.md)
+
+<a id="pandas"></a>
 
 ## Read JSONL in pandas batches
 
@@ -41,6 +43,8 @@ for shard in sorted(root.glob("part-" + "[0-9]" * 8 + ".jsonl")):
         print(chunk[["sku", "price"]].head())
 print({"rows_processed": total, "rejected_rows": report["records_rejected"]})
 ```
+
+<a id="duckdb"></a>
 
 ## Query and convert with DuckDB
 
@@ -77,6 +81,8 @@ with duckdb.connect() as con:
 
 ```
 
+<a id="destinations"></a>
+
 ## Databases, object storage and search
 
 Do not upload a live state database as a consistent recovery snapshot. A remote bucket is not the local state backend. Snapshot a stopped job as a whole when you need a recoverable backup.
@@ -88,8 +94,10 @@ Do not upload a live state database as a consistent recovery snapshot. A remote 
 | Search or RAG index | Review extracted text, remove boilerplate, chunk it, create embeddings, and keep _source_url for attribution. |
 | CSV / spreadsheets | Read each shard with its own header; preserve identifiers as text and convert numbers explicitly. |
 
+<a id="sources"></a>
+
 ## API sources
 
 - [pandas.read_json: lines, chunksize and dtype](https://pandas.pydata.org/docs/reference/api/pandas.read_json.html)
 - [DuckDB JSON reader](https://duckdb.org/docs/stable/data/json/overview)
-- [Crawlingo recovery](https://crawlingo-docs.vercel.app/recovery)
+- [Crawlingo recovery](recovery.md)

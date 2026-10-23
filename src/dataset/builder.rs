@@ -337,9 +337,9 @@ impl Dataset {
     }
 
     /// Builds this dataset's configured fields against many URLs concurrently, streaming each
-    /// completed record onto a [`DatasetStream`] as it finishes rather than collecting everything
+    /// completed record onto a [`DatasetStream`](crate::dataset::stream::DatasetStream) as it finishes rather than collecting everything
     /// into memory first — useful for large URL lists where results should be written out (see
-    /// [`DatasetStream::write_csv`]/[`DatasetStream::write_parquet`]) incrementally.
+    /// [`write_csv`](crate::dataset::stream::DatasetStream::write_csv)/[`write_parquet`](crate::dataset::stream::DatasetStream::write_parquet)) incrementally.
     ///
     /// Each pushed record's field map additionally carries a `"url"` entry (unless a field named
     /// `"url"` is already configured) so the source page remains identifiable once flattened into

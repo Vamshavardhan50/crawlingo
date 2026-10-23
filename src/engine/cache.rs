@@ -1,4 +1,4 @@
-//! HTTP response caching, as a [`Layer`](crate::engine::middleware::Layer).
+//! HTTP response caching, as a [`Layer`].
 //!
 //! [`CachingLayer`] wraps a `Transport` with a [`ResponseCache`], honoring the subset of standard
 //! HTTP caching semantics that matters for a crawler: `Cache-Control: no-store` (never cache),
@@ -6,7 +6,7 @@
 //! window), and `ETag`/`Last-Modified` conditional revalidation (`If-None-Match`/
 //! `If-Modified-Since`, honoring a `304 Not Modified` by serving the cached body).
 //!
-//! Every fetch in this crate is a GET (see [`crate::engine::fetcher::HttpFetcher::execute`]), so
+//! Every fetch in this crate is a GET (see `HttpFetcher::execute`), so
 //! the cache key is simply the request URL — no method or `Vary` component is needed.
 
 use crate::engine::fetcher::{BoxFuture, FetchRequest, NormalizedResponse, Transport};

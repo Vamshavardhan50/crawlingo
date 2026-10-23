@@ -2,7 +2,7 @@
 
 Use Crawlingo as the collection step in your existing data pipeline.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="contract"></a>
 
 ## The integration contract
 
@@ -15,6 +15,8 @@ Discover URLs → urls.txt + job.json → Crawlingo worker
              → JSONL / CSV + report → analysis, database or search
 ```
 
+<a id="choose"></a>
+
 ## Choose a handoff
 
 | Your tool | Connect through | Who does what |
@@ -26,9 +28,11 @@ Discover URLs → urls.txt + job.json → Crawlingo worker
 | Object storage / databases | A separate export stage | Upload committed output after completion; retain state locally for resume. |
 | Search / RAG tools | JSONL records with source metadata | Your downstream code cleans text, chunks, embeds and indexes it. |
 
-- [Playwright and Puppeteer](https://crawlingo-docs.vercel.app/integrations/playwright)
-- [pandas, DuckDB and Parquet](https://crawlingo-docs.vercel.app/integrations/data)
-- [Services and scheduled workers](https://crawlingo-docs.vercel.app/integrations/workers)
+- [Playwright and Puppeteer](integrations-playwright.md)
+- [pandas, DuckDB and Parquet](integrations-data.md)
+- [Services and scheduled workers](integrations-workers.md)
+
+<a id="ownership"></a>
 
 ## Keep the boundaries explicit
 
@@ -37,8 +41,10 @@ Discover URLs → urls.txt + job.json → Crawlingo worker
 - Publish a dataset only after reviewing complete, cancelled, pages_failed and records_rejected.
 - Use JSONL for incremental processing. Do not collect a million records into an application response.
 
-- [Job configuration](https://crawlingo-docs.vercel.app/reference/job-config)
-- [Report fields](https://crawlingo-docs.vercel.app/report-reference)
+- [Job configuration](api-job-config.md)
+- [Report fields](report-reference.md)
+
+<a id="support"></a>
 
 ## Adapters and support
 

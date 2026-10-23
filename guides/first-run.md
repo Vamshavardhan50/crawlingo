@@ -2,7 +2,7 @@
 
 Follow a small local example, understand each file, and learn what a successful or partially successful run looks like.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="prepare"></a>
 
 ## 1. Prepare the tools once
 
@@ -18,7 +18,9 @@ cd crawlingo
 cargo build --release --features cli
 ```
 
-- [Build prerequisites and SDK alternatives](https://crawlingo-docs.vercel.app/installation)
+- [Build prerequisites and SDK alternatives](installation.md)
+
+<a id="files"></a>
 
 ## 2. Open the example folder
 
@@ -33,6 +35,8 @@ Find examples/product_dataset in the checkout. You will use the supplied files a
 | run.py / run.cjs | Alternative Python and Node entry points. |
 | output/ | Created by the job; holds data, errors and state. |
 
+<a id="serve"></a>
+
 ## 3. Start the local sample website
 
 In the first terminal, from the repository root, run the command below. Leave it running. Open http://127.0.0.1:8765/catalog.html in your browser to see the source products. The page intentionally contains a product with no name.
@@ -42,6 +46,8 @@ In the first terminal, from the repository root, run the command below. Leave it
 ```shell
 python -m http.server 8765 --bind 127.0.0.1 --directory examples/product_dataset/site
 ```
+
+<a id="run"></a>
 
 ## 4. Generate the dataset
 
@@ -55,6 +61,8 @@ cargo run --release --features cli -- dataset job.json
 ```
 
 - This example deliberately ends with status 2 because one row is rejected. That means you need to inspect the reported issue; it does not mean the two accepted products disappeared. A fatal startup or storage error uses status 1. A fully clean completion uses status 0.
+
+<a id="review"></a>
 
 ## 5. Read the result before using it
 
@@ -71,13 +79,17 @@ A complete report means the input reached its end. It can still contain rejected
 | duplicate_urls | 1 | The repeated address was not fetched again. |
 | pages_failed | 0 | No page-level failures occurred. |
 
-- [Every report field explained](https://crawlingo-docs.vercel.app/report-reference)
+- [Every report field explained](report-reference.md)
+
+<a id="resume"></a>
 
 ## 6. Run the command again
 
 Keep the server running and repeat the same job command. The accepted and error counts stay cumulative. The finished pages are not fetched again. elapsed_ms changes because it measures the new invocation.
 
 Do not delete state/ to start over. For a separate experiment, choose a new output_dir in a copy of the configuration. Keep a finished job together so you can trace what produced its data.
+
+<a id="csv"></a>
 
 ## 7. Make a table for review
 
@@ -91,6 +103,8 @@ Identifiers such as SKU should usually stay text when importing. Otherwise a spr
 cargo run --release --features cli -- dataset job-csv.json
 ```
 
+<a id="adapt"></a>
+
 ## 8. Adapt the workflow to your pages
 
 - Write down the fields you need and what one record represents.
@@ -100,8 +114,10 @@ cargo run --release --features cli -- dataset job-csv.json
 - Use a fresh output directory and review every output row in the small sample.
 - Increase the input only after the sample behaves as expected.
 
-- [Developer tutorial for adapting the example](https://crawlingo-docs.vercel.app/developer-tutorial)
-- [Use cases and limitations](https://crawlingo-docs.vercel.app/use-cases)
+- [Developer tutorial for adapting the example](developer-tutorial.md)
+- [Use cases and limitations](use-cases.md)
+
+<a id="trouble"></a>
 
 ## If something goes wrong
 
@@ -113,4 +129,4 @@ cargo run --release --features cli -- dataset job-csv.json
 | Configuration changed error | Use a fresh output directory after changing the config or input. |
 | The output folder is locked | Another process may still own that job; let it stop before resuming. |
 
-- [Full troubleshooting guide](https://crawlingo-docs.vercel.app/faq)
+- [Full troubleshooting guide](faq.md)

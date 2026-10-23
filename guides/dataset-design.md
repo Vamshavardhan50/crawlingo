@@ -2,7 +2,7 @@
 
 Define records, identities, quality gates and capacity before scaling a collection.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="contract"></a>
 
 ## Write a record contract first
 
@@ -17,6 +17,8 @@ A useful dataset has an explicit unit of observation. “One million data” can
 | Coverage | All directory rows; first 20 documents | Makes the sampling boundary visible |
 | Update policy | Monthly immutable snapshots | Separates resume from refreshing stale records |
 
+<a id="architecture"></a>
+
 ## Use the right collection path
 
 | Code path | Use it for | Current boundary |
@@ -27,8 +29,10 @@ A useful dataset has an explicit unit of observation. “One million data” can
 | Playwright / Puppeteer | Discover links or inspect JavaScript-rendered content | Rendered DOM is not passed automatically into Python/Node DatasetJob |
 | Source API or bulk data | Already structured research metadata | Use its own ingestion client; HTML selectors do not parse API JSON |
 
-- [Architecture](https://crawlingo-docs.vercel.app/architecture)
-- [Browser integration boundaries](https://crawlingo-docs.vercel.app/integrations/playwright)
+- [Architecture](architecture.md)
+- [Browser integration boundaries](integrations-playwright.md)
+
+<a id="schema"></a>
 
 ## Choose selectors and quality rules
 
@@ -62,7 +66,9 @@ Use normalize_whitespace=true for prose metadata. Disable it for content where w
 }
 ```
 
-- [JobConfig field reference](https://crawlingo-docs.vercel.app/reference/job-config)
+- [JobConfig field reference](api-job-config.md)
+
+<a id="identity"></a>
 
 ## Deduplication is an identity decision
 
@@ -72,6 +78,8 @@ A title alone is rarely a safe key: unrelated publications can share a title. A 
 
 Within one job, the first accepted value for an exact key wins. No later row merges or updates it. Across independently partitioned jobs, deduplication is separate; reconcile global identity downstream.
 
+<a id="pilot"></a>
+
 ## Establish a measurable pilot
 
 - Select a small set of different page templates, long documents and missing-field cases.
@@ -79,6 +87,8 @@ Within one job, the first accepted value for an exact key wins. No later row mer
 - Manually label a sample of expected fields and compare actual extraction, not just record counts.
 - Keep failure records and rate-limit responses visible. A partial dataset can be useful only when its missing coverage is recorded.
 - Repeat the unchanged job and compare shard hashes to check restart idempotence. Separately test interrupted-job recovery in a controlled environment.
+
+<a id="capacity"></a>
 
 ## Estimate one million records honestly
 
@@ -90,8 +100,10 @@ Output storage is approximately record_count × average serialized record size, 
 
 Measure a representative pilot on the intended source. A local million-record fixture proves a particular workload completes; it does not establish a universal public-web throughput or memory ceiling.
 
-- [Measurements and methodology](https://crawlingo-docs.vercel.app/real-world-results)
-- [Local scale acceptance](https://crawlingo-docs.vercel.app/benchmarks)
+- [Measurements and methodology](real-world-results.md)
+- [Local scale acceptance](benchmarks.md)
+
+<a id="bounds"></a>
 
 ## Understand what the resource limits bound
 
@@ -106,11 +118,13 @@ Keep checkpoint batches smaller for long documents and large keys. The engine pr
 | max_response_bytes | Job acceptance of a fetched response body | A job-specific streaming download cap; this check is after fetch |
 | max_records_per_page / max_record_bytes | Extraction and serialization acceptance limits | Automatic truncation into a valid smaller document |
 
+<a id="publish"></a>
+
 ## Define a publication gate
 
 Your application decides when a dataset is ready to publish. A useful default is: complete=true, cancelled=false, no unreviewed page failures or rejected records, expected coverage, validated identity, a manual quality sample and stable artifact hashes.
 
 Never have two workers write one output directory. Treat local job state as recovery state, and publish immutable data shards with a manifest only after review. If some source failures are acceptable, record an explicit threshold and the missing population instead of silently marking the run successful.
 
-- [Reports and error records](https://crawlingo-docs.vercel.app/report-reference)
-- [Production operations](https://crawlingo-docs.vercel.app/production-guide)
+- [Reports and error records](report-reference.md)
+- [Production operations](production-guide.md)

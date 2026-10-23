@@ -51,6 +51,12 @@ export declare class JsSession {
   constructor()
   headers(headers: Record<string, string>): void
   cookies(cookies: Record<string, string>): void
+  getCookies(): Record<string, string>
+  deleteCookie(name: string): void
+  clearCookies(): void
+  retries(count: number): void
+  retryBackoff(factor: number): void
+  retryDelay(seconds: number): void
   proxy(proxyUrl: string): void
   rateLimit(requestsPerSecond: number): void
   autoMatch(enabled: boolean): void

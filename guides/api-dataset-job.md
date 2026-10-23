@@ -2,15 +2,17 @@
 
 Stream a URL file into validated JSONL or CSV shards. Construct a job, run it, inspect its report, and resume committed progress.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="workflow"></a>
 
 ## Use this API to build a dataset
 
 Start by defining the unit of observation, source identity and required fields. The research walkthrough runs this API through the CLI against a public directory, then collects a fixed sample of documents.
 
-- [Research dataset walkthrough](https://crawlingo-docs.vercel.app/research-datasets)
-- [Dataset design and quality](https://crawlingo-docs.vercel.app/dataset-design)
-- [Public-site measurements](https://crawlingo-docs.vercel.app/real-world-results)
+- [Research dataset walkthrough](research-datasets.md)
+- [Dataset design and quality](dataset-design.md)
+- [Public-site measurements](real-world-results.md)
+
+<a id="import"></a>
 
 ## Import
 
@@ -34,7 +36,9 @@ use crawlingo::engine::session::Session;
 use std::sync::Arc;
 ```
 
-- [Build and install the SDK](https://crawlingo-docs.vercel.app/installation)
+- [Build and install the SDK](installation.md)
+
+<a id="constructor"></a>
 
 ## Constructor
 
@@ -63,8 +67,10 @@ pub fn new(config: JobConfig, session: Arc<Session>) -> Result<Self>
 | config | Yes | JobConfig: URL file, output directory, at least one field, and optional execution limits. |
 | session | Rust: yes; Python / Node: optional | Request headers, timeout, per-host pacing and transport configuration. Configure it before starting the job. |
 
-- [All JobConfig fields](https://crawlingo-docs.vercel.app/reference/job-config)
-- [Session methods](https://crawlingo-docs.vercel.app/reference/session)
+- [All JobConfig fields](api-job-config.md)
+- [Session methods](api-session.md)
+
+<a id="run"></a>
 
 ## run()
 
@@ -96,8 +102,10 @@ pub async fn run(&self) -> Result<JobReport>
 | Node.js run() | Asynchronous native job. | Promise<JobReport>. |
 | Rust run().await | Async handle; filesystem work uses a blocking worker. | Result<JobReport, CrawlingoError>. |
 
-- [Every JobReport field](https://crawlingo-docs.vercel.app/report-reference)
-- [Committed output and resume](https://crawlingo-docs.vercel.app/recovery)
+- [Every JobReport field](report-reference.md)
+- [Committed output and resume](recovery.md)
+
+<a id="example"></a>
 
 ## Complete usage example
 
@@ -167,6 +175,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+<a id="output"></a>
+
 ## Output record
 
 After a successful fetch of the current example page, a data shard contains a record with this shape. Values are strings; _source_url and _row are provenance fields. Read report.shards to find the committed shard boundary. This is an illustrative result, not a live request from the documentation.
@@ -176,6 +186,8 @@ After a successful fetch of the current example page, a data shard contains a re
 ```json
 {"title":"Example Domain","_source_url":"https://example.com/","_row":"0"}
 ```
+
+<a id="cancel"></a>
 
 ## cancel()
 
@@ -208,11 +220,13 @@ job.cancel();
 let report = task.await??;
 ```
 
-- [Production shutdown and recovery](https://crawlingo-docs.vercel.app/production-guide)
+- [Production shutdown and recovery](production-guide.md)
+
+<a id="errors"></a>
 
 ## Errors and failure handling
 
-Constructor and run failures throw in Python / Node.js and return Err in Rust. They include invalid configuration, inaccessible files, locked state and input changes. DatasetJob does not currently expose a portable structured error-code enum through the bindings; avoid treating message text as a stable machine API.
+Constructor and run failures throw in Python / Node.js and return Err in Rust. They include invalid configuration, inaccessible files, locked state and input changes. Node maps structured native failures into CrawlingoError subclasses and exposes code; Python conversion differs. Avoid treating message text as a stable machine API. See the language-specific reference for error details.
 
 | Condition | Where to look | Next action |
 | --- | --- | --- |

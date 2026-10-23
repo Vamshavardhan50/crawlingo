@@ -71,7 +71,7 @@ impl Default for BrowserConfig {
 }
 
 impl BrowserConfig {
-    /// Constructs config from environment. Suitable for [`FetchManager::new`].
+    /// Constructs config from environment. Suitable for [`FetchManager::new`](crate::engine::fetcher::FetchManager::new).
     pub fn from_env() -> Self {
         Self::default()
     }

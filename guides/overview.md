@@ -2,7 +2,7 @@
 
 Understand what the tool does, what you need to give it, and what you receive at the end.
 
-> Current development source. New dataset APIs require a matching source build; published alpha packages may differ.
+<a id="idea"></a>
 
 ## From a web page to a row of useful information
 
@@ -11,6 +11,8 @@ A website presents information for people to read. A dataset organizes selected 
 For example, a product page may contain navigation, images, reviews, a product name, a price and an item code. Your dataset might need only the item code, name and price. You define that shape once and apply it to pages with a compatible structure.
 
 Rust runs the extraction pipeline. You can control it through the command line, Python, Node.js or Rust. Choosing Python does not mean you need to rewrite the processing engine in Python.
+
+<a id="audience"></a>
 
 ## Who is it for?
 
@@ -23,6 +25,8 @@ The current product is a library and command-line tool. It does not include a ho
 | Add dataset collection to an application | Use the developer tutorial and a Python, Node.js or Rust SDK. |
 | Operate a large collection job | Read resource limits, report counters, checkpoints and worker deployment before increasing volume. |
 
+<a id="inputs"></a>
+
 ## The three things you provide
 
 A configuration file called job.json brings these choices together. A selector tells the engine which part of a page contains a value. Required fields and type rules describe what an acceptable record looks like. You can begin with the included catalog instead of finding a live website.
@@ -31,8 +35,10 @@ A configuration file called job.json brings these choices together. A selector t
 - A record definition: field names such as sku, name and price, plus instructions for finding each value.
 - An output directory: a folder owned by this job, where accepted data, errors and restart state are stored.
 
-- [Try the local catalog](https://crawlingo-docs.vercel.app/first-run)
-- [Learn the terms](https://crawlingo-docs.vercel.app/concepts)
+- [Try the local catalog](first-run.md)
+- [Learn the terms](concepts.md)
+
+<a id="outputs"></a>
 
 ## What you receive
 
@@ -45,6 +51,8 @@ A shard is simply one part of the dataset. Splitting output avoids keeping every
 | report.json | Counts, completion state and the number of committed shards. | Check the outcome before trusting the exported data. |
 | state/ | Progress and exact-deduplication indexes. | Keep it with the data so an unchanged job can resume. |
 
+<a id="example"></a>
+
 ## A concrete product example
 
 The local fixture has two distinct pages, a repeated URL, a repeated SKU and a product without a name. It exports two valid products, rejects the missing name and counts the duplicate SKU. These values come from the local product example. The real output also includes _source_url and _row. Numeric values are currently validated strings, so an application should explicitly convert price when it needs a number.
@@ -54,7 +62,9 @@ The local fixture has two distinct pages, a repeated URL, a repeated SKU and a p
 | A-101 | Café mug | 12.5 |
 | B-202 | Notebook | 6 |
 
-- [Run and inspect the complete example](https://crawlingo-docs.vercel.app/examples)
+- [Run and inspect the complete example](product-example.md)
+
+<a id="scope"></a>
 
 ## What Crawlingo can do today
 
@@ -65,7 +75,9 @@ The local fixture has two distinct pages, a repeated URL, a repeated SKU and a p
 - Export JSONL or CSV in checkpoints and resume the same unchanged input.
 - Use related APIs for page extraction, crawling, sitemap discovery, monitoring and optional Chromium rendering.
 
-- [Detailed capability matrix](https://crawlingo-docs.vercel.app/features)
+- [Detailed capability matrix](features.md)
+
+<a id="boundaries"></a>
 
 ## What needs your judgment
 
@@ -75,16 +87,20 @@ Browser rendering, selector recovery and monitoring are separate capabilities wi
 
 The current job engine uses local storage and one writer per directory. It does not provide distributed scheduling or remote storage commits. New job APIs describe the current source checkout; an older published alpha may not include them.
 
+<a id="scale"></a>
+
 ## What “one million” means here
 
 A measured acceptance run fetched 1,000,000 small pages from a local HTTP fixture, exported 1,000,000 records, checked every record and resumed without refetching. It used a Windows release build with 50 concurrent requests. The observed peak process working set was 181.5 MiB, including the fixture server and verification.
 
 That result demonstrates the pipeline on the measured workload. It does not predict the time or memory required for a different website, larger documents or JavaScript rendering. Begin with a small representative sample and increase the workload after checking its output.
 
-- [Read the full measurement method](https://crawlingo-docs.vercel.app/benchmarks)
+- [Read the full measurement method](benchmarks.md)
+
+<a id="next"></a>
 
 ## Choose your next step
 
-- [I want a guided first run](https://crawlingo-docs.vercel.app/first-run)
-- [I am building an application](https://crawlingo-docs.vercel.app/developer-tutorial)
-- [I want to see possible use cases](https://crawlingo-docs.vercel.app/use-cases)
+- [I want a guided first run](first-run.md)
+- [I am building an application](developer-tutorial.md)
+- [I want to see possible use cases](use-cases.md)

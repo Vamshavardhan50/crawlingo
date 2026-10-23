@@ -1,4 +1,4 @@
-//! Authentication helpers, as a [`Layer`](crate::engine::middleware::Layer).
+//! Authentication helpers, as a [`Layer`].
 //!
 //! [`AuthLayer`] injects credentials into every request before it reaches the network — a
 //! `Basic`/`Bearer`/custom header, an API key query parameter, or a dynamically-fetched token via
