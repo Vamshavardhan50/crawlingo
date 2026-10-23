@@ -25,6 +25,65 @@ node --test tests/dataset_job.test.cjs
 - [Release workflow](https://github.com/Vamshavardhan50/crawlingo/blob/main/.github/workflows/release.yml)
 - [Remaining release gates](https://crawlingo-docs.vercel.app/roadmap)
 
+## One-time registry setup
+
+Sign in as an owner of the existing `crawlingo` package on each registry. GitHub
+environments alone do not give GitHub permission to publish a package. Save a
+GitHub Actions trusted publisher in each registry with these exact values:
+
+| Field | npm | PyPI | crates.io |
+| --- | --- | --- | --- |
+| GitHub owner | `Vamshavardhan50` | `Vamshavardhan50` | `Vamshavardhan50` |
+| Repository | `crawlingo` | `crawlingo` | `crawlingo` |
+| Workflow filename | `release.yml` | `release.yml` | `release.yml` |
+| Environment | `npm` | `pypi` | `crates-io` |
+
+Use the workflow filename only, without `.github/workflows/`. The environment
+names must match the corresponding publication job in this repository.
+
+### PyPI account steps
+
+1. Open [Crawlingo publishing settings](https://pypi.org/manage/project/crawlingo/settings/publishing/)
+   and sign in. Alternatively, choose **Your projects → crawlingo → Manage → Publishing**.
+2. Select **GitHub Actions** and enter the PyPI column above.
+3. Choose **Add** and check that the publisher appears in the project's publisher list.
+4. If a token has been shared in chat or a public issue, revoke it under the account's
+   API token settings. Trusted publishing does not require a replacement token in GitHub.
+
+See [PyPI's setup instructions](https://docs.pypi.org/trusted-publishers/adding-a-publisher/).
+
+### crates.io account steps
+
+Open [Crawlingo on crates.io](https://crates.io/crates/crawlingo), sign in as a crate
+owner and add a GitHub Actions trusted publisher in the crate's settings. Enter
+the crates.io column above and confirm the saved publisher matches the repository,
+workflow and environment. See the [crates.io trusted publishing guide](https://crates.io/docs/trusted-publishing).
+
+### npm account steps
+
+Open the `crawlingo` package settings on npm, find **Trusted Publisher**, select
+**GitHub Actions** and enter the npm column above. Enable direct **npm publish**
+under allowed actions: this workflow does not use staged publishing. Save the
+publisher and verify the saved configuration. See [npm's setup instructions](https://docs.npmjs.com/trusted-publishers/).
+
+### Run a release
+
+1. In GitHub **Actions → Release**, use **Run workflow** on the reviewed branch.
+   This builds artifacts without uploading them to the registries.
+2. Wait for all platform and package jobs to pass. Download `release-assets` and
+   review its manifest, checksums and package contents.
+3. Create the `v1.0.0-alpha.2` tag on that exact reviewed commit and publish a
+   GitHub release with **Set as a pre-release** enabled. Use the prepared release
+   notes after replacing the draft notice with the verified artifact matrix.
+4. Check all three publication jobs, then install each exact registry version in
+   a clean consumer. Update [release status](RELEASE_STATUS.md) with the results.
+
+If a registry rejects authentication, compare its saved publisher against the
+table before changing the workflow. For a partial publication, use GitHub's
+**Re-run failed jobs** after fixing the failed registry's settings; rerunning all
+jobs would attempt to upload immutable versions that already exist. A build or
+package correction needs a new version and a complete build.
+
 ## Node.js → npm
 
 The package includes JavaScript, declarations and native addons in dist/. The release matrix builds Linux x64 GNU, macOS Intel, macOS ARM64 and Windows x64 addons. These are build targets, not a claim that all platforms have passed the new release.
@@ -45,7 +104,7 @@ npm pack --dry-run
 
 ## Python → PyPI
 
-The workflow targets Python 3.8–3.13 wheels and a source distribution. Python 3.14 is outside this release matrix; the old published Windows 3.14 wheel is a different artifact. Wheel installation must be checked in a clean environment with the Python version and architecture you intend to support. Local validation uses CPython 3.12 on Windows x64.
+The workflow targets Python 3.8–3.13 wheels and a source distribution. Python 3.14 is outside this release matrix; the old published Windows 3.14 wheel is a different artifact. Linux wheels use `manylinux_2_28` for x64 and ARM64 and require glibc 2.28 or newer; Alpine/musl wheels are not built. This image provides a newer Clang than the old manylinux2014 distro packages, required by the native TLS build. Wheel installation must be checked in a clean environment with the Python version and architecture you intend to support. Local validation uses CPython 3.12 on Windows x64.
 
 Configure a PyPI trusted publisher for the owner, repository, release.yml and environment pypi. GitHub supplies the publishing identity; a PyPI password is not stored in the repository. TestPyPI uses its own project and publisher configuration if you add a rehearsal upload.
 

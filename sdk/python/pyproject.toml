@@ -36,6 +36,7 @@ configuration to resume; use a new directory for changed inputs.
 This is an alpha API. This release targets CPython 3.8–3.13; Python 3.14 is outside
 its release matrix and package metadata. Available wheels depend on the release
 platform matrix. Source builds require Rust, C/C++ tools, CMake and libclang.
+Linux wheels target glibc 2.28 or newer on x64 and ARM64; musl wheels are not built.
 
 [Installation and full Python guide](https://github.com/Vamshavardhan50/crawlingo/blob/main/sdk/python/README.md) ·
 [API reference](https://crawlingo-docs.vercel.app/reference/dataset-job) ·
@@ -85,6 +86,9 @@ test-command = "python -c \"import crawlingo; print(crawlingo.__version__)\""
 environment = { CIBW_BUILD_VERBOSITY = "1" }
 
 [tool.cibuildwheel.linux]
+# manylinux2014's distro clang is too old for btls-sys/bindgen.
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
 before-all = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
 environment = { PATH = "/root/.cargo/bin:$PATH", CIBW_BUILD_VERBOSITY = "1", MATURIN_NO_INSTALL_RUST = "1" }
 archs = ["x86_64", "aarch64"]

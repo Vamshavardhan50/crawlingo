@@ -18,6 +18,11 @@ The source declares Python 3.8–3.13; use Python 3.12 for the verified local bu
 Python 3.14 is outside this release's artifact matrix and package metadata.
 Install Rust, C/C++ build tools, CMake and libclang first.
 
+The planned Linux wheels target x64 and ARM64 with glibc 2.28 or newer
+(`manylinux_2_28`). Alpine/musl wheels are not included. macOS Intel/Apple Silicon
+and Windows x64 are separate build targets; see the release status for completed
+platform checks.
+
 From the repository root:
 
 ```sh
