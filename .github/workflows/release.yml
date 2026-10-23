@@ -44,6 +44,7 @@ jobs:
   test-core:
     needs: [verify-version, audit]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -67,6 +68,8 @@ jobs:
         shell: pwsh
         run: '"LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV'
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
       - run: cargo test --locked --lib --tests
       - run: cargo check --locked --features cli,browser
       - name: Build CLI
@@ -89,8 +92,9 @@ jobs:
           if-no-files-found: error
 
   build-node-addons:
-    needs: [verify-version, test-core]
+    needs: [verify-version, audit]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -149,8 +153,9 @@ jobs:
           if-no-files-found: error
 
   python-wheels:
-    needs: [verify-version, test-core]
+    needs: [verify-version, audit]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
