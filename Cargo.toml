@@ -99,7 +99,7 @@ flate2 = "1.0"
 time = ">=0.3, <0.3.52"
 
 # Python bindings
-pyo3 = { version = "0.29", features = ["extension-module", "py-clone"], optional = true }
+pyo3 = { version = "0.30", features = ["extension-module", "py-clone"], optional = true }
 
 # Browser automation (Phase 3) — requires a local Chromium/Chrome binary
 # Enable with: cargo build --features browser
