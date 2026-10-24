@@ -4,6 +4,17 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      publish-npm:
+        description: Retry npm publishing for an existing release
+        required: false
+        type: boolean
+        default: false
+      release-tag:
+        description: Existing release tag to receive the npm package
+        required: false
+        type: string
+        default: v1.0.0-alpha.2
 
 permissions:
   contents: read
@@ -344,7 +355,7 @@ jobs:
 
   publish-npm:
     needs: release-artifacts
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish-npm)
     runs-on: ubuntu-latest
     environment: npm
     permissions:
@@ -363,13 +374,19 @@ jobs:
       - name: Publish the reviewed tarball with OIDC
         shell: bash
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release-tag }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           version=${RELEASE_TAG#v}
           tag=latest
           if [[ "$version" == *-* ]]; then tag=next; fi
-          npm publish "dist/crawlingo-$version.tgz" --provenance --access public --tag "$tag"
+          archive=$(find "$GITHUB_WORKSPACE/dist" -maxdepth 1 -type f -name "crawlingo-$version.tgz" -print -quit)
+          if [[ -z "$archive" ]]; then
+            echo "::error::npm archive not found for $version"
+            find "$GITHUB_WORKSPACE/dist" -maxdepth 2 -type f -print
+            exit 1
+          fi
+          npm publish "$archive" --provenance --access public --tag "$tag"
 
   publish-python:
     needs: release-artifacts
@@ -423,3 +440,21 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: gh release upload "$RELEASE_TAG" release-assets/*
+
+  attach-npm-release-assets:
+    needs: [publish-npm, release-artifacts]
+    if: github.event_name == 'workflow_dispatch' && inputs.publish-npm && needs.publish-npm.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: release-assets
+      - name: Attach release assets after npm retry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release-tag }}
+        run: gh release upload "$RELEASE_TAG" release-assets/* --clobber
