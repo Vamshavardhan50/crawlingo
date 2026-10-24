@@ -18,7 +18,9 @@ pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 fn transport_error(error: wreq::Error, timeout: Duration) -> CrawlingoError {
     use std::error::Error;
     if error.is_timeout() {
-        return CrawlingoError::TimeoutError { seconds: timeout.as_secs() };
+        return CrawlingoError::TimeoutError {
+            seconds: timeout.as_secs(),
+        };
     }
     // wreq exposes is_connect(), but no DNS predicate. Its connector attaches this
     // exact marker to DNS failures in the source chain (not the top-level message).
@@ -581,13 +583,17 @@ impl FetchManager {
         let mut retry_policy = self.retry_policy.clone();
         if let Some(factor) = self.retry_backoff.as_ref().and_then(|v| *v.read().unwrap()) {
             if !factor.is_finite() || factor < 1.0 {
-                return Err(CrawlingoError::ConfigError("retry backoff must be finite and >= 1".into()));
+                return Err(CrawlingoError::ConfigError(
+                    "retry backoff must be finite and >= 1".into(),
+                ));
             }
             retry_policy.multiplier = factor;
         }
         if let Some(seconds) = self.retry_delay.as_ref().and_then(|v| *v.read().unwrap()) {
             if seconds > 86_400 {
-                return Err(CrawlingoError::ConfigError("retry delay must be <= 86400 seconds".into()));
+                return Err(CrawlingoError::ConfigError(
+                    "retry delay must be <= 86400 seconds".into(),
+                ));
             }
             retry_policy.base_delay = Duration::from_secs(seconds.into());
             retry_policy.max_delay = retry_policy.max_delay.max(retry_policy.base_delay);
