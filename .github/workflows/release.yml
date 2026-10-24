@@ -375,7 +375,6 @@ jobs:
         shell: bash
         env:
           RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release-tag }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           version=${RELEASE_TAG#v}
           tag=latest
