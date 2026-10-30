@@ -26,6 +26,7 @@ jobs:
           version=$(npm view crawlingo@1.0.0-alpha.2 version)
           test "$version" = '1.0.0-alpha.2'
           npm dist-tag add crawlingo@1.0.0-alpha.2 latest
-          latest=$(npm view crawlingo dist-tags.latest)
+          # Use a fresh cache: npm view above can cache the old dist-tags.
+          latest=$(npm view crawlingo dist-tags.latest --cache "$RUNNER_TEMP/npm-post-promotion-cache" --prefer-online)
           test "$latest" = '1.0.0-alpha.2'
           echo "npm latest now points to $latest"
