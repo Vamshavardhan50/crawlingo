@@ -1,0 +1,31 @@
+name: Promote npm alpha.2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: Set npm latest to 1.0.0-alpha.2
+    runs-on: ubuntu-latest
+    environment: npm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: https://registry.npmjs.org
+      - name: Promote and verify the package tag
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(npm view crawlingo@1.0.0-alpha.2 version)
+          test "$version" = '1.0.0-alpha.2'
+          npm dist-tag add crawlingo@1.0.0-alpha.2 latest
+          latest=$(npm view crawlingo dist-tags.latest)
+          test "$latest" = '1.0.0-alpha.2'
+          echo "npm latest now points to $latest"
