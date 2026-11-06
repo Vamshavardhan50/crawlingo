@@ -68,8 +68,10 @@ async fn stealth_profiles_emit_different_tls_cipher_offers() {
             // Handshake header, legacy version, 32 random bytes, then the session ID.
             let start = 39 + usize::from(hello[38]);
             let size = u16::from_be_bytes([hello[start], hello[start + 1]]) as usize;
-            hello[start + 2..start + 2 + size]
-                .chunks_exact(2)
+            let (ciphers, remainder) = hello[start + 2..start + 2 + size].as_chunks::<2>();
+            assert!(remainder.is_empty(), "cipher suite list must contain pairs");
+            ciphers
+                .iter()
                 // Ignore randomized GREASE entries when comparing real cipher suites.
                 .filter(|pair| !(pair[0] == pair[1] && pair[0] & 15 == 10))
                 .map(|pair| u16::from_be_bytes([pair[0], pair[1]]))

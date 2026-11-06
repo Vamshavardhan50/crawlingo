@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "version": "1.0.0-alpha.2",
-  "sourceCommit": "c76f4bd12844f98afe49a8fe7c50da5e542353e3",
-  "sourceModified": true,
+  "version": "1.0.0-alpha.3",
+  "sourceCommit": "10bbfb9f9d04005786590d518915fa48cb1f3657",
+  "sourceModified": false,
   "sourceHashFormat": "utf8-lf",
-  "sourceDigest": "dc4274011af056b0a4008555ae7f5f521b4b589da5fad77bcbf63279880555db",
+  "sourceDigest": "c6a8188489c20e01602e981aedfc58ee2639985baaa1d8274e8dcf3a5be15b50",
   "sourceFiles": [
     {
       "file": "sdk/nodejs/native/src/lib.rs",
@@ -12,7 +12,7 @@
     },
     {
       "file": "sdk/nodejs/package.json",
-      "sha256": "feb947df7c2dcb1ebd66a212030489f3f732461d595dc9325d676fce3ddeabba"
+      "sha256": "48c6b1995de69f3e176fb62819863e49b0f29de0fd034a21b23016da1f6f5003"
     },
     {
       "file": "sdk/nodejs/src/crawl.ts",
@@ -72,7 +72,7 @@
     },
     {
       "file": "sdk/python/crawlingo/__init__.py",
-      "sha256": "8a5f26dfc1fa3b6fb3b51b21445c6b77ff94f796183c094364cc1a77d8924141"
+      "sha256": "5d9542ae23c06b2bc6bd1f72cc28fdf5c62548d167bca4ab5500b399509784f6"
     },
     {
       "file": "sdk/python/crawlingo/crawl.py",
@@ -116,7 +116,7 @@
     },
     {
       "file": "sdk/python/crawlingo/session.py",
-      "sha256": "f3f70661cbb98d6f1cb9d2bab5794189b20a028734bb21b13e8cb119a50380a5"
+      "sha256": "072ed0942305186daf8240b6be2a88112e3b1b48b76038c932ad16e497e67fcf"
     },
     {
       "file": "sdk/python/crawlingo/sitemap.py",
@@ -176,11 +176,11 @@
     },
     {
       "file": "src/dataset/export.rs",
-      "sha256": "719636289fdd5d0de6f6913d286b356482adbd0651c5ad5c37aded8bb355dbb2"
+      "sha256": "992ce7ab9da12e6d4a924e770d5428c1cdb153f68012c81cd06d08e6ffdc1b09"
     },
     {
       "file": "src/dataset/job.rs",
-      "sha256": "cf5aec887b7181196f578114e53a63d092819638077ecaf733c74272fe988e50"
+      "sha256": "f626981b59d82bbc880828014ed1390498f20b700ba7a882bdb5c8d54d64b238"
     },
     {
       "file": "src/dataset/mod.rs",
@@ -212,7 +212,7 @@
     },
     {
       "file": "src/engine/fetcher.rs",
-      "sha256": "8888856ad5044fa515fc5c0b8e28d6264657856c3cb1255f026909dfdece9980"
+      "sha256": "c55e80f2c1fd26b1141977dce2ed645e71855eaaa9690e094d8e95d4648da645"
     },
     {
       "file": "src/engine/middleware.rs",
@@ -232,7 +232,7 @@
     },
     {
       "file": "src/engine/retry.rs",
-      "sha256": "b253b71b3ed8f894e6a2fd02dd8078526a3dc10a2c45e8bbc1e41472e8182a99"
+      "sha256": "d4a5d3cb6eeeb9831b6e625f5acb58355fdd50d2ecec7033256ed2404667911a"
     },
     {
       "file": "src/engine/session.rs",
@@ -276,11 +276,11 @@
     },
     {
       "file": "src/metrics/mod.rs",
-      "sha256": "070d692f0d4c2b270039d433b6b1277120ef662104ee71eba83cbb4264c6d142"
+      "sha256": "aba8c63fe8c7328322016419f13382a3e71eb74cd941e59357f1738bd9212427"
     },
     {
       "file": "src/parser/document.rs",
-      "sha256": "c1e7522bcf8bd516f05a1305b6ebf6f322046997184378ed4c63feaabd5b55a9"
+      "sha256": "957f5d0f2a27ff37fee73588d886ee2a89f64dddb8481c2ede960081771ad9b6"
     },
     {
       "file": "src/parser/mod.rs",
@@ -288,11 +288,11 @@
     },
     {
       "file": "src/parser/streaming.rs",
-      "sha256": "fd6022fc7fd6c787593007a46139bf724f5d81fba63d7d82d9a64b1a6db8d325"
+      "sha256": "e4029f72c8b0ccefbda3042e1c93bd3458cdbb2f3827965f855d63ed138d4a03"
     },
     {
       "file": "src/selector/css.rs",
-      "sha256": "f2561374182f7991a53c8ddc87add0f0142356bec837d5d634cb81859ea75e5b"
+      "sha256": "3d0f72d7c3033afe8fb31b2e92d45b5366607780aa1989919e69a0505d152cae"
     },
     {
       "file": "src/selector/mod.rs",
@@ -6344,7 +6344,7 @@
             "returns": "Not annotated; see behavior notes",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 15,
+            "line": 16,
             "bindingIssues": []
           },
           {
@@ -6363,7 +6363,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 18,
+            "line": 19,
             "bindingIssues": []
           },
           {
@@ -6382,7 +6382,107 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 23,
+            "line": 24,
+            "bindingIssues": []
+          },
+          {
+            "name": "get_cookies",
+            "kind": "method",
+            "signature": "def get_cookies(self) -> dict",
+            "description": "Return a snapshot of explicit default cookies, not a browser cookie jar.",
+            "parameters": [],
+            "returns": "dict",
+            "static": false,
+            "file": "sdk/python/crawlingo/session.py",
+            "line": 29,
+            "bindingIssues": []
+          },
+          {
+            "name": "delete_cookie",
+            "kind": "method",
+            "signature": "def delete_cookie(self, name: str) -> 'Session'",
+            "description": "Remove a default cookie; a missing name is a no-op.",
+            "parameters": [
+              {
+                "name": "name",
+                "type": "str",
+                "optional": false,
+                "default": null
+              }
+            ],
+            "returns": "'Session'",
+            "static": false,
+            "file": "sdk/python/crawlingo/session.py",
+            "line": 33,
+            "bindingIssues": []
+          },
+          {
+            "name": "clear_cookies",
+            "kind": "method",
+            "signature": "def clear_cookies(self) -> 'Session'",
+            "description": "Remove all explicit default cookies.",
+            "parameters": [],
+            "returns": "'Session'",
+            "static": false,
+            "file": "sdk/python/crawlingo/session.py",
+            "line": 38,
+            "bindingIssues": []
+          },
+          {
+            "name": "retries",
+            "kind": "method",
+            "signature": "def retries(self, count: int) -> 'Session'",
+            "description": "Set additional attempts after the first request; zero disables retries.",
+            "parameters": [
+              {
+                "name": "count",
+                "type": "int",
+                "optional": false,
+                "default": null
+              }
+            ],
+            "returns": "'Session'",
+            "static": false,
+            "file": "sdk/python/crawlingo/session.py",
+            "line": 43,
+            "bindingIssues": []
+          },
+          {
+            "name": "retry_backoff",
+            "kind": "method",
+            "signature": "def retry_backoff(self, factor: float) -> 'Session'",
+            "description": "Set the finite exponential delay multiplier, which must be at least 1.",
+            "parameters": [
+              {
+                "name": "factor",
+                "type": "float",
+                "optional": false,
+                "default": null
+              }
+            ],
+            "returns": "'Session'",
+            "static": false,
+            "file": "sdk/python/crawlingo/session.py",
+            "line": 50,
+            "bindingIssues": []
+          },
+          {
+            "name": "retry_delay",
+            "kind": "method",
+            "signature": "def retry_delay(self, seconds: int) -> 'Session'",
+            "description": "Set the initial retry delay in whole seconds, from 0 to 86400.",
+            "parameters": [
+              {
+                "name": "seconds",
+                "type": "int",
+                "optional": false,
+                "default": null
+              }
+            ],
+            "returns": "'Session'",
+            "static": false,
+            "file": "sdk/python/crawlingo/session.py",
+            "line": 63,
             "bindingIssues": []
           },
           {
@@ -6401,7 +6501,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 28,
+            "line": 70,
             "bindingIssues": []
           },
           {
@@ -6420,7 +6520,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 33,
+            "line": 75,
             "bindingIssues": []
           },
           {
@@ -6439,7 +6539,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 38,
+            "line": 80,
             "bindingIssues": []
           },
           {
@@ -6458,7 +6558,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 43,
+            "line": 85,
             "bindingIssues": []
           },
           {
@@ -6477,7 +6577,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 48,
+            "line": 90,
             "bindingIssues": []
           },
           {
@@ -6496,7 +6596,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 53,
+            "line": 95,
             "bindingIssues": []
           },
           {
@@ -6515,7 +6615,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 58,
+            "line": 100,
             "bindingIssues": []
           },
           {
@@ -6534,7 +6634,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 63,
+            "line": 105,
             "bindingIssues": []
           },
           {
@@ -6553,7 +6653,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 68,
+            "line": 110,
             "bindingIssues": []
           },
           {
@@ -6572,7 +6672,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 73,
+            "line": 115,
             "bindingIssues": []
           },
           {
@@ -6597,7 +6697,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 78,
+            "line": 120,
             "bindingIssues": []
           },
           {
@@ -6622,7 +6722,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 85,
+            "line": 127,
             "bindingIssues": []
           },
           {
@@ -6641,7 +6741,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 90,
+            "line": 132,
             "bindingIssues": []
           },
           {
@@ -6666,7 +6766,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 96,
+            "line": 138,
             "bindingIssues": []
           },
           {
@@ -6691,7 +6791,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 102,
+            "line": 144,
             "bindingIssues": []
           },
           {
@@ -6710,7 +6810,7 @@
             "returns": "'Session'",
             "static": true,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 109,
+            "line": 151,
             "bindingIssues": []
           },
           {
@@ -6722,7 +6822,7 @@
             "returns": "dict",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 117,
+            "line": 159,
             "bindingIssues": []
           },
           {
@@ -6741,7 +6841,7 @@
             "returns": "'Page'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 121,
+            "line": 163,
             "bindingIssues": []
           },
           {
@@ -6760,7 +6860,7 @@
             "returns": "'Dataset'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 126,
+            "line": 168,
             "bindingIssues": []
           },
           {
@@ -6779,7 +6879,7 @@
             "returns": "'Watch'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 131,
+            "line": 173,
             "bindingIssues": []
           },
           {
@@ -6798,7 +6898,7 @@
             "returns": "'Crawl'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 136,
+            "line": 178,
             "bindingIssues": []
           },
           {
@@ -6810,7 +6910,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 141,
+            "line": 183,
             "bindingIssues": []
           },
           {
@@ -6822,7 +6922,7 @@
             "returns": "None",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 147,
+            "line": 189,
             "bindingIssues": []
           },
           {
@@ -6834,7 +6934,7 @@
             "returns": "'Session'",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 151,
+            "line": 193,
             "bindingIssues": []
           },
           {
@@ -6865,12 +6965,12 @@
             "returns": "Not annotated; see behavior notes",
             "static": false,
             "file": "sdk/python/crawlingo/session.py",
-            "line": 154,
+            "line": 196,
             "bindingIssues": []
           }
         ],
         "file": "sdk/python/crawlingo/session.py",
-        "line": 10
+        "line": 11
       },
       {
         "name": "SitemapEntry",
