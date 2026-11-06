@@ -69,7 +69,7 @@ jobs:
           }
       - name: Preserve evidence (not dataset payloads)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: performance-evidence-${{ github.sha }}
           if-no-files-found: error
