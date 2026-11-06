@@ -1,7 +1,6 @@
 # Release status and next SDK release
 
-Last checked **2026-11-06**. The new source targets Rust/npm `1.0.0-alpha.3` and PyPI `1.0.0a3`. The previous npm publish and promotion succeeded. The later failed CI run reported four Rust compression dependency vulnerabilities. Both lockfiles now resolve the compatible Zstandard security backports. Local development changes are separate from the
-published artifacts below.
+Last checked **2026-11-06**. Release `v1.0.0-alpha.3` passed the full SDK build matrix and is published on GitHub. PyPI `1.0.0a3` and crates.io `1.0.0-alpha.3` are published. npm upload is awaiting the package trusted publisher configuration.
 
 ## What users can install today
 
@@ -11,11 +10,11 @@ engine and Node native lockfiles passed the updated vulnerability audit.
 
 | Channel | Observed version | What was verified |
 | --- | --- | --- |
-| GitHub | [`v1.0.0-alpha.2`](https://github.com/Vamshavardhan50/crawlingo/releases/tag/v1.0.0-alpha.2) | Prerelease; the npm retry and release-asset attachment completed successfully |
+| GitHub | [`v1.0.0-alpha.3`](https://github.com/Vamshavardhan50/crawlingo/releases/tag/v1.0.0-alpha.3) | All core builds, addons, wheels and artifact checks passed |
 | npm latest | `1.0.0-alpha.2` | Registry tag verified; Windows x64 import checked; install with `npm install crawlingo` |
 | npm next | `1.0.0-alpha.2` | Points to the same published alpha release |
-| PyPI | `1.0.0a2` | GitHub's Python publishing job succeeded for the alpha release |
-| crates.io | `1.0.0-alpha.2` | GitHub's crate publishing job succeeded for the alpha release |
+| PyPI | `1.0.0a3` | Published and checked through registry metadata |
+| crates.io | `1.0.0-alpha.3` | Published and checked through registry metadata |
 
 Sources: [GitHub release metadata](https://api.github.com/repos/Vamshavardhan50/crawlingo/releases),
 [npm metadata](https://registry.npmjs.org/crawlingo),

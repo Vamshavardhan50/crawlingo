@@ -2,7 +2,7 @@
 
 See [release status](guides/RELEASE_STATUS.md) for registry and platform details.
 
-## 1.0.0-alpha.3 release candidate
+## 1.0.0-alpha.3
 
 Python uses `1.0.0a3`.
 
