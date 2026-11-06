@@ -1,0 +1,10 @@
+{
+  "name": "@crawlingo/selector-studio-local",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local Playwright selector inspector for Crawlingo dataset jobs",
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node cli.mjs", "demo": "node demo.mjs", "test": "node --test test/*.test.mjs" },
+  "dependencies": { "playwright": "1.64.1" }
+}

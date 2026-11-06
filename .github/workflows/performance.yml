@@ -1,0 +1,82 @@
+name: Measured dataset performance
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Configure native tooling
+        shell: pwsh
+        run: '"LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV'
+      - name: Build release probes and run correctness gates
+        shell: pwsh
+        run: |
+          cargo build --locked --release --features cli --bin crawlingo --example dataset_scale --example idle_session --example text_search_probe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --locked --release --features cli --lib --tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Measure three HTTP runs and idle memory
+        shell: pwsh
+        run: |
+          foreach ($attempt in 1..3) {
+            ./scripts/measure-dataset-scale.ps1 -Pages 10000 -Mode http-fetch -OutputDirectory "target/performance/fetch-$attempt"
+            ./scripts/measure-dataset-scale.ps1 -Pages 10000 -RowsPerPage 1 -OutputDirectory "target/performance/pages-$attempt"
+            ./scripts/measure-dataset-scale.ps1 -Pages 1000 -RowsPerPage 1000 -OutputDirectory "target/performance/million-records-$attempt"
+          }
+          ./scripts/measure-dataset-scale.ps1 -Pages 1000000 -RowsPerPage 1 -OutputDirectory target/performance/million-pages
+          ./scripts/measure-idle-memory.ps1 -OutputFile target/performance/idle.json
+          ./target/release/examples/text_search_probe.exe | Set-Content target/performance/text-search.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install comparison dependencies
+        working-directory: scripts/compare-engines
+        shell: pwsh
+        run: |
+          python -m pip install scrapy==2.19.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npx playwright install chromium
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Compare three engines on the same 200 URLs
+        run: python scripts/compare-engines/run.py target/performance/comparison --cli target/release/crawlingo.exe --pages 200 --concurrency 50
+      - name: Enforce one million verified directory records in under 60 seconds
+        shell: pwsh
+        run: |
+          foreach ($attempt in 1..3) {
+            $base = "target/performance/million-records-$attempt"
+            $result = Get-Content -Raw "$base/acceptance.json" | ConvertFrom-Json
+            $process = Get-Content -Raw "$base.measurement.json" | ConvertFrom-Json
+            if ($result.pages -ne 1000 -or $result.rows_per_page -ne 1000 -or
+                $result.verified_records -ne 1000000 -or $result.resume_verified -ne $true -or
+                $process.wall_seconds -le 0 -or $process.wall_seconds -ge 60) {
+              throw "Directory trial $attempt failed its verified million-record wall-time gate ($($process.wall_seconds)s)."
+            }
+          }
+      - name: Preserve evidence (not dataset payloads)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-evidence-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            target/performance/**/*.measurement.json
+            target/performance/**/acceptance.json
+            target/performance/*.log
+            target/performance/idle.json
+            target/performance/text-search.json
+            target/performance/comparison/evidence.json

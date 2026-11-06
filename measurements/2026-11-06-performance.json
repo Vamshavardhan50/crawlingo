@@ -1,0 +1,604 @@
+{
+  "recorded_local_dates": [
+    "2026-11-05",
+    "2026-11-06"
+  ],
+  "build": "Windows x86_64 local release builds from a modified working tree. Native TLS libraries were reused from this checkout. Separate binaries are identified by SHA-256.",
+  "conditions": [
+    "The million-record directory run shared the machine with build/test activity. The million-page run overlapped some development activity. Each is a single capacity run.",
+    "For fetch-only runs the scope in acceptance is authoritative. The original wrapper used the dataset label for all modes.",
+    "The concurrency-50 cross-engine fixture used a listener backlog of 128. The earlier concurrency-4 fixture used the Python server default. Process startup and actual export are timed."
+  ],
+  "scale": {
+    "fetch-1": {
+      "acceptance": {
+        "concurrency": 50,
+        "mode": "http-fetch",
+        "pages": 10000,
+        "requests_per_second": 22501.019858725096,
+        "rows_per_page": 1,
+        "scope": "Loopback HTTP, Session dispatch, complete body verification; in-process fixture server; no parsing or export",
+        "seconds": 0.4444243,
+        "verified_body_bytes": 1786670
+      },
+      "process": {
+        "mode": "http-fetch",
+        "pages": 10000,
+        "rows_per_page": 1,
+        "executable_sha256": "FE8C1DED053980DE278065782F4E47B5432D1D3BEBE092E210622EB1C27A0AA6",
+        "peak_working_set_bytes": 16846848,
+        "wall_seconds": 0.7209962,
+        "exit_code": 0,
+        "logical_processors": 8,
+        "os": "Microsoft Windows NT 10.0.26300.0",
+        "process_scope": "dataset generator, local HTTP fixture server (http mode), output verification and restart",
+        "source_revision": "85965eff4310393e33dc94b80942f8089790e6c9",
+        "working_tree_modified": true
+      }
+    },
+    "fetch-2": {
+      "acceptance": {
+        "concurrency": 50,
+        "mode": "http-fetch",
+        "pages": 10000,
+        "requests_per_second": 10847.502340891006,
+        "rows_per_page": 1,
+        "scope": "Loopback HTTP, Session dispatch, complete body verification; in-process fixture server; no parsing or export",
+        "seconds": 0.9218712,
+        "verified_body_bytes": 1786670
+      },
+      "process": {
+        "mode": "http-fetch",
+        "pages": 10000,
+        "rows_per_page": 1,
+        "executable_sha256": "FE8C1DED053980DE278065782F4E47B5432D1D3BEBE092E210622EB1C27A0AA6",
+        "peak_working_set_bytes": 16916480,
+        "wall_seconds": 1.0974927,
+        "exit_code": 0,
+        "logical_processors": 8,
+        "os": "Microsoft Windows NT 10.0.26300.0",
+        "process_scope": "dataset generator, local HTTP fixture server (http mode), output verification and restart",
+        "source_revision": "85965eff4310393e33dc94b80942f8089790e6c9",
+        "working_tree_modified": true
+      }
+    },
+    "fetch-3": {
+      "acceptance": {
+        "concurrency": 50,
+        "mode": "http-fetch",
+        "pages": 10000,
+        "requests_per_second": 11781.119060224844,
+        "rows_per_page": 1,
+        "scope": "Loopback HTTP, Session dispatch, complete body verification; in-process fixture server; no parsing or export",
+        "seconds": 0.8488158,
+        "verified_body_bytes": 1786670
+      },
+      "process": {
+        "mode": "http-fetch",
+        "pages": 10000,
+        "rows_per_page": 1,
+        "executable_sha256": "FE8C1DED053980DE278065782F4E47B5432D1D3BEBE092E210622EB1C27A0AA6",
+        "peak_working_set_bytes": 16617472,
+        "wall_seconds": 1.1096799,
+        "exit_code": 0,
+        "logical_processors": 8,
+        "os": "Microsoft Windows NT 10.0.26300.0",
+        "process_scope": "dataset generator, local HTTP fixture server (http mode), output verification and restart",
+        "source_revision": "85965eff4310393e33dc94b80942f8089790e6c9",
+        "working_tree_modified": true
+      }
+    },
+    "pages-1": {
+      "acceptance": {
+        "arch": "x86_64",
+        "checkpoint_pages": 1000,
+        "concurrency": 50,
+        "fixture": "generated UTF-8 HTML; local HTTP server shares the process when enabled; no TLS or browser rendering",
+        "job_seconds": 1.4021789,
+        "mode": "http",
+        "os": "windows",
+        "pages": 10000,
+        "pages_per_second": 7131.75758100482,
+        "profile": "release",
+        "records_per_second": 7131.75758100482,
+        "report": {
+          "cancelled": false,
+          "complete": true,
+          "duplicate_records": 0,
+          "duplicate_urls": 0,
+          "elapsed_ms": 1381,
+          "pages_failed": 0,
+          "pages_fetched": 10000,
+          "records_rejected": 0,
+          "records_written": 10000,
+          "shards": 10,
+          "source_lines": 10000
+        },
+        "resume_verified": true,
+        "rows_per_page": 1,
+        "verified_records": 10000
+      },
+      "process": {
+        "mode": "http",
+        "pages": 10000,
+        "rows_per_page": 1,
+        "executable_sha256": "FE8C1DED053980DE278065782F4E47B5432D1D3BEBE092E210622EB1C27A0AA6",
+        "peak_working_set_bytes": 60989440,
+        "wall_seconds": 1.7042127,
+        "exit_code": 0,
+        "logical_processors": 8,
+        "os": "Microsoft Windows NT 10.0.26300.0",
+        "process_scope": "dataset generator, local HTTP fixture server (http mode), output verification and restart",
+        "source_revision": "85965eff4310393e33dc94b80942f8089790e6c9",
+        "working_tree_modified": true
+      }
+    },
+    "pages-2": {
+      "acceptance": {
+        "arch": "x86_64",
+        "checkpoint_pages": 1000,
+        "concurrency": 50,
+        "fixture": "generated UTF-8 HTML; local HTTP server shares the process when enabled; no TLS or browser rendering",
+        "job_seconds": 1.4804992000000001,
+        "mode": "http",
+        "os": "windows",
+        "pages": 10000,
+        "pages_per_second": 6754.478489417623,
+        "profile": "release",
+        "records_per_second": 6754.478489417623,
+        "report": {
+          "cancelled": false,
+          "complete": true,
+          "duplicate_records": 0,
+          "duplicate_urls": 0,
+          "elapsed_ms": 1464,
+          "pages_failed": 0,
+          "pages_fetched": 10000,
+          "records_rejected": 0,
+          "records_written": 10000,
+          "shards": 10,
+          "source_lines": 10000
+        },
+        "resume_verified": true,
+        "rows_per_page": 1,
+        "verified_records": 10000
+      },
+      "process": {
+        "mode": "http",
+        "pages": 10000,
+        "rows_per_page": 1,
+        "executable_sha256": "FE8C1DED053980DE278065782F4E47B5432D1D3BEBE092E210622EB1C27A0AA6",
+        "peak_working_set_bytes": 60461056,
+        "wall_seconds": 1.723135,
+        "exit_code": 0,
+        "logical_processors": 8,
+        "os": "Microsoft Windows NT 10.0.26300.0",
+        "process_scope": "dataset generator, local HTTP fixture server (http mode), output verification and restart",
+        "source_revision": "85965eff4310393e33dc94b80942f8089790e6c9",
+        "working_tree_modified": true
+      }
+    },
+    "pages-3": {
+      "acceptance": {
+        "arch": "x86_64",
+        "checkpoint_pages": 1000,
+        "concurrency": 50,
+        "fixture": "generated UTF-8 HTML; local HTTP server shares the process when enabled; no TLS or browser rendering",
+        "job_seconds": 1.726185,
+        "mode": "http",
+        "os": "windows",
+        "pages": 10000,
+        "pages_per_second": 5793.121826455449,
+        "profile": "release",
+        "records_per_second": 5793.121826455449,
+        "report": {
+          "cancelled": false,
+          "complete": true,
+          "duplicate_records": 0,
+          "duplicate_urls": 0,
+          "elapsed_ms": 1681,
+          "pages_failed": 0,
+          "pages_fetched": 10000,
+          "records_rejected": 0,
+          "records_written": 10000,
+          "shards": 10,
+          "source_lines": 10000
+        },
+        "resume_verified": true,
+        "rows_per_page": 1,
+        "verified_records": 10000
+      },
+      "process": {
+        "mode": "http",
+        "pages": 10000,
+        "rows_per_page": 1,
+        "executable_sha256": "FE8C1DED053980DE278065782F4E47B5432D1D3BEBE092E210622EB1C27A0AA6",
+        "peak_working_set_bytes": 61464576,
+        "wall_seconds": 2.1184586,
+        "exit_code": 0,
+        "logical_processors": 8,
+        "os": "Microsoft Windows NT 10.0.26300.0",
+        "process_scope": "dataset generator, local HTTP fixture server (http mode), output verification and restart",
+        "source_revision": "85965eff4310393e33dc94b80942f8089790e6c9",
+        "working_tree_modified": true
+      }
+    },
+    "million": {
+      "acceptance": {
+        "arch": "x86_64",
+        "checkpoint_pages": 50,
+        "concurrency": 50,
+        "fixture": "generated UTF-8 HTML; local HTTP server shares the process when enabled; no TLS or browser rendering",
+        "job_seconds": 142.6430017,
+        "mode": "http",
+        "os": "windows",
+        "pages": 1000,
+        "pages_per_second": 7.010508669069882,
+        "profile": "release",
+        "records_per_second": 7010.508669069882,
+        "report": {
+          "cancelled": false,
+          "complete": true,
+          "duplicate_records": 0,
+          "duplicate_urls": 0,
+          "elapsed_ms": 141922,
+          "pages_failed": 0,
+          "pages_fetched": 1000,
+          "records_rejected": 0,
+          "records_written": 1000000,
+          "shards": 20,
+          "source_lines": 1000
+        },
+        "resume_verified": true,
+        "rows_per_page": 1000,
+        "verified_records": 1000000
+      },
+      "process": {
+        "mode": "http",
+        "pages": 1000,
+        "rows_per_page": 1000,
+        "executable_sha256": "4C20687DFA3F904829933760A29FEEB96BC8A0AFE2A3364F71CF15F12D71B1C3",
+        "peak_working_set_bytes": 718925824,
+        "wall_seconds": 151.1505522,
+        "exit_code": 0,
+        "logical_processors": 8,
+        "os": "Microsoft Windows NT 10.0.26300.0",
+        "process_scope": "dataset generator, local HTTP fixture server (http mode), output verification and restart",
+        "source_revision": "85965eff4310393e33dc94b80942f8089790e6c9",
+        "working_tree_modified": true
+      }
+    },
+    "million-pages": {
+      "acceptance": {
+        "arch": "x86_64",
+        "checkpoint_pages": 1000,
+        "concurrency": 50,
+        "fixture": "generated UTF-8 HTML; local HTTP server shares the process when enabled; no TLS or browser rendering",
+        "job_seconds": 221.8897123,
+        "mode": "http",
+        "os": "windows",
+        "pages": 1000000,
+        "pages_per_second": 4506.743416062377,
+        "profile": "release",
+        "records_per_second": 4506.743416062377,
+        "report": {
+          "cancelled": false,
+          "complete": true,
+          "duplicate_records": 0,
+          "duplicate_urls": 0,
+          "elapsed_ms": 221749,
+          "pages_failed": 0,
+          "pages_fetched": 1000000,
+          "records_rejected": 0,
+          "records_written": 1000000,
+          "shards": 1000,
+          "source_lines": 1000000
+        },
+        "resume_verified": true,
+        "rows_per_page": 1,
+        "verified_records": 1000000
+      },
+      "process": {
+        "mode": "http",
+        "pages": 1000000,
+        "rows_per_page": 1,
+        "executable_sha256": "FE8C1DED053980DE278065782F4E47B5432D1D3BEBE092E210622EB1C27A0AA6",
+        "peak_working_set_bytes": 204881920,
+        "wall_seconds": 227.7524963,
+        "exit_code": 0,
+        "logical_processors": 8,
+        "os": "Microsoft Windows NT 10.0.26300.0",
+        "process_scope": "dataset generator, local HTTP fixture server (http mode), output verification and restart",
+        "source_revision": "85965eff4310393e33dc94b80942f8089790e6c9",
+        "working_tree_modified": true
+      }
+    }
+  },
+  "cross_engine": {
+    "comparison": {
+      "platform": "Windows-11-10.0.26300-SP0",
+      "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+      "scrapy": "2.19.0",
+      "cli_sha256": "3a47392d8f2b619495be87ef1387c110131f7184c64a95560a3b75efeb11a58b",
+      "pages": 200,
+      "concurrency": 4,
+      "scope": "Process startup through JSONL export. Crawlingo includes durable checkpoints and deduplication. Playwright includes Chromium startup and rendering.",
+      "runs": [
+        {
+          "engine": "crawlingo",
+          "seconds": 0.20423559995833784,
+          "verified_rows": 200,
+          "pages_per_second": 979.261206375373
+        },
+        {
+          "engine": "scrapy",
+          "seconds": 3.918797700025607,
+          "verified_rows": 200,
+          "pages_per_second": 51.03606139165927
+        },
+        {
+          "engine": "playwright",
+          "seconds": 8.590148999996018,
+          "verified_rows": 200,
+          "pages_per_second": 23.282483225854723
+        },
+        {
+          "engine": "scrapy",
+          "seconds": 2.3511889000074007,
+          "verified_rows": 200,
+          "pages_per_second": 85.06334816371857
+        },
+        {
+          "engine": "playwright",
+          "seconds": 5.507198200037237,
+          "verified_rows": 200,
+          "pages_per_second": 36.31610716292137
+        },
+        {
+          "engine": "crawlingo",
+          "seconds": 0.22144069999922067,
+          "verified_rows": 200,
+          "pages_per_second": 903.1763356993717
+        },
+        {
+          "engine": "playwright",
+          "seconds": 5.573872999986634,
+          "verified_rows": 200,
+          "pages_per_second": 35.881693034713855
+        },
+        {
+          "engine": "crawlingo",
+          "seconds": 0.1832847999758087,
+          "verified_rows": 200,
+          "pages_per_second": 1091.1979609132754
+        },
+        {
+          "engine": "scrapy",
+          "seconds": 2.6420406000106595,
+          "verified_rows": 200,
+          "pages_per_second": 75.6990638218024
+        }
+      ],
+      "chromium": "156.0.8078.4",
+      "playwright": "1.64.1",
+      "median_pages_per_second": {
+        "crawlingo": 979.261206375373,
+        "scrapy": 75.6990638218024,
+        "playwright": 35.881693034713855
+      }
+    },
+    "comparison50": {
+      "platform": "Windows-11-10.0.26300-SP0",
+      "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+      "scrapy": "2.19.0",
+      "cli_sha256": "3a47392d8f2b619495be87ef1387c110131f7184c64a95560a3b75efeb11a58b",
+      "pages": 200,
+      "concurrency": 50,
+      "scope": "Process startup through JSONL export. Crawlingo includes durable checkpoints and deduplication. Playwright includes Chromium startup and rendering.",
+      "runs": [
+        {
+          "engine": "crawlingo",
+          "seconds": 0.13689180003711954,
+          "verified_rows": 200,
+          "pages_per_second": 1461.0078905074524
+        },
+        {
+          "engine": "scrapy",
+          "seconds": 2.483502099988982,
+          "verified_rows": 200,
+          "pages_per_second": 80.53143985700164
+        },
+        {
+          "engine": "playwright",
+          "seconds": 7.66665709996596,
+          "verified_rows": 200,
+          "pages_per_second": 26.086989073880453
+        },
+        {
+          "engine": "scrapy",
+          "seconds": 2.911918199970387,
+          "verified_rows": 200,
+          "pages_per_second": 68.68324803974023
+        },
+        {
+          "engine": "playwright",
+          "seconds": 8.467681500012986,
+          "verified_rows": 200,
+          "pages_per_second": 23.61921619273154
+        },
+        {
+          "engine": "crawlingo",
+          "seconds": 0.3226336999796331,
+          "verified_rows": 200,
+          "pages_per_second": 619.8980454076105
+        },
+        {
+          "engine": "playwright",
+          "seconds": 8.027626399998553,
+          "verified_rows": 200,
+          "pages_per_second": 24.9139646060305
+        },
+        {
+          "engine": "crawlingo",
+          "seconds": 0.24565620004432276,
+          "verified_rows": 200,
+          "pages_per_second": 814.1459485407444
+        },
+        {
+          "engine": "scrapy",
+          "seconds": 2.9515780999790877,
+          "verified_rows": 200,
+          "pages_per_second": 67.76036182183931
+        }
+      ],
+      "chromium": "156.0.8078.4",
+      "playwright": "1.64.1",
+      "median_pages_per_second": {
+        "crawlingo": 814.1459485407444,
+        "scrapy": 68.68324803974023,
+        "playwright": 24.9139646060305
+      }
+    }
+  },
+  "idle": {
+    "scope": "One Rust Session; four Tokio workers; no HTTP clients, browser or SDK",
+    "samples": 45,
+    "median_working_set_bytes": 5849088,
+    "max_sampled_working_set_bytes": 5849088,
+    "executable_sha256": "AF9459FF7B29AFA7A9BB5E9101E091AE14DDC011522148D4B5F8AD8661D4D5F8",
+    "source_revision": "85965eff4310393e33dc94b80942f8089790e6c9",
+    "working_tree_modified": true,
+    "os": "Microsoft Windows NT 10.0.26300.0"
+  },
+  "public_pep_index": {
+    "captured_at_utc": "2026-11-05T18:25:48.315257+00:00",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "logical_cpus": 8,
+    "command": [
+      "D:\\Scraper\\target\\release\\crawlingo.exe",
+      "--config",
+      "examples\\research_dataset\\session.json",
+      "--rate-limit-rps",
+      "1",
+      "--timeout",
+      "30",
+      "dataset",
+      "target\\perf-check-20261105\\public-job.json"
+    ],
+    "rate_limit_rps_per_host": 1,
+    "job_config": {
+      "urls_file": "examples/research_dataset/index-urls.txt",
+      "output_dir": "target\\perf-check-20261105\\public-peps",
+      "row_selector": ".pep-zero-table tbody tr",
+      "fields": [
+        {
+          "name": "pep_number",
+          "selector": "td:nth-child(2)",
+          "data_type": "integer",
+          "required": true
+        },
+        {
+          "name": "title",
+          "selector": "td:nth-child(3)",
+          "required": true
+        },
+        {
+          "name": "relative_url",
+          "selector": "td:nth-child(2) a.pep",
+          "extract_type": "attr:href",
+          "required": true
+        },
+        {
+          "name": "classification",
+          "selector": "td:nth-child(1) abbr",
+          "extract_type": "attr:title",
+          "required": true
+        }
+      ],
+      "concurrency": 2,
+      "checkpoint_pages": 4,
+      "max_response_bytes": 2097152,
+      "max_records_per_page": 2000,
+      "dedup_fields": [
+        "relative_url"
+      ],
+      "respect_robots": true,
+      "format": "jsonl"
+    },
+    "binary_sha256": "3a47392d8f2b619495be87ef1387c110131f7184c64a95560a3b75efeb11a58b",
+    "input_sha256": "d7e3de5cf42edf3bd654331517868abda95d089059134c54675d728f9550365f",
+    "session_sha256": "19c3c2b2b4bf191f5625c0c7ff7bdcd82fce813d7df8d942f343fa7c05b84901",
+    "memory_scope": "Rust CLI process only; Windows peak working set, sampled every 20ms; null on other systems.",
+    "initial": {
+      "exit_code": 0,
+      "process_wall_seconds": 2.029,
+      "peak_cli_working_set_bytes": 45142016,
+      "report": {
+        "source_lines": 1,
+        "pages_fetched": 1,
+        "pages_failed": 0,
+        "duplicate_urls": 0,
+        "records_written": 746,
+        "records_rejected": 0,
+        "duplicate_records": 0,
+        "shards": 1,
+        "complete": true,
+        "cancelled": false,
+        "elapsed_ms": 1827
+      },
+      "artifacts": {
+        "part-00000000.errors.jsonl": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "part-00000000.jsonl": {
+          "bytes": 152247,
+          "sha256": "3295655827b7a0c83cd33a882ae256b66610fadae1150a7b6f4c5c9f899246aa"
+        }
+      }
+    },
+    "verified_records": 746,
+    "resume": {
+      "exit_code": 0,
+      "process_wall_seconds": 0.168,
+      "peak_cli_working_set_bytes": 33050624,
+      "report": {
+        "source_lines": 1,
+        "pages_fetched": 1,
+        "pages_failed": 0,
+        "duplicate_urls": 0,
+        "records_written": 746,
+        "records_rejected": 0,
+        "duplicate_records": 0,
+        "shards": 1,
+        "complete": true,
+        "cancelled": false,
+        "elapsed_ms": 61
+      },
+      "shards_unchanged": true
+    }
+  },
+  "text_search": {
+    "expected_matches": 256,
+    "fixture_bytes": 1065997,
+    "production_seconds": [
+      0.0047855,
+      0.0055648,
+      0.0056518,
+      0.004685,
+      0.004658,
+      0.0048772
+    ],
+    "reference_seconds": [
+      0.2468238,
+      0.2250723,
+      0.2366857,
+      0.231986,
+      0.2894934,
+      0.2189303
+    ],
+    "scans_per_trial": 64,
+    "scope": "Production memmem text selector versus exhaustive byte windows over identical parsed nodes. This comparison includes algorithm choice and compiler optimizations.",
+    "executable_sha256": "949c9cd2b07682f0fde33ee9fd7c6a420ef9bea92ca602b7aa9ecc7b0407f722"
+  }
+}

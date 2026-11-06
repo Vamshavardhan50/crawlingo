@@ -14,7 +14,7 @@ on:
         description: Existing release tag to receive the npm package
         required: false
         type: string
-        default: v1.0.0-alpha.2
+        default: v1.0.0-alpha.3
 
 permissions:
   contents: read
@@ -25,10 +25,13 @@ concurrency:
 
 jobs:
   audit:
+    needs: verify-version
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -39,12 +42,25 @@ jobs:
 
   verify-version:
     runs-on: ubuntu-latest
+    outputs:
+      source-commit: ${{ steps.source.outputs.commit }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.publish-npm && format('refs/tags/{0}', inputs.release-tag) || github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Pin source commit for all build jobs
+        id: source
+        shell: bash
+        run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - run: node scripts/check-release.cjs
+      - name: Verify retry tag matches package versions
+        if: github.event_name == 'workflow_dispatch' && inputs.publish-npm
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag }}
+        run: node scripts/check-release.cjs "$RELEASE_TAG"
       - name: Verify release tag
         if: github.event_name == 'release'
         env:
@@ -70,6 +86,8 @@ jobs:
             target: x86_64-pc-windows-msvc
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: dtolnay/rust-toolchain@stable
       - name: Install Linux native build tools
         if: runner.os == 'Linux'
@@ -125,6 +143,8 @@ jobs:
             file: crawlingo-native.win32-x64-msvc.node
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -192,6 +212,8 @@ jobs:
             archs: AMD64
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: dtolnay/rust-toolchain@stable
         if: runner.os != 'Linux'
       - name: Configure Windows libclang
@@ -219,10 +241,12 @@ jobs:
           if-no-files-found: error
 
   package-npm:
-    needs: [build-node-addons, python-wheels]
+    needs: [verify-version, build-node-addons, python-wheels]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -258,10 +282,12 @@ jobs:
           path: sdk/nodejs/*.tgz
           if-no-files-found: error
   package-python:
-    needs: [python-wheels, build-node-addons]
+    needs: [verify-version, python-wheels, build-node-addons]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -285,6 +311,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: dtolnay/rust-toolchain@stable
       - run: sudo apt-get update && sudo apt-get install -y clang libclang-dev cmake
       - run: cargo package --locked --list
@@ -314,13 +342,18 @@ jobs:
           if-no-files-found: error
 
   rustdoc:
+    needs: verify-version
     uses: ./.github/workflows/rustdoc.yml
+    with:
+      source-ref: ${{ needs.verify-version.outputs.source-commit }}
 
   release-artifacts:
-    needs: [package-npm, package-python, package-crate, rustdoc]
+    needs: [verify-version, package-npm, package-python, package-crate, rustdoc]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -354,7 +387,7 @@ jobs:
           if-no-files-found: error
 
   publish-npm:
-    needs: release-artifacts
+    needs: [verify-version, release-artifacts]
     if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish-npm)
     runs-on: ubuntu-latest
     environment: npm
@@ -371,11 +404,13 @@ jobs:
         with:
           name: npm-package
           path: dist
-      - name: Publish the reviewed tarball with OIDC
+      - name: Publish the reviewed tarball
         shell: bash
         env:
           RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release-tag }}
+          SOURCE_COMMIT: ${{ needs.verify-version.outputs.source-commit }}
         run: |
+          set -euo pipefail
           version=${RELEASE_TAG#v}
           tag=latest
           if [[ "$version" == *-* ]]; then tag=next; fi
@@ -385,7 +420,33 @@ jobs:
             find "$GITHUB_WORKSPACE/dist" -maxdepth 2 -type f -print
             exit 1
           fi
-          npm publish "$archive" --provenance --access public --tag "$tag"
+          expected="sha512-$(openssl dgst -sha512 -binary "$archive" | openssl base64 -A)"
+          metadata="https://registry.npmjs.org/crawlingo/$version"
+          status=$(curl -sS -o "$RUNNER_TEMP/npm-version.json" -w '%{http_code}' "$metadata")
+          if [[ "$status" == 200 ]]; then
+            actual=$(jq -er '.dist.integrity' "$RUNNER_TEMP/npm-version.json")
+            if [[ "$actual" != "$expected" ]]; then
+              echo "::error::Version $version already exists with different bytes. Use a fresh version for changed contents."
+              exit 1
+            fi
+            echo "Registry already contains the reviewed tarball."
+            exit 0
+          elif [[ "$status" != 404 ]]; then
+            echo "::error::npm registry returned HTTP $status while checking $version"
+            exit 1
+          fi
+          if [[ "$SOURCE_COMMIT" == "$GITHUB_SHA" ]]; then
+            npm publish "$archive" --provenance --access public --tag "$tag"
+          else
+            echo "::warning::The workflow commit differs from the checked-out release commit; publishing without npm provenance to avoid an incorrect source attestation."
+            npm publish "$archive" --access public --tag "$tag"
+          fi
+          for delay in 1 2 4 8 16; do
+            sleep "$delay"
+            if [[ "$(curl -fsS "$metadata" | jq -r '.dist.integrity')" == "$expected" ]]; then exit 0; fi
+          done
+          echo "::error::Could not verify registry integrity for crawlingo@$version"
+          exit 1
 
   publish-python:
     needs: release-artifacts
@@ -405,7 +466,7 @@ jobs:
           packages-dir: dist
 
   publish-crate:
-    needs: release-artifacts
+    needs: [verify-version, release-artifacts]
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
     environment: crates-io
@@ -414,6 +475,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: dtolnay/rust-toolchain@stable
       - run: sudo apt-get update && sudo apt-get install -y clang libclang-dev cmake
       - name: Obtain a short-lived crates.io publishing credential
@@ -456,4 +519,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ inputs.release-tag }}
-        run: gh release upload "$RELEASE_TAG" release-assets/* --clobber
+        shell: bash
+        run: |
+          set -euo pipefail
+          existing=$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')
+          if [[ -n "$existing" ]]; then
+            echo "::warning::Release already has assets; preserving them. Review missing files and checksums before uploading manually."
+            exit 0
+          fi
+          gh release upload "$RELEASE_TAG" release-assets/*

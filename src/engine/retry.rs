@@ -89,16 +89,22 @@ impl RetryPolicy {
     }
 }
 
-/// Parses a numeric-seconds `Retry-After` header, if present.
-///
-/// The HTTP-date form of `Retry-After` is not handled; retry falls back to the computed
-/// exponential backoff in that case.
+/// Parses a numeric-seconds or HTTP-date `Retry-After` header, if present.
 fn retry_after_delay(response: &NormalizedResponse) -> Option<Duration> {
-    response
-        .headers
-        .get("retry-after")
-        .and_then(|v| v.trim().parse::<u64>().ok())
-        .map(Duration::from_secs)
+    let value = response.headers.get("retry-after")?.trim();
+    retry_after_value(value, chrono::Utc::now())
+}
+
+fn retry_after_value(value: &str, now: chrono::DateTime<chrono::Utc>) -> Option<Duration> {
+    if let Ok(seconds) = value.parse::<u64>() {
+        return Some(Duration::from_secs(seconds));
+    }
+    let date = chrono::DateTime::parse_from_rfc2822(value).ok()?;
+    Some(
+        date.signed_duration_since(now)
+            .to_std()
+            .unwrap_or(Duration::ZERO),
+    )
 }
 
 #[cfg(test)]
@@ -175,6 +181,22 @@ mod tests {
             policy.decide(0, 3, &res),
             RetryDecision::Retry(Duration::from_secs(7))
         );
+    }
+
+    #[test]
+    fn parses_retry_after_http_dates_and_expired_dates() {
+        let now = chrono::DateTime::parse_from_rfc2822("Wed, 21 Oct 2015 07:28:00 GMT")
+            .unwrap()
+            .with_timezone(&chrono::Utc);
+        assert_eq!(
+            retry_after_value("Wed, 21 Oct 2015 07:28:07 GMT", now),
+            Some(Duration::from_secs(7))
+        );
+        assert_eq!(
+            retry_after_value("Wed, 21 Oct 2015 07:27:00 GMT", now),
+            Some(Duration::ZERO)
+        );
+        assert_eq!(retry_after_value("invalid", now), None);
     }
 
     #[test]

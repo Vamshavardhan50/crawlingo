@@ -53,7 +53,7 @@ pub struct Metrics {
     successes: AtomicU64,
     failures: AtomicU64,
     bytes_in: AtomicU64,
-    total_latency_ms: AtomicU64,
+    total_latency_us: AtomicU64,
     status_counts: DashMap<u16, u64>,
     per_host: DashMap<String, HostMetrics>,
 }
@@ -67,8 +67,10 @@ impl Metrics {
         self.requests.fetch_add(1, Ordering::Relaxed);
         self.successes.fetch_add(1, Ordering::Relaxed);
         self.bytes_in.fetch_add(bytes, Ordering::Relaxed);
-        self.total_latency_ms
-            .fetch_add(elapsed.as_millis() as u64, Ordering::Relaxed);
+        self.total_latency_us.fetch_add(
+            elapsed.as_micros().min(u64::MAX as u128) as u64,
+            Ordering::Relaxed,
+        );
         *self.status_counts.entry(status).or_insert(0) += 1;
 
         let mut entry = self.per_host.entry(host.to_string()).or_default();
@@ -79,8 +81,10 @@ impl Metrics {
     fn record_failure(&self, host: &str, elapsed: Duration) {
         self.requests.fetch_add(1, Ordering::Relaxed);
         self.failures.fetch_add(1, Ordering::Relaxed);
-        self.total_latency_ms
-            .fetch_add(elapsed.as_millis() as u64, Ordering::Relaxed);
+        self.total_latency_us.fetch_add(
+            elapsed.as_micros().min(u64::MAX as u128) as u64,
+            Ordering::Relaxed,
+        );
 
         let mut entry = self.per_host.entry(host.to_string()).or_default();
         entry.requests += 1;
@@ -95,7 +99,7 @@ impl Metrics {
     /// updates land between reads, never a lost or duplicated update.
     pub fn snapshot(&self) -> MetricsSnapshot {
         let requests = self.requests.load(Ordering::Relaxed);
-        let total_latency_ms = self.total_latency_ms.load(Ordering::Relaxed);
+        let total_latency_us = self.total_latency_us.load(Ordering::Relaxed);
         MetricsSnapshot {
             requests,
             successes: self.successes.load(Ordering::Relaxed),
@@ -112,7 +116,7 @@ impl Metrics {
                 .map(|e| (e.key().clone(), e.value().clone()))
                 .collect(),
             avg_latency_ms: if requests > 0 {
-                total_latency_ms as f64 / requests as f64
+                total_latency_us as f64 / requests as f64 / 1000.0
             } else {
                 0.0
             },
@@ -173,6 +177,14 @@ mod tests {
     use crate::engine::fetcher::{mock_request, FetchManager, MockTransport};
     use crate::engine::middleware::MiddlewareStack;
     use crate::engine::rate_limiter::HostRateLimiter;
+
+    #[test]
+    fn preserves_submillisecond_latency_for_successes_and_failures() {
+        let metrics = Metrics::new();
+        metrics.record_success("fixture", 200, 5, Duration::from_micros(250));
+        metrics.record_failure("fixture", Duration::from_micros(750));
+        assert_eq!(metrics.snapshot().avg_latency_ms, 0.5);
+    }
 
     #[test]
     fn snapshot_of_fresh_metrics_is_all_zero() {

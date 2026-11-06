@@ -40,6 +40,26 @@ fn records(cfg: &JobConfig, shards: u64) -> Vec<serde_json::Value> {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn nested_rows_keep_their_own_fields_and_unicode_whitespace() {
+    let dir = tempfile::tempdir().unwrap();
+    let url = "https://fixture.test/nested";
+    let mut cfg = config(dir.path(), url);
+    cfg.row_selector = Some("article".into());
+    let html = "<article><h1>outer title</h1><article><h1>inner\u{2003}title</h1></article><h1>again</h1></article>";
+    let session = Arc::new(Session::new());
+    session.set_transport(Arc::new(MockTransport::new().with_html(url, html)));
+    let report = DatasetJob::new(cfg.clone(), session)
+        .unwrap()
+        .run()
+        .await
+        .unwrap();
+    let rows = records(&cfg, report.shards);
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0]["title"], "outer title again");
+    assert_eq!(rows[1]["title"], "inner title");
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn manifest_matches_committed_shards_and_detects_corruption() {
     use sha2::{Digest, Sha256};
     let dir = tempfile::tempdir().unwrap();

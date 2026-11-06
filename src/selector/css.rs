@@ -1,6 +1,7 @@
 use crate::parser::document::{DomNode, DomTree};
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
+use std::sync::{Arc, Mutex};
 
 /// How an attribute value is matched.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -41,7 +42,42 @@ pub struct CompiledSelector {
 }
 
 // Global thread-safe selector compilation cache
-static SELECTOR_CACHE: Lazy<DashMap<String, CompiledSelector>> = Lazy::new(DashMap::new);
+struct SelectorCache {
+    entries: DashMap<String, Arc<CompiledSelector>>,
+    insertion: Mutex<()>,
+    capacity: usize,
+}
+
+impl SelectorCache {
+    fn new(capacity: usize) -> Self {
+        Self {
+            entries: DashMap::new(),
+            insertion: Mutex::new(()),
+            capacity,
+        }
+    }
+
+    fn get(&self, source: &str) -> Arc<CompiledSelector> {
+        if let Some(entry) = self.entries.get(source) {
+            return entry.value().clone();
+        }
+        let compiled = Arc::new(parse_selector(source));
+        // Large or one-off selectors still work without retaining unlimited global state.
+        if source.len() > 4096 {
+            return compiled;
+        }
+        let _guard = self.insertion.lock().unwrap();
+        if let Some(entry) = self.entries.get(source) {
+            return entry.value().clone();
+        }
+        if self.entries.len() < self.capacity {
+            self.entries.insert(source.to_owned(), compiled.clone());
+        }
+        compiled
+    }
+}
+
+static SELECTOR_CACHE: Lazy<SelectorCache> = Lazy::new(|| SelectorCache::new(4096));
 
 /// Parse an attribute expression from inside `[...]`.
 /// Expects the string starting after the opening `[` and returns the parsed
@@ -231,11 +267,7 @@ pub fn parse_selector(sel_str: &str) -> CompiledSelector {
 
 /// Retrieves the precompiled selector from the cache, or parses it on first miss.
 pub fn get_or_compile(sel_str: &str) -> CompiledSelector {
-    SELECTOR_CACHE
-        .entry(sel_str.to_string())
-        .or_insert_with(|| parse_selector(sel_str))
-        .value()
-        .clone()
+    (*SELECTOR_CACHE.get(sel_str)).clone()
 }
 
 /// Evaluates if a node matches a single compound selector group.
@@ -244,7 +276,10 @@ fn match_group(tree: &DomTree, index: usize, group: &SelectorGroup) -> bool {
     for part in &group.parts {
         match part {
             SelectorPart::Tag(t) => {
-                if node.tag.to_lowercase() != t.to_lowercase() {
+                if !node.tag.eq_ignore_ascii_case(t)
+                    && ((node.tag.is_ascii() && t.is_ascii())
+                        || node.tag.to_lowercase() != t.to_lowercase())
+                {
                     return false;
                 }
             }
@@ -357,7 +392,7 @@ pub fn selector_matches(tree: &DomTree, node_idx: usize, selector: &CompiledSele
 
 /// Scans the entire `DomTree` for elements matching the query selector string.
 pub fn query(tree: &DomTree, selector_str: &str) -> Vec<usize> {
-    let selector = get_or_compile(selector_str);
+    let selector = SELECTOR_CACHE.get(selector_str);
     let mut results = Vec::new();
     for idx in 0..tree.nodes.len() {
         if selector_matches(tree, idx, &selector) {
@@ -371,6 +406,25 @@ pub fn query(tree: &DomTree, selector_str: &str) -> Vec<usize> {
 mod tests {
     use super::*;
     use crate::parser::streaming::parse_html;
+
+    #[test]
+    fn selector_cache_is_bounded_and_shares_hot_entries() {
+        let cache = SelectorCache::new(2);
+        let first = cache.get("h1");
+        assert!(Arc::ptr_eq(&first, &cache.get("h1")));
+        cache.get("h2");
+        let uncached = cache.get("article.title");
+        assert_eq!(cache.entries.len(), 2);
+        let tree = parse_html(b"<article class='title'>ok</article>").unwrap();
+        assert!(tree
+            .nodes
+            .iter()
+            .any(|node| selector_matches(&tree, node.index, &uncached)));
+        let oversized = "a".repeat(4097);
+        let fresh = SelectorCache::new(2);
+        fresh.get(&oversized);
+        assert_eq!(fresh.entries.len(), 0);
+    }
 
     #[test]
     fn numbered_columns_exclude_neighboring_links() {

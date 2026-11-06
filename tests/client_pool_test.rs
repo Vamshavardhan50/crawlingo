@@ -53,6 +53,82 @@ fn request(
 }
 
 #[tokio::test]
+async fn stealth_profiles_emit_different_tls_cipher_offers() {
+    async fn capture(profile: &str) -> Vec<u16> {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let receiver = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut header = [0; 5];
+            socket.read_exact(&mut header).await.unwrap();
+            assert_eq!(header[0], 22, "expected TLS handshake record");
+            let mut hello = vec![0; u16::from_be_bytes([header[3], header[4]]) as usize];
+            socket.read_exact(&mut hello).await.unwrap();
+            assert_eq!(hello[0], 1, "expected ClientHello");
+            // Handshake header, legacy version, 32 random bytes, then the session ID.
+            let start = 39 + usize::from(hello[38]);
+            let size = u16::from_be_bytes([hello[start], hello[start + 1]]) as usize;
+            hello[start + 2..start + 2 + size]
+                .chunks_exact(2)
+                // Ignore randomized GREASE entries when comparing real cipher suites.
+                .filter(|pair| !(pair[0] == pair[1] && pair[0] & 15 == 10))
+                .map(|pair| u16::from_be_bytes([pair[0], pair[1]]))
+                .collect::<Vec<_>>()
+        });
+        let fetcher = HttpFetcher::new(ConnectionPoolConfig::default());
+        let req = request(
+            &format!("https://{address}/"),
+            FetcherTier::Stealthy,
+            Some(profile),
+            None,
+        );
+        let (_, captured) = tokio::time::timeout(Duration::from_secs(15), async {
+            tokio::join!(fetcher.fetch(&req), receiver)
+        })
+        .await
+        .unwrap();
+        captured.unwrap()
+    }
+    let chrome = capture("chrome").await;
+    let firefox = capture("firefox").await;
+    assert!(!chrome.is_empty() && !firefox.is_empty());
+    assert_ne!(
+        chrome, firefox,
+        "configured profiles must affect the wire handshake"
+    );
+}
+
+#[tokio::test]
+async fn total_fetch_duration_includes_slow_body_delivery() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let mut buffer = [0u8; 4096];
+        assert!(socket.read(&mut buffer).await.unwrap() > 0);
+        socket
+            .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\n")
+            .await
+            .unwrap();
+        tokio::time::sleep(Duration::from_millis(120)).await;
+        socket.write_all(b"hello").await.unwrap();
+    });
+    let fetcher = HttpFetcher::new(ConnectionPoolConfig::default());
+    let response = fetcher
+        .fetch(&request(
+            &format!("http://{address}/"),
+            FetcherTier::Standard,
+            None,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.body.as_ref(), b"hello");
+    assert!(response.timings.total_duration >= Duration::from_millis(100));
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn repeated_fetches_reuse_a_single_pooled_client() {
     // no_keepalive means each request opens a fresh TCP connection (so the tiny test server,
     // which handles one request per accepted socket, keeps working) — yet the *client* is still

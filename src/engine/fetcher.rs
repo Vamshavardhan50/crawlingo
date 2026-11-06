@@ -293,14 +293,6 @@ impl HttpFetcher {
             .send()
             .await
             .map_err(|e| transport_error(e, request.timeout))?;
-        let elapsed = start_time.elapsed();
-
-        let timings = ResponseTimings {
-            dns_lookup: Duration::default(),
-            tcp_connect: Duration::default(),
-            tls_handshake: Duration::default(),
-            total_duration: elapsed,
-        };
 
         let status = resp.status().as_u16();
         let url_str = resp.uri().to_string();
@@ -345,8 +337,15 @@ impl HttpFetcher {
             ));
         }
         use futures::StreamExt;
+        // Avoid repeated buffer growth for ordinary known-length responses without
+        // trusting an untrusted Content-Length to reserve the entire body up front.
+        let initial_capacity = resp
+            .content_length()
+            .unwrap_or(0)
+            .min(self.max_response_bytes as u64)
+            .min(64 * 1024) as usize;
         let mut stream = resp.bytes_stream();
-        let mut body = bytes::BytesMut::new();
+        let mut body = bytes::BytesMut::with_capacity(initial_capacity);
         while let Some(chunk) = stream.next().await {
             let chunk = chunk.map_err(|e| transport_error(e, request.timeout))?;
             if chunk.len() > self.max_response_bytes.saturating_sub(body.len()) {
@@ -357,6 +356,10 @@ impl HttpFetcher {
             body.extend_from_slice(&chunk);
         }
         let body = body.freeze();
+        let timings = ResponseTimings {
+            total_duration: start_time.elapsed(),
+            ..ResponseTimings::default()
+        };
 
         Ok(NormalizedResponse {
             url: url_str,

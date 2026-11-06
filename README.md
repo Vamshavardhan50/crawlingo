@@ -17,9 +17,9 @@ or CSV datasets.
 [Examples](examples/product_dataset) ·
 [Changelog](CHANGELOG.md)
 
-> **Development release: 1.0.0-alpha.2.** Build from source for `DatasetJob`.
-> This version is not yet published to npm, PyPI or crates.io.
-> See [release and platform availability](guides/RELEASE_STATUS.md).
+> **SDK release channels.** Install the npm default with `npm install crawlingo`, or
+> choose the prerelease channel with `npm install crawlingo@next`. See the
+> [registry status](guides/RELEASE_STATUS.md) for exact versions. This checkout targets alpha.3.
 
 ## What is it for?
 
@@ -41,7 +41,8 @@ fetch → extract → validate → deduplicate → JSONL / CSV + report
 - **Your stack:** call the SDK in a worker, or run the CLI from a scheduler.
 
 Crawlingo needs explicit rules and technical setup. It does not provide a hosted
-API, a no-code interface or automatic semantic cleaning. See the
+API or automatic semantic cleaning. The optional local [Selector Studio](tools/selector-studio/README.md)
+helps you pick fields visually and export a dataset job. See the
 [capabilities and boundaries](guides/PRODUCT.md).
 
 ## Quick start
@@ -92,12 +93,13 @@ Read [dataset design](guides/dataset-design.md) before increasing volume.
 
 ## Use an SDK
 
-Build the SDK from this checkout, then use the same `job.json`.
+Install the matching alpha package or build the SDK from this checkout, then use
+the same `job.json`. Platform availability varies; consult each SDK guide.
 
 | Language | Setup | API |
 | --- | --- | --- |
-| Python | [Source installation](sdk/python/README.md) | `DatasetJob(config).run()` or `await job.run_async()` |
-| Node.js / TypeScript | [Native addon build](sdk/nodejs/README.md) | `await new DatasetJob(config).run()` |
+| Python | `pip install crawlingo==1.0.0a2` · [SDK guide](sdk/python/README.md) | `DatasetJob(config).run()` or `await job.run_async()` |
+| Node.js / TypeScript | `npm install crawlingo` · [SDK guide](sdk/nodejs/README.md) | `await new DatasetJob(config).run()` |
 | Rust | [Crate integration](https://crawlingo-docs.vercel.app/sdk/rust) | `DatasetJob::new(config, session)?.run().await?` |
 
 The [DatasetJob reference](guides/api-dataset-job.md) covers complete examples,
@@ -136,19 +138,21 @@ dataset-job input.
 
 ## Scale and current scope
 
+A live Tranco directory run fetched and verified **1,000,000 unique ranked
+domains in 7.02 seconds** using the source's bulk CSV download. The Rust
+example writes JSONL and checks each exported rank and domain against the
+download. [Reproduce the Tranco import](guides/benchmarks.md).
+
 A public research-site run produced **744 directory records and 20 document
 records**, with no failed pages or rejected rows. The document sample took
 20.539 seconds at one request per second. See the [quality checks and measured
 limits](PUBLIC_WEB_RESULTS.md); this is not a maximum-throughput benchmark.
 
-A local HTTP fixture run fetched **1 million pages and exported 1 million records**
-with 50 concurrent requests, zero page failures and zero rejected rows. Initial
-job time was 1,094.569 seconds; peak process working set was 181.5 MiB, including
-the fixture server and verification. These measurements describe that workload,
-not arbitrary websites. See [method and results](SCALE_RESULTS.md) and
-[performance tuning](guides/PERFORMANCE.md).
-That local fixture was measured on October 14 and has not been rerun after the
-latest parser changes.
+In three Windows release runs, Crawlingo fetched **1,000 local HTTP directory
+pages and exported 1 million records**. Reading back every record and restarting
+the job brought total wall time to **44.37, 54.60 and 44.78 seconds**. A live
+Python PEP index run produced 746 validated directory records. See the
+[workloads, million-distinct-page timings and raw measurements](guides/benchmarks.md).
 
 Current dataset jobs use local single-writer storage and JSONL/CSV checkpoints.
 Distributed scheduling, typed JSON output and checkpointed Parquet jobs are not

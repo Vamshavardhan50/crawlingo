@@ -1,12 +1,22 @@
 {
   "name": "crawlingo",
-  "version": "1.0.0-alpha.2",
+  "version": "1.0.0-alpha.3",
   "license": "MIT",
   "funding": {
     "type": "github",
     "url": "https://github.com/sponsors/Vamshavardhan50"
   },
-  "description": "Validated datasets from web pages, powered by Rust",
+  "description": "Collect and validate web datasets with resumable JSONL and CSV exports, powered by Rust",
+  "keywords": [
+    "web-scraping",
+    "web-crawler",
+    "dataset",
+    "data-extraction",
+    "etl",
+    "jsonl",
+    "typescript",
+    "rust"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": { "node": ">=22" },

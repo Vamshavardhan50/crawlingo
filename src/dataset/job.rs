@@ -199,7 +199,13 @@ impl DatasetJob {
         // Sled's exclusive lock prevents concurrent writers to this job directory.
         let db = sled::Config::new()
             .path(cfg.output_dir.join("state"))
-            .cache_capacity(32 * 1024 * 1024)
+            // Random exact-dedup lookups compete with shard commits. Keep a bounded
+            // page cache sized for several checkpoint batches.
+            .cache_capacity(
+                (cfg.checkpoint_bytes as u64)
+                    .saturating_mul(4)
+                    .clamp(32 << 20, 128 << 20),
+            )
             .open()?;
         let mut source = BufReader::new(File::open(&cfg.urls_file)?);
         let input = file_integrity(&cfg.urls_file)?;
@@ -247,6 +253,11 @@ impl DatasetJob {
         }
         source.seek(SeekFrom::Start(checkpoint.offset))?;
         let robots = Arc::new(crate::crawl::robots::RobotsCache::new());
+        let parse_slots = Arc::new(tokio::sync::Semaphore::new(
+            std::thread::available_parallelism()
+                .map_or(1, usize::from)
+                .min(cfg.concurrency),
+        ));
         checkpoint.report.cancelled = false;
         loop {
             if self.cancellation.is_cancelled() {
@@ -314,8 +325,9 @@ impl DatasetJob {
             let mut pages = stream::iter(tasks.into_iter().map(|url| {
                 let robots = robots.clone();
                 let config = shared_config.clone();
+                let parse_slots = parse_slots.clone();
                 async move {
-                    let result = self.fetch_records(&url, &robots, config).await;
+                    let result = self.fetch_records(&url, &robots, config, parse_slots).await;
                     (url, result)
                 }
             }))
@@ -460,6 +472,7 @@ impl DatasetJob {
         url: &str,
         robots: &crate::crawl::robots::RobotsCache,
         cfg: Arc<JobConfig>,
+        parse_slots: Arc<tokio::sync::Semaphore>,
     ) -> Result<Vec<Result<BTreeMap<String, String>>>> {
         let mut headers = self.session.read_headers();
         let agent = headers
@@ -499,7 +512,12 @@ impl DatasetJob {
         if response.body.len() > cfg.max_response_bytes {
             return Err(error("response exceeds job byte limit"));
         }
+        let permit = parse_slots
+            .acquire_owned()
+            .await
+            .map_err(|e| error(e.to_string()))?;
         tokio::task::spawn_blocking(move || {
+            let _permit = permit;
             let page = HtmlParser::parse(response)?;
             extract_records(&page, &cfg)
         })
@@ -607,20 +625,17 @@ pub fn extract_records(
         return Err(error("page exceeds max_records_per_page"));
     }
     let tree = page.dom_tree();
-    let root_rows: HashMap<_, _> = roots
-        .iter()
-        .enumerate()
-        .map(|(row, index)| (*index, row))
-        .collect();
     let mut owners = vec![None; tree.nodes.len()];
+    if cfg.row_selector.is_some() {
+        for (row, &root) in roots.iter().enumerate() {
+            owners[root] = Some(row);
+        }
+    }
     for node in &tree.nodes {
         owners[node.index] = if cfg.row_selector.is_none() {
             Some(0)
         } else {
-            root_rows
-                .get(&node.index)
-                .copied()
-                .or_else(|| node.parent.and_then(|p| owners[p]))
+            owners[node.index].or_else(|| node.parent.and_then(|p| owners[p]))
         };
     }
     let mut rows = vec![BTreeMap::new(); roots.len()];
@@ -648,7 +663,7 @@ pub fn extract_records(
             if value.is_empty() {
                 value = field.default.clone().unwrap_or_default();
             }
-            if field.normalize_whitespace {
+            if field.normalize_whitespace && value.split_whitespace().ne(value.split(' ')) {
                 value = value.split_whitespace().collect::<Vec<_>>().join(" ");
             }
             rows[row].insert(field.name.clone(), value);

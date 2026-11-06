@@ -8,17 +8,25 @@ Generate validated datasets using a Rust engine and a small Python API.
 [Complete product example](https://github.com/Vamshavardhan50/crawlingo/blob/main/examples/product_dataset/README.md) ·
 [Deploy a worker](https://github.com/Vamshavardhan50/crawlingo/blob/main/guides/deployment.md) · [Publish to PyPI](https://github.com/Vamshavardhan50/crawlingo/blob/main/guides/publishing.md)
 
-## Build from source
+## Install the alpha
 
-This source targets **1.0.0a2 (unpublished)**. PyPI currently has `0.1.2`, with a
-Windows Python 3.14 wheel and source archive. That artifact is not this dataset
-API. Build the matching extension before running these examples.
+In an activated virtual environment, install the current prerelease with
+
+```sh
+python -m pip install --pre crawlingo
+python -c "from crawlingo import DatasetJob; print(DatasetJob)"
+```
+
+Check that a wheel is available for your Python version and platform. Changes in
+the development source may require a newer release or a source build.
+
+## Build from source
 
 The source declares Python 3.8–3.13; use Python 3.12 for the verified local build.
 Python 3.14 is outside this release's artifact matrix and package metadata.
 Install Rust, C/C++ build tools, CMake and libclang first.
 
-The planned Linux wheels target x64 and ARM64 with glibc 2.28 or newer
+The release Linux wheels target x64 and ARM64 with glibc 2.28 or newer
 (`manylinux_2_28`). Alpine/musl wheels are not included. macOS Intel/Apple Silicon
 and Windows x64 are separate build targets; see the release status for completed
 platform checks.
@@ -69,7 +77,13 @@ from crawlingo import DatasetJob, Session
 
 session = Session().rate_limit(2).timeout(30)
 session.headers({"User-Agent": "MyDatasetBot/1.0"})
-job = DatasetJob(config, session=session)  # config is your job dictionary
+config = {
+    "urls_file": "urls.txt",
+    "output_dir": "datasets/pages",
+    "fields": [{"name": "title", "selector": "h1", "required": True}],
+}
+report = DatasetJob(config, session=session).run()
+print(report["pages_failed"], report["records_rejected"])
 ```
 
 Robots checks are enabled by default. `row_selector`, field validation and exact

@@ -91,6 +91,7 @@ jobs:
       - name: Check installed package and dataset jobs
         run: |
           python -m unittest discover -s sdk/python/tests -p test_import.py -v
+          python -m unittest discover -s sdk/python/tests -p test_session_wrapper.py -v
           python -m unittest discover -s sdk/python/tests -p test_dataset_job.py -v
       - name: Run the standalone Python API suite
         run: python sdk/python/tests/test_all_apis.py
@@ -145,6 +146,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install cargo-audit --locked
       - run: cargo audit
+      - run: cargo audit --file sdk/nodejs/native/Cargo.lock
 
   ci-pass:
     name: CI Pass

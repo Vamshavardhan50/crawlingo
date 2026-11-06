@@ -748,6 +748,9 @@ impl Page {
     }
 
     pub fn get_nodes_combined_text(&self, indices: &[usize]) -> String {
+        if let [index] = indices {
+            return self.tree.get_text(*index);
+        }
         indices
             .iter()
             .map(|&idx| self.tree.get_text(idx))

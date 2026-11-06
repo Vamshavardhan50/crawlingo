@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" data-crawlingo-launcher>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crawlingo Studio</title>
+<style>
+:root{color-scheme:dark;--bg:#0a1017;--surface:#121c27;--line:#253444;--text:#ecf2f7;--muted:#9aaebe;--accent:#76e2be;font-family:Inter,Segoe UI,system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);min-height:100vh}button,input{font:inherit}button,a,input{outline-offset:5px}button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--accent)}button{cursor:pointer}a{color:inherit;text-decoration:none}header{height:90px;max-width:1180px;margin:auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:12px;font-weight:650;letter-spacing:-.5px;font-size:20px}.brand svg{width:32px;height:32px;color:var(--accent)}.brand span{font-weight:400;color:var(--muted)}.local{font:11px ui-monospace,monospace;letter-spacing:1px;color:var(--muted);display:flex;align-items:center;gap:9px}.dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}main{max-width:1116px;margin:0 auto;padding:64px 32px 36px}.intro{display:flex;align-items:flex-end;justify-content:space-between;gap:32px;margin-bottom:34px}.eyebrow{font:11px ui-monospace,monospace;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin:0 0 18px}h1{font-size:clamp(36px,4.5vw,58px);font-weight:560;letter-spacing:-2.5px;line-height:1.07;margin:0}h1 span{color:var(--muted)}.intro p:last-child{font-size:15px;color:var(--muted);max-width:350px;line-height:1.7;margin:0 0 4px}.workspace{border:1px solid var(--line);border-radius:20px;background:var(--surface);overflow:hidden;box-shadow:0 24px 70px #0003}.workspace-head{display:flex;justify-content:space-between;align-items:center;padding:19px 26px;border-bottom:1px solid var(--line);font-size:13px}.workspace-head span:last-child{color:var(--muted);font-size:11px}.launch{padding:30px 26px 25px}.launch label{display:block;font-weight:550;font-size:14px;margin-bottom:12px}.input-row{display:flex;align-items:center;gap:12px}.url{flex:1;min-width:0;padding:17px 18px;background:#0b131d;border:1px solid #34485b;border-radius:10px;color:var(--text);font:14px ui-monospace,monospace}.url::placeholder{color:#6e8599}.open{background:var(--accent);border:0;border-radius:10px;padding:18px 23px;white-space:nowrap;color:#08251b;font-size:14px;font-weight:650}.open:hover{background:#9cebd0}.open:disabled{opacity:.5;cursor:wait}.hint{font-size:12px;line-height:1.6;color:var(--muted);margin:13px 0 0}.samples{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:22px;font-size:12px;color:var(--muted)}.sample{padding:7px 11px;background:transparent;color:#c5d2dc;border:1px solid #344556;border-radius:7px;font-size:11px}.sample:hover{border-color:var(--accent);color:var(--accent)}#status{min-height:20px;margin:16px 0 0;font-size:12px;color:#f5b7a5}.workflow{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);background:#0f1822}.step{padding:24px 26px;border-right:1px solid var(--line)}.step:last-child{border:0}.step small{font:10px ui-monospace,monospace;color:var(--accent);letter-spacing:1px}.step h2{font-size:14px;font-weight:550;margin:12px 0 8px}.step p{font-size:12px;line-height:1.7;color:var(--muted);margin:0}.bottom{display:flex;justify-content:space-between;gap:32px;margin-top:26px;align-items:start}.scope{font-size:12px;line-height:1.8;color:var(--muted);max-width:540px;margin:0}.scope strong{font-weight:500;color:#c8d5df}details{font-size:12px;line-height:1.8;color:var(--muted);max-width:350px}summary{cursor:pointer;color:#d6e2eb}code{color:var(--accent);font-size:11px}footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font:11px ui-monospace,monospace;color:#698195}.shortcut{color:#c2d1db}@media(max-width:700px){header{height:70px;padding:0 22px}.local{font-size:9px}main{padding:40px 20px}.intro{display:block}.intro p:last-child{margin-top:22px}.input-row{flex-direction:column;align-items:stretch}.workflow{grid-template-columns:1fr}.step{border-right:0;border-bottom:1px solid var(--line)}.bottom{flex-direction:column;gap:20px}.workspace-head{padding:18px}footer{line-height:1.7;gap:16px}h1{letter-spacing:-1.5px}.launch{padding:24px 18px}}
+</style>
+</head>
+<body>
+<header><a class="brand" href="#"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M12 12 7 8 5 3M11 16 5 14 2 10M11 20 5 22 3 28M13 23 10 27 10 31M20 12 25 8 27 3M21 16 27 14 30 10M21 20 27 22 29 28M19 23 22 27 22 31"/><ellipse cx="16" cy="18" rx="5" ry="7" fill="currentColor"/><circle cx="16" cy="8" r="3" fill="currentColor"/></svg>Crawlingo <span>Studio</span></a><div class="local"><i class="dot"></i> LOCAL WORKSPACE</div></header>
+<main>
+<section class="intro"><div><p class="eyebrow">From page to dataset</p><h1>Start with a URL.<br><span>See what you collect.</span></h1></div><p>Open a page, watch the spider find records, and review the data before you export.</p></section>
+<section class="workspace" aria-label="Open a collection session">
+<div class="workspace-head"><span>New collection</span><span>01 / Open a source</span></div>
+<form class="launch" id="launch">
+<label for="url">Website URL</label>
+<div class="input-row"><input class="url" id="url" type="url" required placeholder="https://example.com/directory" autocomplete="off" spellcheck="false" autofocus><button class="open" id="open" type="submit">Open in Studio ↗</button></div>
+<p class="hint">The page opens in this Chromium window. Choose “Watch spider collect” to begin.</p>
+<div class="samples"><span>Try a source</span><button class="sample" type="button" data-url="https://peps.python.org/numerical/">Python PEP directory</button><button class="sample" type="button" data-url="https://books.toscrape.com/">Books practice catalog</button></div>
+<p id="status" role="status" aria-live="polite"></p>
+</form>
+<div class="workflow"><article class="step"><small>01 / EXPLORE</small><h2>Browse the actual page</h2><p>Scroll and interact normally. Open manual controls when you want to choose specific fields.</p></article><article class="step"><small>02 / COLLECT</small><h2>Watch each record arrive</h2><p>The spider stays centered. Its nearest leg reaches for each detected record while the page scrolls.</p></article><article class="step"><small>03 / REVIEW</small><h2>Take your data with you</h2><p>Review captured records and save JSON. Manual selections can also become a Crawlingo dataset job.</p></article></div>
+</section>
+<section class="bottom"><p class="scope"><strong>A focused preview, on your machine.</strong><br>Automatic collection detects up to 30 records on the current page. It does not paginate or follow links. Review the inferred results.</p><details><summary>How do I open Studio again?</summary><p>From <code>tools/selector-studio</code>, run <code>npm start</code>. Use <code>npm run demo</code> for six synthetic sample records. Close the browser window to exit.</p></details></section>
+<footer><span>CRAWLINGO / BROWSER DATA TOOLS</span><span>Open a page. Collect. Review. Export.</span></footer>
+</main>
+<script>
+const input = document.getElementById('url'), status = document.getElementById('status'), open = document.getElementById('open');
+window.addEventListener('pageshow', () => { open.disabled = false; status.textContent = ''; });
+document.querySelectorAll('[data-url]').forEach(button => button.addEventListener('click', () => { input.value = button.dataset.url; input.focus(); }));
+document.getElementById('launch').addEventListener('submit', async event => {
+  event.preventDefault();
+  try {
+    const url = new URL(input.value.trim());
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Use an HTTP or HTTPS URL without embedded credentials.');
+    if (typeof window.__crawlingoOpenPage !== 'function') throw new Error('Start Studio using npm start to open pages.');
+    open.disabled = true; status.textContent = 'Opening the page…';
+    await window.__crawlingoOpenPage(url.href);
+  } catch (error) { status.textContent = error.message; open.disabled = false; }
+});
+</script>
+</body></html>

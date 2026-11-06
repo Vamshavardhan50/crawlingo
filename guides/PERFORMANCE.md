@@ -11,9 +11,11 @@ when the response contains the data; rendered-browser work has a different cost
 and must be measured separately. Reuse a Session so requests share connections,
 rate limits and transport settings.
 
-The checked local run produced one million records from one million small HTTP
-pages. Its 1,094.569-second job duration is a fixture result, not a universal rate.
-See [the complete measurement](../SCALE_RESULTS.md).
+The checked local directory workload produced one million records from 1,000
+HTTP pages in 40–51 seconds across three runs. Full output verification and
+restart took total wall time to 44–55 seconds. Use records per page and the
+source's allowed request rate to size a live job. See the [raw timings and
+separate one-million-page workload](benchmarks.md).
 
 ## What the current allocation changes do
 

@@ -8,11 +8,65 @@ resumable file exports.
 [Documentation](https://crawlingo-docs.vercel.app/sdk/nodejs) ·
 [Job reference](https://github.com/Vamshavardhan50/crawlingo/blob/main/DATASET_JOBS.md) · [Scale evidence](https://github.com/Vamshavardhan50/crawlingo/blob/main/SCALE_RESULTS.md)
 
+## Install the alpha
+
+Use Node.js 22 or newer. Install from the prerelease channel with
+
+```sh
+npm install crawlingo@next
+```
+
+Inspect the published channels with `npm view crawlingo dist-tags`.
+Check the installed version with `npm list crawlingo`.
+
+The alpha package contains prebuilt addons for Linux x64 GNU, macOS Intel and
+Apple Silicon, and Windows x64. Linux ARM64 and Alpine/musl prebuilt addons are
+not included. On an unsupported target, build and test the native addon from source.
+
+## Your first dataset
+
+Create `urls.txt` with one HTTP(S) URL per line, for example:
+
+```text
+https://example.com/
+```
+
+Save this as `dataset.cjs` in the same directory:
+
+```javascript
+const { DatasetJob, Session } = require('crawlingo');
+
+async function main() {
+  const session = new Session().rateLimit(1).timeout(30);
+  const job = new DatasetJob({
+    urls_file: 'urls.txt',
+    output_dir: 'datasets/example',
+    fields: [{ name: 'title', selector: 'h1', required: true }],
+    concurrency: 2,
+    format: 'jsonl',
+  }, session);
+
+  const report = await job.run();
+  console.log('Records:', report.records_written);
+  console.log('Page failures:', report.pages_failed);
+  console.log('Rejected rows:', report.records_rejected);
+}
+
+main().catch(error => { console.error(error); process.exitCode = 1; });
+```
+
+Run `node dataset.cjs`. Read `datasets/example/report.json`, the numbered JSONL
+data shards and the `.errors.jsonl` shards. Check failures and rejected rows before
+using the data. Repeat the same job to resume it; use a new directory for changed
+input or configuration. Respect the source's rules and set an appropriate request
+rate. A completed job does not automatically refresh pages.
+
+[Research dataset guide](https://crawlingo-docs.vercel.app/research-datasets) ·
+[DatasetJob reference](https://crawlingo-docs.vercel.app/reference/dataset-job) ·
+[SDK reference](https://crawlingo-docs.vercel.app/reference/node)
+
 ## Build from source
 
-This source targets **1.0.0-alpha.2 (unpublished)** and Node.js 22+. The inspected
-npm `1.0.0-alpha.1` tarball does not include `DatasetJob` and contains a Windows x64
-addon only. Build the native library and TypeScript wrapper together.
 Native compilation requires Rust, C/C++ build tools, CMake and libclang.
 
 The release targets Linux x64 GNU (glibc 2.35+), macOS Intel/Apple Silicon and
@@ -42,7 +96,7 @@ the directory containing its shared library. Rebuild for each target platform.
 
 ## Generate a dataset
 
-Create `urls.txt` with one HTTP(S) URL per line. In a TypeScript ES module:
+For a typed TypeScript ES module, use the same URL file:
 
 ```typescript
 import { DatasetJob, type JobConfig } from 'crawlingo';
@@ -69,11 +123,18 @@ same configuration, input and output directory. Use a new directory for changes.
 ## Configure requests
 
 ```typescript
-import { DatasetJob, Session } from 'crawlingo';
+import { DatasetJob, Session, type JobConfig } from 'crawlingo';
 
 const session = new Session().rateLimit(2).timeout(30);
 session.headers({ 'User-Agent': 'MyDatasetBot/1.0' });
+const config: JobConfig = {
+  urls_file: 'urls.txt',
+  output_dir: 'datasets/pages',
+  fields: [{ name: 'title', selector: 'h1', required: true }],
+};
 const job = new DatasetJob(config, session);
+const report = await job.run();
+console.log(report.pages_failed, report.records_rejected);
 ```
 
 ### Retries
@@ -128,7 +189,9 @@ explicit request timeout overrides the session timeout.
 ### Handle errors
 
 ```typescript
-import { Page, CrawlingoError, TimeoutError, DnsError } from 'crawlingo';
+import { Page, Session, CrawlingoError, TimeoutError, DnsError } from 'crawlingo';
+
+const session = new Session().timeout(30);
 
 try {
   const page = await Page.create('https://example.com/', { session });
@@ -172,8 +235,8 @@ page failures in their error shards and report; they do not reject the entire jo
 for each failed page. A selector with no matches can return an empty collection;
 an invalid regular expression throws `SelectorError`.
 
-This API is in the alpha.2 source. Rebuild both the native addon and TypeScript
-wrapper to use it; it is absent from the published alpha.1 package.
+These error classes and session controls are in the alpha.2 package. The older
+alpha.1 and 0.1.2 packages may expose different APIs.
 
 `JobConfig`, `JobField` and `JobReport` are exported types. See the
 [job reference](https://github.com/Vamshavardhan50/crawlingo/blob/main/DATASET_JOBS.md) for scoped rows, validation and identity keys.

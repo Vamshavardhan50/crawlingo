@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "crawlingo"
-version = "1.0.0a2"
+version = "1.0.0a3"
 description = "Crawlingo - validated datasets from web pages, powered by Rust"
 # Inline registry text avoids a README filename collision when maturin flattens
 # this mixed Rust/Python project's source distribution into one directory.

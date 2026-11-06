@@ -1,11 +1,19 @@
 # Changelog
 
-Published versions below were checked against registry metadata on 2026-10-18.
-See [release status](guides/RELEASE_STATUS.md) for artifact and platform details.
+See [release status](guides/RELEASE_STATUS.md) for registry and platform details.
 
-## Unreleased — 1.0.0-alpha.2
+## 1.0.0-alpha.3 release candidate
 
-Python uses the equivalent version `1.0.0a2`. This source has not been published.
+Python uses `1.0.0a3`.
+
+- Bound concurrent parsing by available CPUs, increase the bounded checkpoint index cache, and reduce allocations when extracting directory rows.
+- Add a runnable Tranco import and publish raw measurements for the live million-domain export and two local HTML workloads. [Timings and reproduction](guides/benchmarks.md).
+- Check the npm registry integrity against the built tarball and preserve OIDC publishing. Audit both the engine and Node native lockfiles.
+- Update the transitive Zstandard compression libraries in both lockfiles.
+
+## 1.0.0-alpha.2
+
+Published as `1.0.0a2` on PyPI.
 
 ### Dataset generation
 

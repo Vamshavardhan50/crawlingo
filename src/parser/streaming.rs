@@ -58,7 +58,7 @@ pub fn parse_html(html: &[u8]) -> Result<DomTree> {
             let handler: Box<dyn FnOnce(&mut lol_html::html_content::EndTag<'_>) -> LolHtmlResult> =
                 Box::new(move |_end| {
                     let mut stack = stack_inner.borrow_mut();
-                    if let Some(pos) = stack.iter().position(|&idx| idx == new_idx) {
+                    if let Some(pos) = stack.iter().rposition(|&idx| idx == new_idx) {
                         stack.truncate(pos);
                     }
                     Ok(())
@@ -74,7 +74,7 @@ pub fn parse_html(html: &[u8]) -> Result<DomTree> {
 
     // Track text and accumulate under the current active element
     let text_handler = doc_text!(move |t| {
-        let text_content = t.as_str().to_string();
+        let text_content = t.as_str();
         if !text_content.is_empty() {
             if let Some(&active_node_idx) = stack_text_clone.borrow().last() {
                 let mut tree_mut = tree_text_clone.borrow_mut();
@@ -82,7 +82,7 @@ pub fn parse_html(html: &[u8]) -> Result<DomTree> {
                     // Ignore scripts and stylesheet code blocks
                     if node.tag != "script" && node.tag != "style" {
                         let start = node.text.len();
-                        node.text.push_str(&text_content);
+                        node.text.push_str(text_content);
                         let end = node.text.len();
                         match node.content.last_mut() {
                             Some(DomContent::Text(range)) if range.end == start => range.end = end,

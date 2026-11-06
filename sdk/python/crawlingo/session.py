@@ -1,3 +1,4 @@
+import math
 from typing import TYPE_CHECKING, Optional
 from ._crawlingo_core import Session as _CoreSession
 
@@ -23,6 +24,47 @@ class Session:
     def cookies(self, cookies: dict) -> "Session":
         """Set default cookies for the session."""
         self._core_session.cookies(cookies)
+        return self
+
+    def get_cookies(self) -> dict:
+        """Return a snapshot of explicit default cookies, not a browser cookie jar."""
+        return self._core_session.get_cookies()
+
+    def delete_cookie(self, name: str) -> "Session":
+        """Remove a default cookie; a missing name is a no-op."""
+        self._core_session.delete_cookie(name)
+        return self
+
+    def clear_cookies(self) -> "Session":
+        """Remove all explicit default cookies."""
+        self._core_session.clear_cookies()
+        return self
+
+    def retries(self, count: int) -> "Session":
+        """Set additional attempts after the first request; zero disables retries."""
+        if isinstance(count, bool) or not isinstance(count, int) or not 0 <= count <= 0xFFFFFFFF:
+            raise ValueError("retries must be an integer between 0 and 4294967295")
+        self._core_session.retries(count)
+        return self
+
+    def retry_backoff(self, factor: float) -> "Session":
+        """Set the finite exponential delay multiplier, which must be at least 1."""
+        if isinstance(factor, bool) or not isinstance(factor, (int, float)):
+            raise ValueError("retry_backoff must be finite and >= 1")
+        try:
+            valid = math.isfinite(factor) and factor >= 1
+        except OverflowError:
+            valid = False
+        if not valid:
+            raise ValueError("retry_backoff must be finite and >= 1")
+        self._core_session.retry_backoff(factor)
+        return self
+
+    def retry_delay(self, seconds: int) -> "Session":
+        """Set the initial retry delay in whole seconds, from 0 to 86400."""
+        if isinstance(seconds, bool) or not isinstance(seconds, int) or not 0 <= seconds <= 86400:
+            raise ValueError("retry_delay must be an integer between 0 and 86400 seconds")
+        self._core_session.retry_delay(seconds)
         return self
 
     def proxy(self, proxy_url: str) -> "Session":

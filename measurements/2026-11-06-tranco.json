@@ -1,0 +1,23 @@
+{
+  "report": {
+    "captured_at_utc": "2026-11-05T18:55:03.903500800Z",
+    "export_seconds_from_start": 5.8701562,
+    "fetch_seconds": 4.1447261,
+    "http_status": 200,
+    "jsonl_sha256": "4631d3b66adaa12c3acc3610fd06f8ec41da2b56103469881a34a4ad0cbc2fcd",
+    "scope": "One HTTPS snapshot download using Crawlingo, CSV validation and uniqueness check, durable JSONL export and comparison of every output record with the response.",
+    "server_cache_status": "HIT",
+    "snapshot_id": "JZPGY",
+    "source": "https://tranco-list.eu/download/JZPGY/1000000",
+    "source_bytes": 22639581,
+    "source_sha256": "218ab1bd9fb2074559928bdef831c33539651ce5904eff3b78f31798f5b59de7",
+    "verified_seconds_from_start": 6.9539518000000005,
+    "verified_unique_records": 1000000
+  },
+  "process": {
+    "wall_seconds": 7.0216763,
+    "binary_sha256": "11908D1541EEBCBACFC30469C4D345398148B18230B5FFA0A4BA240E66D0E097",
+    "budget_seconds": 60
+  },
+  "output_bytes": 41639581
+}

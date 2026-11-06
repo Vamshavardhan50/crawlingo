@@ -1,33 +1,35 @@
 # Release status and next SDK release
 
-Last updated: **2026-10-24** (registry versions audited October 22). Local changes are not published packages.
+Last checked **2026-11-06**. The new source targets Rust/npm `1.0.0-alpha.3` and PyPI `1.0.0a3`. The previous npm publish and promotion succeeded. The later failed CI run reported four Rust compression dependency vulnerabilities. Both lockfiles now resolve the compatible Zstandard security backports. Local development changes are separate from the
+published artifacts below.
 
 ## What users can install today
 
 | Channel | Observed version | What was verified |
 | --- | --- | --- |
-| GitHub | `v1.0.0-alpha.1`, published 2026-07-19 | Prerelease label and factual package limitations corrected October 23; no uploaded assets |
-| npm latest | `0.1.2` | Archive contains only the Windows x64 native addon; no DatasetJob wrapper |
-| npm alpha | `1.0.0-alpha.1` | Same native platform limitation; no DatasetJob wrapper |
-| PyPI | `0.1.2` | One CPython 3.14 Windows x64 wheel and one source archive |
-| crates.io | `0.1.2` | One published version, not yanked |
+| GitHub | [`v1.0.0-alpha.2`](https://github.com/Vamshavardhan50/crawlingo/releases/tag/v1.0.0-alpha.2) | Prerelease; the npm retry and release-asset attachment completed successfully |
+| npm latest | `1.0.0-alpha.2` | Registry tag verified; Windows x64 import checked; install with `npm install crawlingo` |
+| npm next | `1.0.0-alpha.2` | Points to the same published alpha release |
+| PyPI | `1.0.0a2` | GitHub's Python publishing job succeeded for the alpha release |
+| crates.io | `1.0.0-alpha.2` | GitHub's crate publishing job succeeded for the alpha release |
 
 Sources: [GitHub release metadata](https://api.github.com/repos/Vamshavardhan50/crawlingo/releases),
 [npm metadata](https://registry.npmjs.org/crawlingo),
 [PyPI metadata](https://pypi.org/pypi/crawlingo/json), and
 [crate metadata](https://crates.io/api/v1/crates/crawlingo).
-The npm archives were listed without executing their code. Full installation and
-runtime behavior of those old packages was not retested.
+The npm `next` package was installed in an isolated Windows x64 consumer and
+its `DatasetJob`, `Session` and session cookie/retry methods were checked. That
+is not full platform or production validation. PyPI and crates.io status above
+comes from the release jobs; it is not a new clean-install check for those packages.
 
 Local evidence is preserved in `target/published-release-audit-20261018.json`,
 `target/published-node-alpha1.tgz` and `target/published-node-012.tgz`.
 
-## Prepared next version
+## Historical preparation: alpha.2
 
-**Rust/npm: `1.0.0-alpha.2`; Python: `1.0.0a2`. Unpublished.**
-
-The current dataset workflow must be built from source until this version is
-released. Existing immutable registry versions must not be overwritten or reused.
+The following matrix was prepared for Rust/npm `1.0.0-alpha.2` and Python
+`1.0.0a2`. The versions were subsequently published. Registry package versions
+cannot be replaced; publish a new version for changed contents.
 
 ### Intended artifact matrix
 
@@ -38,12 +40,12 @@ released. Existing immutable registry versions must not be overwritten or reused
 | npm | Node.js 22+; the same four native targets | Native SDK/API checks, Debian 12 consumer check, complete addon set, clean consumer import |
 | Python | CPython 3.8–3.13 where the wheel builder supports the platform; Linux x64/ARM64 (glibc 2.28+), macOS x64/ARM64, Windows x64 | Wheel import and dataset checks, source distribution metadata |
 
-The end-to-end release has **not** passed yet. The October 23 run completed the
-platform build jobs, then failed during Rust crate artifact upload; see below.
-The alpha.2 artifact matrix and package metadata target CPython 3.8–3.13.
-The patched PyO3 dependency does not by itself certify additional Python versions.
+The October 23 run failed during Rust crate artifact upload; the corrected release
+later completed the Python and crate publishing jobs. An npm retry subsequently
+succeeded and attached release assets. The alpha.2 artifact matrix and package
+metadata target CPython 3.8–3.13; this does not certify additional versions.
 
-## Publication sequence
+## Historical publication sequence (prepared before alpha.2)
 
 1. Commit the engine/SDK changes and both Cargo lockfiles. Website changes live
    in a separate repository and need their own deployment.
@@ -112,10 +114,10 @@ tag and package contents were preserved. No alpha.2 binaries were attached to it
   builder was changed to Ubuntu 22.04 and a Debian 12 consumer check was added;
   the revised artifact still needs its hosted result.
 
-The new SDK versions remain unpublished. PyPI's saved GitHub publisher was
-verified on October 23 with owner `Vamshavardhan50`, repository `crawlingo`,
-workflow `release.yml` and environment `pypi`. crates.io publisher setup remains
-unconfirmed. The Linux wheel build now compiles and repairs successfully, but
+At the time of this October 23 preparation, the new SDK versions were unpublished.
+PyPI's saved GitHub publisher was verified with owner `Vamshavardhan50`, repository
+`crawlingo`, workflow `release.yml` and environment `pypi`. The Linux wheel build
+then compiled and repaired successfully, but
 its first test invocation used the repository root instead of the SDK directory;
 the workflow now uses cibuildwheel's `{package}` path. The remaining macOS Intel
 failure was packaging metadata: the compiled extension requires macOS 10.12 while
