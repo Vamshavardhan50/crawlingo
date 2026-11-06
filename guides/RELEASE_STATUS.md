@@ -1,6 +1,6 @@
 # Release status and next SDK release
 
-Last checked **2026-11-06**. Release `v1.0.0-alpha.3` passed the full SDK build matrix and is published on GitHub. PyPI `1.0.0a3` and crates.io `1.0.0-alpha.3` are published. npm upload is awaiting the package trusted publisher configuration.
+Last checked **2026-11-06**. Release `v1.0.0-alpha.3` passed the full SDK build matrix and is published on GitHub. PyPI `1.0.0a3` and crates.io `1.0.0-alpha.3` are published. npm `1.0.0-alpha.3` is published with provenance and the next tag. npm latest remains `1.0.0-alpha.2`.
 
 ## What users can install today
 
@@ -12,7 +12,7 @@ engine and Node native lockfiles passed the updated vulnerability audit.
 | --- | --- | --- |
 | GitHub | [`v1.0.0-alpha.3`](https://github.com/Vamshavardhan50/crawlingo/releases/tag/v1.0.0-alpha.3) | All core builds, addons, wheels and artifact checks passed |
 | npm latest | `1.0.0-alpha.2` | Registry tag verified; Windows x64 import checked; install with `npm install crawlingo` |
-| npm next | `1.0.0-alpha.2` | Points to the same published alpha release |
+| npm next | `1.0.0-alpha.3` | Published with GitHub provenance; SHA-512 matches the reviewed artifact |
 | PyPI | `1.0.0a3` | Published and checked through registry metadata |
 | crates.io | `1.0.0-alpha.3` | Published and checked through registry metadata |
 
