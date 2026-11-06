@@ -33,6 +33,12 @@ The package includes JavaScript, declarations and native addons in dist/. The re
 
 Configure npm trusted publishing for the package owner, repository, release.yml and environment npm, with permission for direct npm publish. The workflow uses Node 22 and npm 11, with id-token: write for publication. Prereleases publish under next; stable versions use latest. Install a prerelease with npm install crawlingo@next.
 
+In the trusted publisher's allowed actions, select **Allow npm publish**.
+New connections permit staged publishing by default. A direct upload from this
+workflow needs the publish action selected as well. The error
+`OIDC permission denied for this action` indicates that npm recognized the
+workflow identity but denied its requested operation.
+
 ### Inspect a local artifact
 
 ```shell

@@ -69,8 +69,8 @@ jobs:
             exit 1
           fi
           matched=false
-          for delay in 1 2 4 8 16; do
-            sleep "$delay"
+          for delay in $(seq 1 40); do
+            sleep 15
             if [[ "$(curl -fsS "$metadata" | jq -r .dist.integrity)" == "$expected" ]]; then matched=true; break; fi
           done
           test "$matched" = true || { echo "::error::Registry integrity differs from the verified tarball."; exit 1; }

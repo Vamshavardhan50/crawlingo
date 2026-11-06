@@ -441,8 +441,8 @@ jobs:
             echo "::warning::The workflow commit differs from the checked-out release commit; publishing without npm provenance to avoid an incorrect source attestation."
             npm publish "$archive" --access public --tag "$tag"
           fi
-          for delay in 1 2 4 8 16; do
-            sleep "$delay"
+          for delay in $(seq 1 60); do
+            sleep 15
             if [[ "$(curl -fsS "$metadata" | jq -r '.dist.integrity')" == "$expected" ]]; then exit 0; fi
           done
           echo "::error::Could not verify registry integrity for crawlingo@$version"

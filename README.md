@@ -98,8 +98,8 @@ the same `job.json`. Platform availability varies; consult each SDK guide.
 
 | Language | Setup | API |
 | --- | --- | --- |
-| Python | `pip install crawlingo==1.0.0a2` · [SDK guide](sdk/python/README.md) | `DatasetJob(config).run()` or `await job.run_async()` |
-| Node.js / TypeScript | `npm install crawlingo` · [SDK guide](sdk/nodejs/README.md) | `await new DatasetJob(config).run()` |
+| Python | `pip install crawlingo==1.0.0a3` · [SDK guide](sdk/python/README.md) | `DatasetJob(config).run()` or `await job.run_async()` |
+| Node.js / TypeScript | `npm install crawlingo@next` · [SDK guide](sdk/nodejs/README.md) | `await new DatasetJob(config).run()` |
 | Rust | [Crate integration](https://crawlingo-docs.vercel.app/sdk/rust) | `DatasetJob::new(config, session)?.run().await?` |
 
 The [DatasetJob reference](guides/api-dataset-job.md) covers complete examples,
