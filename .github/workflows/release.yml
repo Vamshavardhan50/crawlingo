@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: dtolnay/rust-toolchain@stable
@@ -45,7 +45,7 @@ jobs:
     outputs:
       source-commit: ${{ steps.source.outputs.commit }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.publish-npm && format('refs/tags/{0}', inputs.release-tag) || github.ref }}
       - uses: actions/setup-node@v4
@@ -85,7 +85,7 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: dtolnay/rust-toolchain@stable
@@ -142,7 +142,7 @@ jobs:
             target: x86_64-pc-windows-msvc
             file: crawlingo-native.win32-x64-msvc.node
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: dtolnay/rust-toolchain@stable
@@ -211,7 +211,7 @@ jobs:
           - os: windows-latest
             archs: AMD64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: dtolnay/rust-toolchain@stable
@@ -244,7 +244,7 @@ jobs:
     needs: [verify-version, build-node-addons, python-wheels]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: actions/setup-node@v4
@@ -285,7 +285,7 @@ jobs:
     needs: [verify-version, python-wheels, build-node-addons]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: actions/setup-python@v5
@@ -310,7 +310,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: dtolnay/rust-toolchain@stable
@@ -351,7 +351,7 @@ jobs:
     needs: [verify-version, package-npm, package-python, package-crate, rustdoc]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: actions/setup-node@v4
@@ -474,7 +474,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.verify-version.outputs.source-commit }}
       - uses: dtolnay/rust-toolchain@stable
