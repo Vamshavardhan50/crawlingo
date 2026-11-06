@@ -74,7 +74,7 @@ pub async fn write_parquet_stream(
 
         let file = std::fs::File::create(&path_str)?;
         let props = WriterProperties::builder()
-            .set_max_row_group_size(limit)
+            .set_max_row_group_row_count(Some(limit))
             .build();
         let mut writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
 

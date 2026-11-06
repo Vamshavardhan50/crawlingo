@@ -9,7 +9,7 @@ Python uses `1.0.0a3`.
 - Bound concurrent parsing by available CPUs, increase the bounded checkpoint index cache, and reduce allocations when extracting directory rows.
 - Add a runnable Tranco import and publish raw measurements for the live million-domain export and two local HTML workloads. [Timings and reproduction](guides/benchmarks.md).
 - Check the npm registry integrity against the built tarball and preserve OIDC publishing. Audit both the engine and Node native lockfiles.
-- Update the transitive Zstandard compression libraries in both lockfiles.
+- Update the Zstandard compression libraries and migrate Parquet export to Arrow/Parquet 60.1, removing the affected Apache Thrift dependency. Streaming writers retain their configured row-group limit.
 
 ## 1.0.0-alpha.2
 

@@ -5,6 +5,10 @@ published artifacts below.
 
 ## What users can install today
 
+The November 6 RustSec database also reported a newer advisory against the old
+Parquet dependency on Thrift. The engine now uses Arrow/Parquet 60.1. Both
+engine and Node native lockfiles passed the updated vulnerability audit.
+
 | Channel | Observed version | What was verified |
 | --- | --- | --- |
 | GitHub | [`v1.0.0-alpha.2`](https://github.com/Vamshavardhan50/crawlingo/releases/tag/v1.0.0-alpha.2) | Prerelease; the npm retry and release-asset attachment completed successfully |
