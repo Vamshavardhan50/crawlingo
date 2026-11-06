@@ -1,0 +1,82 @@
+name: Recover npm release
+on:
+  workflow_dispatch:
+    inputs:
+      run-id:
+        description: Release workflow run containing the verified release-assets artifact
+        required: true
+        type: string
+      release-tag:
+        description: Existing GitHub prerelease tag
+        required: true
+        type: string
+        default: v1.0.0-alpha.3
+permissions:
+  contents: read
+concurrency:
+  group: recover-npm
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.run-id }}
+          name: release-assets
+          path: release-assets
+      - name: Verify, publish and attach the original artifacts
+        working-directory: release-assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release-tag }}
+          RELEASE_RUN: ${{ inputs.run-id }}
+        run: |
+          set -euo pipefail
+          test -n "$NODE_AUTH_TOKEN" || { echo "::error::Configure the npm environment NPM_TOKEN with publish permission."; exit 1; }
+          version=${RELEASE_TAG#v}
+          test "$(jq -r .version release-manifest.json)" = "$version"
+          test "$(jq -r .workflowRun release-manifest.json)" = "$RELEASE_RUN"
+          expected_commit=$(gh api "repos/$GH_REPO/actions/runs/$RELEASE_RUN" --jq .head_sha)
+          test "$(jq -r .commit release-manifest.json)" = "$expected_commit"
+          test "$(gh api "repos/$GH_REPO/actions/runs/$RELEASE_RUN" --jq .path)" = '.github/workflows/release.yml'
+          test "$(gh api "repos/$GH_REPO/actions/runs/$RELEASE_RUN" --jq .head_branch)" = "$RELEASE_TAG"
+          sha256sum --check SHA256SUMS
+          archive="crawlingo-$version.tgz"
+          test "$(tar -xOf "$archive" package/package.json | jq -r .version)" = "$version"
+          expected="sha512-$(openssl dgst -sha512 -binary "$archive" | openssl base64 -A)"
+          metadata="https://registry.npmjs.org/crawlingo/$version"
+          status=$(curl -sS -o "$RUNNER_TEMP/npm-version.json" -w '%{http_code}' "$metadata")
+          if [[ "$status" == 404 ]]; then
+            tag=latest
+            if [[ "$version" == *-* ]]; then tag=next; fi
+            npm publish "./$archive" --access public --tag "$tag"
+          elif [[ "$status" != 200 ]]; then
+            echo "::error::npm registry returned HTTP $status"
+            exit 1
+          fi
+          matched=false
+          for delay in 1 2 4 8 16; do
+            sleep "$delay"
+            if [[ "$(curl -fsS "$metadata" | jq -r .dist.integrity)" == "$expected" ]]; then matched=true; break; fi
+          done
+          test "$matched" = true || { echo "::error::Registry integrity differs from the verified tarball."; exit 1; }
+          existing=$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')
+          for asset in *; do
+            if ! printf '%s\n' "$existing" | grep -Fx "$asset" >/dev/null; then
+              gh release upload "$RELEASE_TAG" "$asset"
+            fi
+          done

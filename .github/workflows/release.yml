@@ -409,6 +409,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release-tag }}
           SOURCE_COMMIT: ${{ needs.verify-version.outputs.source-commit }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
           version=${RELEASE_TAG#v}
